@@ -1,18 +1,33 @@
-// frontend/src/api/whatsapp.js
 import api from './index'
+
 export default {
-  // 账号管理
-  getAccounts: () => api.get('/whatsapp/accounts/list'),      // 改
-  addAccount: (data) => api.post('/whatsapp/accounts/add'),  // 改
-  deleteAccount: (account) => api.post(`/whatsapp/accounts/${account}/del`),  // 改
+  // ==================== 账号管理 ====================
+  // 获取账号列表 - GET，不需要传数据
+  getAccounts: () => api.get('/whatsapp/accounts/list'),
+  
+  // 添加账号 - POST，需要传 data
+  addAccount: (data) => api.post('/whatsapp/accounts/add', data),
+  
+  // 删除账号 - POST，URL 中带参数
+  deleteAccount: (account) => api.post(`/whatsapp/accounts/${account}/del`),
+  
+  // 上线 - POST，URL 中带参数
   online: (account) => api.post(`/whatsapp/accounts/${account}/online`),
+  
+  // 下线 - POST，URL 中带参数
   offline: (account) => api.post(`/whatsapp/accounts/${account}/offline`),
+  
+  // 获取二维码 - GET，带查询参数
   getQRCode: (params) => api.get('/whatsapp/qrcode', { params }),
   
-  // 消息
-  sendMessage: (data) => api.post('/whatsapp/messages/send'),  // 改
-  getMessages: (params) => api.get('/whatsapp/messages/get'),  // 改
+  // ==================== 消息管理 ====================
+  // 发送消息 - POST，需要传 data
+  sendMessage: (data) => api.post('/whatsapp/messages/send', data),
   
-  // 联系人
+  // 获取消息列表 - GET，带查询参数
+  getMessages: (params) => api.get('/whatsapp/messages/get', { params }),
+  
+  // ==================== 联系人 ====================
+  // 获取联系人列表 - GET，带查询参数
   getContacts: (params) => api.get('/whatsapp/contacts', { params })
 }
