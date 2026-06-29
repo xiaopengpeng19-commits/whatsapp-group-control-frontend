@@ -1,3 +1,4 @@
+
 import axios from 'axios'
 
 // 创建 axios 实例
@@ -37,4 +38,15 @@ api.interceptors.response.use(
   }
 )
 
+// 导入各个模块
+import auth from './auth'
+import whatsapp from './whatsapp'
+import user from './user'
+
+// 挂载到 api 上
+api.auth = auth
+api.whatsapp = whatsapp
+api.user = user
+
+// 导出 api 实例
 export default api

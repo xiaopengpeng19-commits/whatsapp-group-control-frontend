@@ -1,6 +1,7 @@
+
 import api from './index'
 
-export const auth = {
+export default {
   login: (data) => api.post('/login', data),
   logout: () => api.post('/logout'),
   getCurrentUser: (userId) => api.get(`/user/${userId}`)

@@ -1,3 +1,4 @@
+
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/api'
@@ -31,17 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('userInfo')
   }
 
-  const updateUserInfo = (info) => {
-    userInfo.value = { ...userInfo.value, ...info }
-    localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-  }
-
   return {
     token,
     userInfo,
     isAuthenticated,
     login,
-    logout,
-    updateUserInfo
+    logout
   }
 })

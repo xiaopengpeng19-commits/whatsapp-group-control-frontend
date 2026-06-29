@@ -1,6 +1,7 @@
+
 import api from './index'
 
-export const whatsapp = {
+export default {
   // 账号管理
   getAccounts: () => api.get('/whatsapp/accounts'),
   addAccount: (data) => api.post('/whatsapp/accounts', data),

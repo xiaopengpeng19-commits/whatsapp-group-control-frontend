@@ -1,7 +1,7 @@
-// frontend/src/api/user.js
+
 import api from './index'
 
-export const user = {
+export default {
   list: (params) => api.get('/users', { params }),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
