@@ -1,4 +1,3 @@
-// frontend/src/api/auth.js
 import api from './index'
 
 export const auth = {

@@ -1,42 +1,56 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 直接导入组件（不使用别名）
+// 直接导入组件
 import Login from '../views/Login.vue'
 import Layout from '../views/Layout.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Accounts from '../views/Accounts.vue'
 import Messages from '../views/Messages.vue'
+import Contacts from '../views/Contacts.vue'
 import Users from '../views/Users.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: Login,
+    meta: { title: '登录' }
   },
   {
     path: '/',
     component: Layout,
+    meta: { title: '管理后台' },
+    redirect: '/dashboard',
     children: [
       {
-        path: '',
+        path: 'dashboard',
         name: 'Dashboard',
-        component: Dashboard
+        component: Dashboard,
+        meta: { title: '仪表盘' }
       },
       {
         path: 'accounts',
         name: 'Accounts',
-        component: Accounts
+        component: Accounts,
+        meta: { title: '账号管理' }
       },
       {
         path: 'messages',
         name: 'Messages',
-        component: Messages
+        component: Messages,
+        meta: { title: '消息管理' }
+      },
+      {
+        path: 'contacts',
+        name: 'Contacts',
+        component: Contacts,
+        meta: { title: '联系人' }
       },
       {
         path: 'users',
         name: 'Users',
-        component: Users
+        component: Users,
+        meta: { title: '用户管理' }
       }
     ]
   }
@@ -45,6 +59,18 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  if (to.path !== '/login' && !token) {
+    next('/login')
+  } else if (to.path === '/login' && token) {
+    next('/')
+  } else {
+    next()
+  }
 })
 
 export default router
