@@ -1,3 +1,4 @@
+
 <template>
   <div class="accounts">
     <div class="toolbar">
@@ -90,6 +91,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Loading } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 
+console.log('🔵 Accounts.vue 组件已加载')
+
 const accounts = ref([])
 const loading = ref(false)
 const showAddDialog = ref(false)
@@ -101,14 +104,23 @@ const addForm = reactive({
   nickname: ''
 })
 
+console.log('🔵 addForm 初始值:', addForm)
+
 const fetchAccounts = async () => {
+  console.log('🔄 获取账号列表...')
   loading.value = true
   try {
     const res = await whatsapp.getAccounts()
+    console.log('📥 账号列表响应:', res)
     if (res.code === 0) {
       accounts.value = res.data || []
+      console.log('✅ 账号列表:', accounts.value)
+    } else {
+      console.log('❌ 获取失败:', res.message)
+      ElMessage.error(res.message || '获取账号列表失败')
     }
   } catch (error) {
+    console.error('❌ 获取账号列表异常:', error)
     ElMessage.error('获取账号列表失败')
   } finally {
     loading.value = false
@@ -116,20 +128,32 @@ const fetchAccounts = async () => {
 }
 
 const handleAdd = async () => {
+  console.log('🔵 handleAdd 被调用')
+  console.log('🔵 addForm 当前值:', JSON.stringify(addForm))
+  
   if (!addForm.account) {
+    console.log('⚠️ 手机号为空')
     ElMessage.warning('请输入手机号')
     return
   }
+  
+  console.log('📤 准备发送数据:', JSON.stringify(addForm))
+  
   try {
     const res = await whatsapp.addAccount(addForm)
+    console.log('📥 添加账号响应:', res)
     if (res.code === 0) {
       ElMessage.success('添加成功')
       showAddDialog.value = false
       addForm.account = ''
       addForm.nickname = ''
       fetchAccounts()
+    } else {
+      console.log('❌ 添加失败:', res.message)
+      ElMessage.error(res.message || '添加失败')
     }
   } catch (error) {
+    console.error('❌ 添加账号异常:', error)
     ElMessage.error('添加失败')
   }
 }
@@ -189,6 +213,7 @@ const showQRCode = async (account) => {
 }
 
 onMounted(() => {
+  console.log('🔵 Accounts 组件已挂载')
   fetchAccounts()
 })
 </script>
