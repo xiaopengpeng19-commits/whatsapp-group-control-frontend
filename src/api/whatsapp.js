@@ -1,4 +1,5 @@
 // frontend/src/api/whatsapp.js
+import api from './index'
 export default {
   // 账号管理
   getAccounts: () => api.get('/whatsapp/accounts/list'),      // 改
