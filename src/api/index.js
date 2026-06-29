@@ -43,10 +43,8 @@ import auth from './auth'
 import whatsapp from './whatsapp'
 import user from './user'
 
-// 挂载到 api 上
-api.auth = auth
-api.whatsapp = whatsapp
-api.user = user
-
-// 导出 api 实例
+// 导出 api 实例（默认导出）
 export default api
+
+// 命名导出各个模块
+export { auth, whatsapp, user }
