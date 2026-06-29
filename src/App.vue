@@ -1,13 +1,8 @@
-<!-- frontend/src/App.vue -->
 <template>
-  <el-config-provider :locale="zhCn">
-    <router-view />
-  </el-config-provider>
+  <router-view />
 </template>
 
 <script setup>
-import { ElConfigProvider } from 'element-plus'
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
 </script>
 
 <style>
@@ -16,10 +11,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
   padding: 0;
   box-sizing: border-box;
 }
-
-html,
-body,
-#app {
+html, body, #app {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }

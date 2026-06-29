@@ -1,48 +1,42 @@
-// frontend/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+
+// 直接导入组件（不使用别名）
+import Login from '../views/Login.vue'
+import Layout from '../views/Layout.vue'
+import Dashboard from '../views/Dashboard.vue'
+import Accounts from '../views/Accounts.vue'
+import Messages from '../views/Messages.vue'
+import Users from '../views/Users.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/views/Login.vue'),
-    meta: { requiresAuth: false }
+    component: Login
   },
   {
     path: '/',
-    component: () => import('@/views/Layout.vue'),
-    meta: { requiresAuth: true },
+    component: Layout,
     children: [
       {
         path: '',
         name: 'Dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: { title: '仪表盘' }
+        component: Dashboard
       },
       {
         path: 'accounts',
         name: 'Accounts',
-        component: () => import('@/views/Accounts.vue'),
-        meta: { title: '账号管理' }
+        component: Accounts
       },
       {
         path: 'messages',
         name: 'Messages',
-        component: () => import('@/views/Messages.vue'),
-        meta: { title: '消息管理' }
-      },
-      {
-        path: 'contacts',
-        name: 'Contacts',
-        component: () => import('@/views/Contacts.vue'),
-        meta: { title: '联系人管理' }
+        component: Messages
       },
       {
         path: 'users',
         name: 'Users',
-        component: () => import('@/views/Users.vue'),
-        meta: { title: '用户管理', requiresAdmin: true }
+        component: Users
       }
     ]
   }
@@ -51,22 +45,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
-})
-
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
-  
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
-    return
-  }
-  
-  if (to.meta.requiresAdmin && authStore.userInfo?.role !== 1) {
-    next('/')
-    return
-  }
-  
-  next()
 })
 
 export default router
