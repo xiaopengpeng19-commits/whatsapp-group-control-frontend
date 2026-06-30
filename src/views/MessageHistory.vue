@@ -94,24 +94,20 @@
 
       <el-table :data="messages" border v-loading="loading" stripe>
         <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="account" label="账号" width="130" />
-        <el-table-column prop="to" label="对方号码" width="130" />
+        <el-table-column prop="account" label="账号" width="150" />
+        <el-table-column prop="to" label="对方号码" width="150" />
         <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
         <el-table-column prop="type" label="类型" width="80">
           <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)" size="small">
-              {{ getTypeLabel(row.type) }}
+            <el-tag :type="row.type === 'text' ? 'info' : row.type === 'image' ? 'success' : 'warning'" size="small">
+              {{ row.type === 'text' ? '文本' : row.type === 'image' ? '图片' : '链接' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">
-              <el-icon v-if="row.status === 'sent'"><Clock /></el-icon>
-              <el-icon v-else-if="row.status === 'delivered'"><CircleCheck /></el-icon>
-              <el-icon v-else-if="row.status === 'read'"><View /></el-icon>
-              <el-icon v-else-if="row.status === 'failed'"><CircleClose /></el-icon>
-              {{ getStatusLabel(row.status) }}
+            <el-tag :type="row.status === 'sent' ? 'info' : row.status === 'delivered' ? 'success' : row.status === 'read' ? 'success' : 'danger'" size="small">
+              {{ row.status === 'sent' ? '已发送' : row.status === 'delivered' ? '已送达' : row.status === 'read' ? '已读' : '失败' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -122,16 +118,14 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="sentAt" label="时间" width="160">
+        <el-table-column prop="sentAt" label="时间" width="170">
           <template #default="{ row }">
             {{ formatTime(row.sentAt) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="80" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="text" @click="showDetail(row)">
-              详情
-            </el-button>
+            <el-button size="small" type="text" @click="showDetail(row)">详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -156,16 +150,14 @@
         <el-descriptions-item label="消息ID">{{ detailData.messageId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="账号">{{ detailData.account || '-' }}</el-descriptions-item>
         <el-descriptions-item label="对方号码">{{ detailData.to || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="类型">{{ getTypeLabel(detailData.type) }}</el-descriptions-item>
+        <el-descriptions-item label="类型">
+          {{ detailData.type === 'text' ? '文本' : detailData.type === 'image' ? '图片' : '链接' }}
+        </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(detailData.status)" size="small">
-            {{ getStatusLabel(detailData.status) }}
-          </el-tag>
+          {{ detailData.status === 'sent' ? '已发送' : detailData.status === 'delivered' ? '已送达' : detailData.status === 'read' ? '已读' : '失败' }}
         </el-descriptions-item>
         <el-descriptions-item label="方向">
-          <el-tag :type="detailData.isOutgoing ? 'primary' : 'success'" size="small">
-            {{ detailData.isOutgoing ? '发送' : '接收' }}
-          </el-tag>
+          {{ detailData.isOutgoing ? '发送' : '接收' }}
         </el-descriptions-item>
         <el-descriptions-item label="内容" :span="2">
           <div style="word-wrap:break-word;max-height:200px;overflow-y:auto;white-space:pre-wrap">
@@ -189,7 +181,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, RefreshRight, Refresh, Clock, CircleCheck, View, CircleClose } from '@element-plus/icons-vue'
+import { Search, RefreshRight, Refresh } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import dayjs from 'dayjs'
 
@@ -209,7 +201,6 @@ const filterForm = reactive({
   status: ''
 })
 
-// 统计
 const stats = computed(() => {
   const data = messages.value
   return {
@@ -279,26 +270,6 @@ const resetFilter = () => {
 const showDetail = (row) => {
   detailData.value = row
   showDetailDialog.value = true
-}
-
-const getTypeTag = (type) => {
-  const map = { text: 'info', image: 'success', link: 'warning', video: 'danger' }
-  return map[type] || ''
-}
-
-const getTypeLabel = (type) => {
-  const map = { text: '文本', image: '图片', link: '链接', video: '视频' }
-  return map[type] || type
-}
-
-const getStatusType = (status) => {
-  const map = { sent: 'info', delivered: 'success', read: 'success', failed: 'danger' }
-  return map[status] || ''
-}
-
-const getStatusLabel = (status) => {
-  const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败' }
-  return map[status] || status
 }
 
 const formatTime = (time) => {
