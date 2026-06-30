@@ -54,6 +54,12 @@ const routes = [
         meta: { title: '代理管理' }
       },
       {
+        path: 'targets',
+        name: 'TargetAccounts',
+        component: () => import('@/views/TargetAccounts.vue'),
+        meta: { title: '目标账号' }
+      },
+      {
         path: 'contacts',
         name: 'Contacts',
         component: Contacts,

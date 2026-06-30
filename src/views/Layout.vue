@@ -32,6 +32,10 @@
           <el-icon><Connection /></el-icon>
           <span>代理管理</span>
         </el-menu-item>
+        <el-menu-item index="/targets">
+          <el-icon><UserFilled /></el-icon>
+          <span>目标账号</span>
+        </el-menu-item>
         <el-menu-item index="/contacts">
           <el-icon><User /></el-icon>
           <span>联系人</span>
