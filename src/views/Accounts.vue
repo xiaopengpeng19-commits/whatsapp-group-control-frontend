@@ -59,7 +59,7 @@
           >
             下线
           </el-button>
-          <el-button size="small" type="info" @click="showQRCode(row.account)">
+          <el-button size="small" type="info" @click="showQRCode(row)">
             二维码
           </el-button>
           <el-button size="small" type="danger" @click="handleDelete(row.account)">
