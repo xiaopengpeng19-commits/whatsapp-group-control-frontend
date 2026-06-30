@@ -41,7 +41,13 @@
     </el-card>
 
     <!-- 账号列表 -->
-    <el-table :data="accounts" v-loading="loading" border>
+    <el-table 
+      :data="accounts" 
+      v-loading="loading" 
+      border
+      @selection-change="handleSelectionChange"
+      row-key="account"
+    >
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="150" />
       <el-table-column prop="nickname" label="昵称" width="120" />
@@ -255,7 +261,7 @@ const fetchProxyGroups = async () => {
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    let params = {}
+    const params = {}
     if (filterGroup.value) {
       params.group = filterGroup.value
     }
@@ -384,6 +390,7 @@ const handleEditGroup = async () => {
 }
 
 const handleBatchGroup = async () => {
+  console.log('selectedAccounts:', selectedAccounts.value)
   if (selectedAccounts.value.length === 0) {
     ElMessage.warning('请先选择账号')
     return
@@ -411,7 +418,9 @@ const handleBatchGroup = async () => {
 }
 
 const handleSelectionChange = (selection) => {
+  console.log('selection changed:', selection)
   selectedAccounts.value = selection.map(item => item.account)
+  console.log('selectedAccounts:', selectedAccounts.value)
 }
 
 onMounted(() => {
