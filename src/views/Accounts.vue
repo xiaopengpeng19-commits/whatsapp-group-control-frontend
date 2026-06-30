@@ -122,6 +122,7 @@ import api from '@/api'
 const accounts = ref([])
 const proxyGroups = ref([])
 const loading = ref(false)
+const qrLoading = ref(false)
 const showAddDialog = ref(false)
 const showQRDialog = ref(false)
 const qrCode = ref('')
