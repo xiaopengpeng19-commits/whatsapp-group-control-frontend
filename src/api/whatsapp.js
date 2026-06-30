@@ -23,6 +23,10 @@ export default {
   // ==================== 消息管理 ====================
   // 发送消息 - POST，需要传 data
   sendMessage: (data) => api.post('/whatsapp/messages/send', data),
+
+  // ==================== 链接消息 ====================
+  // 发送链接消息 - POST，需要传 data
+  sendLinkMessage: (data) => api.post('/whatsapp/link/send', data),
   
   // 获取消息列表 - GET，带查询参数
   getMessages: (params) => api.get('/whatsapp/messages/get', { params }),

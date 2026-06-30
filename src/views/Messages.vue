@@ -1,10 +1,11 @@
 <template>
   <div class="messages">
+    <!-- 发送消息 -->
     <el-card>
       <template #header>
         <span>发送消息</span>
       </template>
-      <el-form :model="sendForm" label-width="80px">
+      <el-form :model="sendForm" label-width="100px">
         <el-form-item label="账号">
           <el-select v-model="sendForm.account" placeholder="选择账号">
             <el-option
@@ -22,34 +23,84 @@
           <el-radio-group v-model="sendForm.type">
             <el-radio-button value="text">文本</el-radio-button>
             <el-radio-button value="image">图片</el-radio-button>
+            <el-radio-button value="link">链接</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="内容">
-          <el-input
-            v-model="sendForm.content"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入消息内容"
-          />
-        </el-form-item>
+
+        <!-- 文本消息 -->
+        <template v-if="sendForm.type === 'text'">
+          <el-form-item label="内容">
+            <el-input
+              v-model="sendForm.content"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入消息内容"
+            />
+          </el-form-item>
+        </template>
+
+        <!-- 图片消息 -->
+        <template v-if="sendForm.type === 'image'">
+          <el-form-item label="图片URL">
+            <el-input v-model="sendForm.media" placeholder="请输入图片URL（Base64或URL）" />
+          </el-form-item>
+          <el-form-item label="图片描述">
+            <el-input v-model="sendForm.caption" placeholder="请输入图片描述" />
+          </el-form-item>
+        </template>
+
+        <!-- 链接消息 -->
+        <template v-if="sendForm.type === 'link'">
+          <el-form-item label="链接标题">
+            <el-input v-model="sendForm.linkTitle" placeholder="请输入链接标题" />
+          </el-form-item>
+          <el-form-item label="链接描述">
+            <el-input v-model="sendForm.linkBody" type="textarea" :rows="2" placeholder="请输入链接描述" />
+          </el-form-item>
+          <el-form-item label="链接地址">
+            <el-input v-model="sendForm.linkUrl" placeholder="请输入链接URL" />
+          </el-form-item>
+          <el-form-item label="图片URL">
+            <el-input v-model="sendForm.linkImage" placeholder="请输入预览图片URL（可选）" />
+          </el-form-item>
+          <el-form-item label="按钮文字">
+            <el-input v-model="sendForm.linkButton" placeholder="请输入按钮文字（可选）" />
+          </el-form-item>
+        </template>
+
         <el-form-item>
-          <el-button type="primary" @click="handleSend">发送</el-button>
+          <el-button type="primary" @click="handleSend" :loading="sending">
+            <el-icon><Promotion /></el-icon> 发送
+          </el-button>
+          <el-button @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
+    <!-- 消息记录 -->
     <el-card style="margin-top:20px">
       <template #header>
-        <span>消息记录</span>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>消息记录</span>
+          <el-button size="small" @click="fetchMessages">
+            <el-icon><Refresh /></el-icon> 刷新
+          </el-button>
+        </div>
       </template>
-      <el-table :data="messages" border>
+      <el-table :data="messages" border v-loading="loading">
         <el-table-column prop="account" label="账号" width="120" />
         <el-table-column prop="to" label="对方" width="120" />
-        <el-table-column prop="content" label="内容" min-width="200" />
-        <el-table-column prop="type" label="类型" width="80" />
+        <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="type" label="类型" width="80">
+          <template #default="{ row }">
+            <el-tag :type="getTypeTag(row.type)" size="small">
+              {{ getTypeLabel(row.type) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
+            <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusLabel(row.status) }}
             </el-tag>
           </template>
@@ -67,18 +118,27 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Promotion, Refresh } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import dayjs from 'dayjs'
 
 const accounts = ref([])
 const messages = ref([])
 const loading = ref(false)
+const sending = ref(false)
 
 const sendForm = reactive({
   account: '',
   to: '',
   type: 'text',
-  content: ''
+  content: '',
+  media: '',
+  caption: '',
+  linkTitle: '',
+  linkBody: '',
+  linkUrl: '',
+  linkImage: '',
+  linkButton: ''
 })
 
 const fetchAccounts = async () => {
@@ -110,20 +170,105 @@ const fetchMessages = async () => {
 }
 
 const handleSend = async () => {
-  if (!sendForm.account || !sendForm.to || !sendForm.content) {
-    ElMessage.warning('请完整填写信息')
+  if (!sendForm.account) {
+    ElMessage.warning('请选择账号')
     return
   }
+  if (!sendForm.to) {
+    ElMessage.warning('请输入对方号码')
+    return
+  }
+
+  sending.value = true
   try {
-    const res = await whatsapp.sendMessage(sendForm)
+    let res
+
+    switch (sendForm.type) {
+      case 'text':
+        if (!sendForm.content) {
+          ElMessage.warning('请输入消息内容')
+          sending.value = false
+          return
+        }
+        res = await whatsapp.sendMessage({
+          account: sendForm.account,
+          to: sendForm.to,
+          type: 'text',
+          content: sendForm.content
+        })
+        break
+
+      case 'image':
+        if (!sendForm.media) {
+          ElMessage.warning('请输入图片URL')
+          sending.value = false
+          return
+        }
+        res = await whatsapp.sendMessage({
+          account: sendForm.account,
+          to: sendForm.to,
+          type: 'image',
+          media: sendForm.media,
+          caption: sendForm.caption || '图片'
+        })
+        break
+
+      case 'link':
+        if (!sendForm.linkTitle || !sendForm.linkUrl) {
+          ElMessage.warning('请填写链接标题和链接地址')
+          sending.value = false
+          return
+        }
+        res = await whatsapp.sendLinkMessage({
+          account: sendForm.account,
+          to: sendForm.to,
+          title: sendForm.linkTitle,
+          body: sendForm.linkBody || '',
+          url: sendForm.linkUrl,
+          imageUrl: sendForm.linkImage || '',
+          buttonText: sendForm.linkButton || '查看详情'
+        })
+        break
+
+      default:
+        ElMessage.warning('不支持的消息类型')
+        sending.value = false
+        return
+    }
+
     if (res.code === 0) {
       ElMessage.success('发送成功')
-      sendForm.content = ''
+      resetForm()
       fetchMessages()
+    } else {
+      ElMessage.error(res.message || '发送失败')
     }
   } catch (error) {
-    ElMessage.error('发送失败')
+    ElMessage.error('发送失败: ' + (error.message || ''))
+  } finally {
+    sending.value = false
   }
+}
+
+const resetForm = () => {
+  sendForm.content = ''
+  sendForm.media = ''
+  sendForm.caption = ''
+  sendForm.linkTitle = ''
+  sendForm.linkBody = ''
+  sendForm.linkUrl = ''
+  sendForm.linkImage = ''
+  sendForm.linkButton = ''
+}
+
+const getTypeTag = (type) => {
+  const map = { text: 'info', image: 'success', link: 'warning', video: 'danger' }
+  return map[type] || ''
+}
+
+const getTypeLabel = (type) => {
+  const map = { text: '文本', image: '图片', link: '链接', video: '视频' }
+  return map[type] || type
 }
 
 const getStatusType = (status) => {
@@ -145,3 +290,9 @@ onMounted(() => {
   fetchMessages()
 })
 </script>
+
+<style scoped>
+.messages {
+  max-width: 100%;
+}
+</style>
