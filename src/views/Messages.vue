@@ -1,3 +1,4 @@
+
 <template>
   <div class="messages">
     <!-- 发送消息 -->
@@ -45,14 +46,14 @@
             <el-input v-model="sendForm.media" placeholder="请输入图片URL（Base64或URL）" />
           </el-form-item>
           <el-form-item label="图片描述">
-            <el-input v-model="sendForm.caption" placeholder="请输入图片描述" />
+            <el-input v-model="sendForm.caption" placeholder="请输入图片描述（可选）" />
           </el-form-item>
         </template>
 
         <!-- 链接消息 -->
         <template v-if="sendForm.type === 'link'">
           <el-form-item label="链接标题">
-            <el-input v-model="sendForm.linkTitle" placeholder="请输入链接标题" />
+            <el-input v-model="sendForm.linkTitle" placeholder="请输入链接标题（可选）" />
           </el-form-item>
           <el-form-item label="链接描述">
             <el-input v-model="sendForm.linkBody" type="textarea" :rows="2" placeholder="请输入链接描述" />
@@ -63,8 +64,11 @@
           <el-form-item label="图片URL">
             <el-input v-model="sendForm.linkImage" placeholder="请输入预览图片URL（可选）" />
           </el-form-item>
+          <el-form-item label="底部文字">
+            <el-input v-model="sendForm.linkFooter" placeholder="请输入底部文字（可选）" />
+          </el-form-item>
           <el-form-item label="按钮文字">
-            <el-input v-model="sendForm.linkButton" placeholder="请输入按钮文字（可选）" />
+            <el-input v-model="sendForm.linkButton" placeholder="请输入按钮文字（可选，默认：查看详情）" />
           </el-form-item>
         </template>
 
@@ -138,6 +142,7 @@ const sendForm = reactive({
   linkBody: '',
   linkUrl: '',
   linkImage: '',
+  linkFooter: '',
   linkButton: ''
 })
 
@@ -214,20 +219,37 @@ const handleSend = async () => {
         break
 
       case 'link':
-        if (!sendForm.linkTitle || !sendForm.linkUrl) {
-          ElMessage.warning('请填写链接标题和链接地址')
+        if (!sendForm.linkUrl) {
+          ElMessage.warning('请输入链接地址')
           sending.value = false
           return
         }
-        res = await whatsapp.sendLinkMessage({
+        if (!sendForm.linkBody) {
+          ElMessage.warning('请输入链接描述')
+          sending.value = false
+          return
+        }
+        // 构建链接数据，只传有值的字段
+        const linkData = {
           account: sendForm.account,
           to: sendForm.to,
-          title: sendForm.linkTitle,
-          body: sendForm.linkBody || '',
-          url: sendForm.linkUrl,
+          body: sendForm.linkBody,
           imageUrl: sendForm.linkImage || '',
-          buttonText: sendForm.linkButton || '查看详情'
-        })
+          button: {
+            name: 'cta_url',
+            display_text: sendForm.linkButton || '查看详情',
+            url: sendForm.linkUrl
+          }
+        }
+        // title 有值才添加
+        if (sendForm.linkTitle) {
+          linkData.title = sendForm.linkTitle
+        }
+        // footer 有值才添加
+        if (sendForm.linkFooter) {
+          linkData.footer = sendForm.linkFooter
+        }
+        res = await whatsapp.sendLinkMessage(linkData)
         break
 
       default:
@@ -258,6 +280,7 @@ const resetForm = () => {
   sendForm.linkBody = ''
   sendForm.linkUrl = ''
   sendForm.linkImage = ''
+  sendForm.linkFooter = ''
   sendForm.linkButton = ''
 }
 
