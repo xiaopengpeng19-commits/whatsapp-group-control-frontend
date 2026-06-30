@@ -19,7 +19,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="proxy" label="代理IP" min-width="250" show-overflow-tooltip>
+      <el-table-column prop="proxy" label="代理IP" min-width="200" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.proxy" style="font-size:12px;font-family:monospace;">
             {{ row.proxy }}
@@ -41,7 +41,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="320" fixed="right">
+      <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status !== 'online'"
@@ -99,14 +99,16 @@
     </el-dialog>
 
     <!-- 二维码对话框 -->
-    <el-dialog v-model="showQRDialog" title="扫码登录" width="400px">
-      <div class="qr-container">
-        <img v-if="qrCode" :src="qrCode" alt="二维码" />
-        <div v-else class="qr-loading">
-          <el-icon class="is-loading"><Loading /></el-icon>
-          <span>加载中...</span>
+    <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
+      <div class="qr-container" v-loading="qrLoading">
+        <div v-if="qrCode" class="qr-image-wrapper">
+          <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCode)" alt="二维码" />
+          <p class="qr-tip">请使用 WhatsApp 扫描二维码登录</p>
         </div>
-        <p class="qr-tip">请使用 WhatsApp 扫描二维码</p>
+        <div v-else-if="!qrLoading" class="qr-empty">
+          <el-icon :size="48"><Picture /></el-icon>
+          <p>暂无二维码</p>
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -115,7 +117,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Loading } from '@element-plus/icons-vue'
+import { Plus, Refresh, Loading, Picture } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 
@@ -228,7 +230,6 @@ const showQRCode = async (row) => {
   qrLoading.value = true
   
   try {
-    // ✅ 正确：调用新接口，传入 proxy
     const res = await whatsapp.getQRCodeLogin(row.account, {
       proxy: row.proxy || '',
       callbackurl: ''
@@ -262,22 +263,34 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  justify-content: center;
+  min-height: 250px;
   padding: 20px 0;
 }
-.qr-container img {
-  width: 200px;
-  height: 200px;
+.qr-image-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
-.qr-loading {
+.qr-container img {
+  width: 250px;
+  height: 250px;
+  border: 2px solid #e4e7ed;
+  border-radius: 8px;
+}
+.qr-tip {
+  color: #999;
+  font-size: 14px;
+}
+.qr-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   color: #999;
 }
-.qr-tip {
-  color: #999;
-  font-size: 14px;
+.qr-empty .el-icon {
+  font-size: 48px;
 }
 </style>
