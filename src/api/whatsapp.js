@@ -1,12 +1,11 @@
 import api from './index'
 
 export default {
-
   // ==================== 代理管理 ====================
   // 获取代理列表
-  getProxies: (params) => api.get('/proxies', { params }),
+  getProxies: (params) => api.get('/proxies/list', { params }),
   // 添加代理
-  addProxy: (data) => api.post('/proxies', data),
+  addProxy: (data) => api.post('/proxies/add', data),
   // 批量添加代理
   batchAddProxies: (data) => api.post('/proxies/batch', data),
   // 删除代理
@@ -15,7 +14,7 @@ export default {
   batchDeleteProxies: (data) => api.post('/proxies/batch/delete', data),
   // 切换代理状态
   toggleProxyStatus: (id, data) => api.put(`/proxies/${id}/status`, data),
-  
+
   // ==================== 账号管理 ====================
   // 获取账号列表 - GET，不需要传数据
   getAccounts: () => api.get('/whatsapp/accounts/list'),
