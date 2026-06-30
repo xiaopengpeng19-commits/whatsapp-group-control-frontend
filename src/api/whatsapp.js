@@ -1,6 +1,10 @@
 import api from './index'
 
 export default {
+  // 在 whatsapp.js 中添加分组相关方法
+  getAccountGroups: () => api.get('/whatsapp/accounts/groups'),
+  updateAccountGroup: (account, data) => api.put(`/whatsapp/accounts/${account}/group`, data),
+  batchUpdateAccountGroup: (data) => api.post('/whatsapp/accounts/batch/group', data),
   // ==================== 代理管理 ====================
   // 获取代理列表
   getProxies: (params) => api.get('/proxies/list', { params }),
@@ -53,6 +57,7 @@ export default {
   // ==================== 联系人 ====================
   // 获取联系人列表 - GET，带查询参数
   getContacts: (params) => api.get('/whatsapp/contacts', { params })
+
 
   
 }
