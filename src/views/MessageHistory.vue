@@ -1,3 +1,4 @@
+
 <template>
   <div class="message-history">
     <!-- 搜索和筛选 -->
@@ -29,6 +30,7 @@
             <el-option label="已发送" value="sent" />
             <el-option label="已送达" value="delivered" />
             <el-option label="已读" value="read" />
+            <el-option label="已接收" value="received" />
             <el-option label="失败" value="failed" />
           </el-select>
         </el-form-item>
@@ -94,7 +96,16 @@
       <el-table :data="messages" border v-loading="loading" stripe>
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="account" label="账号" width="150" />
-        <el-table-column prop="to" label="对方号码" width="150" />
+        <el-table-column prop="from" label="发送方" width="150">
+          <template #default="{ row }">
+            {{ row.from || row.to }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="to" label="接收方" width="150">
+          <template #default="{ row }">
+            {{ row.to || row.account }}
+          </template>
+        </el-table-column>
         <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
         <el-table-column prop="type" label="类型" width="80">
           <template #default="{ row }">
@@ -105,8 +116,8 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'sent' ? 'info' : row.status === 'delivered' ? 'success' : row.status === 'read' ? 'success' : 'danger'" size="small">
-              {{ row.status === 'sent' ? '已发送' : row.status === 'delivered' ? '已送达' : row.status === 'read' ? '已读' : '失败' }}
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -148,12 +159,13 @@
       <el-descriptions :column="2" border>
         <el-descriptions-item label="消息ID">{{ detailData.messageId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="账号">{{ detailData.account || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="对方号码">{{ detailData.to || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="发送方">{{ detailData.from || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="接收方">{{ detailData.to || '-' }}</el-descriptions-item>
         <el-descriptions-item label="类型">
           {{ detailData.type === 'text' ? '文本' : detailData.type === 'image' ? '图片' : '链接' }}
         </el-descriptions-item>
         <el-descriptions-item label="状态">
-          {{ detailData.status === 'sent' ? '已发送' : detailData.status === 'delivered' ? '已送达' : detailData.status === 'read' ? '已读' : '失败' }}
+          {{ getStatusLabel(detailData.status) }}
         </el-descriptions-item>
         <el-descriptions-item label="方向">
           {{ detailData.isOutgoing ? '发送' : '接收' }}
@@ -209,6 +221,28 @@ const stats = computed(() => {
     failed: data.filter(m => m.status === 'failed').length
   }
 })
+
+const getStatusType = (status) => {
+  const map = { 
+    sent: 'info', 
+    delivered: 'success', 
+    read: 'success', 
+    failed: 'danger',
+    received: 'info'
+  }
+  return map[status] || ''
+}
+
+const getStatusLabel = (status) => {
+  const map = { 
+    sent: '已发送', 
+    delivered: '已送达', 
+    read: '已读', 
+    failed: '失败',
+    received: '已接收'
+  }
+  return map[status] || status
+}
 
 const fetchAccounts = async () => {
   try {

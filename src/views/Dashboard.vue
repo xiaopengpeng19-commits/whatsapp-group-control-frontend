@@ -91,12 +91,24 @@ const recentMessages = ref([])
 const accountStatus = ref([])
 
 const getStatusType = (status) => {
-  const map = { sent: '', delivered: 'success', read: 'success', failed: 'danger' }
+  const map = { 
+    sent: 'info', 
+    delivered: 'success', 
+    read: 'success', 
+    failed: 'danger',
+    received: 'info'  // 新增：接收消息
+  }
   return map[status] || ''
 }
 
 const getStatusLabel = (status) => {
-  const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败' }
+  const map = { 
+    sent: '已发送', 
+    delivered: '已送达', 
+    read: '已读', 
+    failed: '失败',
+    received: '已接收'  // 新增：接收消息
+  }
   return map[status] || status
 }
 
