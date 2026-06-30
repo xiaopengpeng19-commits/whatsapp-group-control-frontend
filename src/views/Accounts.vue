@@ -221,18 +221,27 @@ const handleOffline = async (account) => {
   }
 }
 
-const showQRCode = async (account) => {
+const showQRCode = async (row) => {
   showQRDialog.value = true
   qrCode.value = ''
+  qrLoading.value = true
+  
   try {
-    const res = await whatsapp.getQRCode({ account })
-    if (res.code === 0 && res.data?.qrcode) {
-      qrCode.value = `data:image/png;base64,${res.data.qrcode}`
+    // ✅ 正确：调用新接口，传入 proxy
+    const res = await whatsapp.getQRCodeLogin(row.account, {
+      proxy: row.proxy || '',
+      callbackurl: ''
+    })
+    
+    if (res.code === 0 && res.data?.qrCode) {
+      qrCode.value = res.data.qrCode
     } else {
       ElMessage.warning('二维码生成中，请稍后重试')
     }
   } catch (error) {
-    ElMessage.error('获取二维码失败')
+    ElMessage.error('获取二维码失败: ' + (error.message || ''))
+  } finally {
+    qrLoading.value = false
   }
 }
 
