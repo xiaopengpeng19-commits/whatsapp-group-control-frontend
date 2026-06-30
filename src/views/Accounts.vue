@@ -13,6 +13,11 @@
     <el-table :data="accounts" v-loading="loading" border>
       <el-table-column prop="account" label="账号" width="150" />
       <el-table-column prop="nickname" label="昵称" />
+      <el-table-column prop="proxyGroup" label="代理分组" width="120">
+        <template #default="{ row }">
+          <el-tag size="small">{{ row.proxyGroup || '未分配' }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="120">
         <template #default="{ row }">
           <el-tag :type="row.status === 'online' ? 'success' : 'info'">
@@ -57,12 +62,22 @@
 
     <!-- 添加账号对话框 -->
     <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
-      <el-form :model="addForm" label-width="80px">
+      <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号">
           <el-input v-model="addForm.account" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="昵称">
-          <el-input v-model="addForm.nickname" placeholder="请输入昵称" />
+          <el-input v-model="addForm.nickname" placeholder="请输入昵称（可选）" />
+        </el-form-item>
+        <el-form-item label="代理分组">
+          <el-select v-model="addForm.proxyGroup" placeholder="选择代理分组（可选）" clearable style="width:100%">
+            <el-option
+              v-for="item in proxyGroups"
+              :key="item.name"
+              :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name"
+            />
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -90,10 +105,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Loading } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
-
-console.log('🔵 Accounts.vue 组件已加载')
+import api from '@/api'
 
 const accounts = ref([])
+const proxyGroups = ref([])
 const loading = ref(false)
 const showAddDialog = ref(false)
 const showQRDialog = ref(false)
@@ -101,60 +116,56 @@ const qrCode = ref('')
 
 const addForm = reactive({
   account: '',
-  nickname: ''
+  nickname: '',
+  proxyGroup: ''
 })
 
-console.log('🔵 addForm 初始值:', addForm)
-
 const fetchAccounts = async () => {
-  console.log('🔄 获取账号列表...')
   loading.value = true
   try {
     const res = await whatsapp.getAccounts()
-    console.log('📥 账号列表响应:', res)
     if (res.code === 0) {
       accounts.value = res.data || []
-      console.log('✅ 账号列表:', accounts.value)
-    } else {
-      console.log('❌ 获取失败:', res.message)
-      ElMessage.error(res.message || '获取账号列表失败')
     }
   } catch (error) {
-    console.error('❌ 获取账号列表异常:', error)
     ElMessage.error('获取账号列表失败')
   } finally {
     loading.value = false
   }
 }
 
+const fetchProxyGroups = async () => {
+  try {
+    const res = await api.get('/proxies/groups')
+    if (res.code === 0) {
+      proxyGroups.value = res.data || []
+    }
+  } catch (error) {
+    // ignore
+  }
+}
+
 const handleAdd = async () => {
-  console.log('🔵 handleAdd 被调用')
-  console.log('🔵 addForm 当前值:', JSON.stringify(addForm))
-  
   if (!addForm.account) {
-    console.log('⚠️ 手机号为空')
     ElMessage.warning('请输入手机号')
     return
   }
-  
-  console.log('📤 准备发送数据:', JSON.stringify(addForm))
-  
   try {
-    const res = await whatsapp.addAccount(addForm)
-    console.log('📥 添加账号响应:', res)
+    const res = await whatsapp.addAccount({
+      account: addForm.account,
+      nickname: addForm.nickname,
+      proxyGroup: addForm.proxyGroup
+    })
     if (res.code === 0) {
-      ElMessage.success('添加成功')
+      ElMessage.success('添加成功' + (res.data.proxy ? '，已分配代理' : ''))
       showAddDialog.value = false
       addForm.account = ''
       addForm.nickname = ''
+      addForm.proxyGroup = ''
       fetchAccounts()
-    } else {
-      console.log('❌ 添加失败:', res.message)
-      ElMessage.error(res.message || '添加失败')
     }
   } catch (error) {
-    console.error('❌ 添加账号异常:', error)
-    ElMessage.error('添加失败')
+    ElMessage.error('添加失败: ' + (error.message || ''))
   }
 }
 
@@ -213,8 +224,8 @@ const showQRCode = async (account) => {
 }
 
 onMounted(() => {
-  console.log('🔵 Accounts 组件已挂载')
   fetchAccounts()
+  fetchProxyGroups()
 })
 </script>
 

@@ -14,6 +14,8 @@ export default {
   batchDeleteProxies: (data) => api.post('/proxies/batch/delete', data),
   // 切换代理状态
   toggleProxyStatus: (id, data) => api.put(`/proxies/${id}/status`, data),
+  // 获取代理分组列表
+  getProxyGroups: () => api.get('/proxies/groups'),
 
   // ==================== 账号管理 ====================
   // 获取账号列表 - GET，不需要传数据
