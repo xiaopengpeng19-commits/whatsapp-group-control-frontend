@@ -219,7 +219,7 @@ const fetchProxies = async () => {
   try {
     const params = { page: page.value, page_size: pageSize.value }
     if (filterStatus.value) params.status = filterStatus.value
-    const res = await api.get('/proxies', { params })
+    const res = await api.get('/proxies/list', { params })
     if (res.code === 0) {
       proxies.value = res.data.data || []
       total.value = res.data.total || 0
@@ -237,7 +237,7 @@ const handleAdd = async () => {
     return
   }
   try {
-    const res = await api.post('/proxies', { proxyUrl: addForm.proxyUrl })
+    const res = await api.post('/proxies/add', { proxyUrl: addForm.proxyUrl })
     if (res.code === 0) {
       ElMessage.success('添加成功')
       showAddDialog.value = false
@@ -256,13 +256,13 @@ const handleBatchAdd = async () => {
     return
   }
   try {
-    const res = await api.post('/proxies/batch', { proxies: lines })
+    const res = await api.post('/proxies/batch/add', { proxies: lines })
     if (res.code === 0) {
-      const { success_count, total, errors } = res.data
-      if (errors && errors.length > 0) {
-        ElMessage.warning(`成功导入 ${success_count}/${total} 个，失败: ${errors.join('; ')}`)
+      const result = res.data
+      if (result.errors && result.errors.length > 0) {
+        ElMessage.warning('成功导入 ' + result.success_count + '/' + result.total + ' 个，失败: ' + result.errors.join('; '))
       } else {
-        ElMessage.success(`成功导入 ${success_count} 个代理`)
+        ElMessage.success('成功导入 ' + result.success_count + ' 个代理')
       }
       showBatchDialog.value = false
       batchForm.proxiesText = ''
@@ -275,8 +275,8 @@ const handleBatchAdd = async () => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要删除代理 ${row.host}:${row.port} 吗？`, '提示', { type: 'warning' })
-    const res = await api.delete(`/proxies/${row.id}/delete``)
+    await ElMessageBox.confirm('确定要删除代理 ' + row.host + ':' + row.port + ' 吗？', '提示', { type: 'warning' })
+    const res = await api.delete('/proxies/' + row.id + '/delete')
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchProxies()
@@ -291,10 +291,10 @@ const handleDelete = async (row) => {
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个代理吗？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm('确定要删除选中的 ' + selectedIds.value.length + ' 个代理吗？', '提示', { type: 'warning' })
     const res = await api.post('/proxies/batch/delete', { ids: selectedIds.value })
     if (res.code === 0) {
-      ElMessage.success(`成功删除 ${res.data.deleted_count} 个代理`)
+      ElMessage.success('成功删除 ' + res.data.deleted_count + ' 个代理')
       selectedIds.value = []
       fetchProxies()
     }
@@ -308,9 +308,9 @@ const handleBatchDelete = async () => {
 const handleToggleStatus = async (row) => {
   const newStatus = row.status === 'active' ? 'inactive' : 'active'
   try {
-    const res = await api.put(`/proxies/${row.id}/status`, { status: newStatus })
+    const res = await api.put('/proxies/' + row.id + '/status', { status: newStatus })
     if (res.code === 0) {
-      ElMessage.success(`已${newStatus === 'active' ? '启用' : '停用'}`)
+      ElMessage.success(newStatus === 'active' ? '已启用' : '已停用')
       fetchProxies()
     }
   } catch (error) {
