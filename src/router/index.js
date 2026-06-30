@@ -48,6 +48,12 @@ const routes = [
         meta: { title: '消息记录' }
       },
       {
+        path: 'proxies',
+        name: 'Proxies',
+        component: () => import('@/views/Proxies.vue'),
+        meta: { title: '代理管理' }
+      },
+      {
         path: 'contacts',
         name: 'Contacts',
         component: Contacts,

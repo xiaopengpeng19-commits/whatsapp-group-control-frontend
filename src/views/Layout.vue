@@ -28,6 +28,10 @@
           <el-icon><Document /></el-icon>
           <span>消息记录</span>
         </el-menu-item>
+        <el-menu-item index="/proxies">
+          <el-icon><Connection /></el-icon>
+          <span>代理管理</span>
+        </el-menu-item>
         <el-menu-item index="/contacts">
           <el-icon><User /></el-icon>
           <span>联系人</span>
