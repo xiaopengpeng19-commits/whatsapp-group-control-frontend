@@ -1,11 +1,10 @@
-
 <template>
   <div class="message-history">
     <!-- 搜索和筛选 -->
     <el-card>
       <el-form :model="filterForm" inline>
         <el-form-item label="账号">
-          <el-select v-model="filterForm.account" placeholder="选择账号" clearable @change="handleSearch">
+          <el-select v-model="filterForm.account" placeholder="选择账号" clearable @change="handleSearch" style="width:160px">
             <el-option
               v-for="item in accounts"
               :key="item.account"
@@ -15,10 +14,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="对方号码">
-          <el-input v-model="filterForm.to" placeholder="输入对方号码" clearable @keyup.enter="handleSearch" />
+          <el-input v-model="filterForm.to" placeholder="输入对方号码" clearable @keyup.enter="handleSearch" style="width:160px" />
         </el-form-item>
         <el-form-item label="消息类型">
-          <el-select v-model="filterForm.type" placeholder="全部类型" clearable @change="handleSearch">
+          <el-select v-model="filterForm.type" placeholder="全部类型" clearable @change="handleSearch" style="width:120px">
             <el-option label="文本" value="text" />
             <el-option label="图片" value="image" />
             <el-option label="链接" value="link" />
@@ -26,7 +25,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="handleSearch">
+          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="handleSearch" style="width:120px">
             <el-option label="已发送" value="sent" />
             <el-option label="已送达" value="delivered" />
             <el-option label="已读" value="read" />
@@ -281,3 +280,9 @@ onMounted(() => {
   fetchMessages()
 })
 </script>
+
+<style scoped>
+.message-history .el-form-item {
+  margin-bottom: 0;
+}
+</style>
