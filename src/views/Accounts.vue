@@ -1,4 +1,3 @@
-
 <template>
   <div class="accounts">
     <div class="toolbar">
@@ -12,27 +11,37 @@
 
     <el-table :data="accounts" v-loading="loading" border>
       <el-table-column prop="account" label="账号" width="150" />
-      <el-table-column prop="nickname" label="昵称" />
+      <el-table-column prop="nickname" label="昵称" width="120" />
       <el-table-column prop="proxyGroup" label="代理分组" width="120">
         <template #default="{ row }">
-          <el-tag size="small">{{ row.proxyGroup || '未分配' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" label="状态" width="120">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'online' ? 'success' : 'info'">
-            {{ row.status === 'online' ? '🟢 在线' : '⚪ 离线' }}
+          <el-tag size="small" :type="row.proxyGroup ? 'primary' : 'info'">
+            {{ row.proxyGroup || '未分配' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="isLogin" label="登录状态" width="120">
+      <el-table-column prop="proxy" label="代理IP" min-width="250" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-tag :type="row.isLogin ? 'success' : 'danger'">
+          <span v-if="row.proxy" style="font-size:12px;font-family:monospace;">
+            {{ row.proxy }}
+          </span>
+          <span v-else style="color:#999;font-size:12px;">未分配</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
+            {{ row.status === 'online' ? '在线' : '离线' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="isLogin" label="登录" width="80">
+        <template #default="{ row }">
+          <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small">
             {{ row.isLogin ? '已登录' : '未登录' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="350" fixed="right">
+      <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status !== 'online'"
@@ -78,6 +87,9 @@
               :value="item.name"
             />
           </el-select>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            选择后自动分配该分组中使用最少的代理IP
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -157,7 +169,8 @@ const handleAdd = async () => {
       proxyGroup: addForm.proxyGroup
     })
     if (res.code === 0) {
-      ElMessage.success('添加成功' + (res.data.proxy ? '，已分配代理' : ''))
+      const msg = res.data.proxy ? '已分配代理: ' + res.data.proxy : '未分配代理'
+      ElMessage.success('添加成功，' + msg)
       showAddDialog.value = false
       addForm.account = ''
       addForm.nickname = ''
