@@ -4,7 +4,7 @@
     <!-- 发送消息 -->
     <el-card>
       <template #header>
-        <span>发送消息</span>
+        <span>📤 发送消息</span>
       </template>
       <el-form :model="sendForm" label-width="100px">
         <el-form-item label="账号">
@@ -81,40 +81,14 @@
       </el-form>
     </el-card>
 
-    <!-- 消息记录 -->
+    <!-- 快捷跳转到消息记录 -->
     <el-card style="margin-top:20px">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>消息记录</span>
-          <el-button size="small" @click="fetchMessages">
-            <el-icon><Refresh /></el-icon> 刷新
-          </el-button>
-        </div>
-      </template>
-      <el-table :data="messages" border v-loading="loading">
-        <el-table-column prop="account" label="账号" width="120" />
-        <el-table-column prop="to" label="对方" width="120" />
-        <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="80">
-          <template #default="{ row }">
-            <el-tag :type="getTypeTag(row.type)" size="small">
-              {{ getTypeLabel(row.type) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">
-              {{ getStatusLabel(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sentAt" label="时间" width="160">
-          <template #default="{ row }">
-            {{ formatTime(row.sentAt) }}
-          </template>
-        </el-table-column>
-      </el-table>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#999">查看所有消息记录</span>
+        <el-button type="primary" plain @click="$router.push('/message-history')">
+          <el-icon><Document /></el-icon> 进入消息记录
+        </el-button>
+      </div>
     </el-card>
   </div>
 </template>
@@ -122,13 +96,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Promotion, Refresh } from '@element-plus/icons-vue'
+import { Promotion, Document } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
-import dayjs from 'dayjs'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const accounts = ref([])
-const messages = ref([])
-const loading = ref(false)
 const sending = ref(false)
 
 const sendForm = reactive({
@@ -157,20 +130,6 @@ const fetchAccounts = async () => {
     }
   } catch (error) {
     // ignore
-  }
-}
-
-const fetchMessages = async () => {
-  loading.value = true
-  try {
-    const res = await whatsapp.getMessages({ account: sendForm.account, page: 1, page_size: 50 })
-    if (res.code === 0) {
-      messages.value = res.data?.data || []
-    }
-  } catch (error) {
-    // ignore
-  } finally {
-    loading.value = false
   }
 }
 
@@ -229,7 +188,6 @@ const handleSend = async () => {
           sending.value = false
           return
         }
-        // 构建链接数据，只传有值的字段
         const linkData = {
           account: sendForm.account,
           to: sendForm.to,
@@ -241,11 +199,9 @@ const handleSend = async () => {
             url: sendForm.linkUrl
           }
         }
-        // title 有值才添加
         if (sendForm.linkTitle) {
           linkData.title = sendForm.linkTitle
         }
-        // footer 有值才添加
         if (sendForm.linkFooter) {
           linkData.footer = sendForm.linkFooter
         }
@@ -261,7 +217,6 @@ const handleSend = async () => {
     if (res.code === 0) {
       ElMessage.success('发送成功')
       resetForm()
-      fetchMessages()
     } else {
       ElMessage.error(res.message || '发送失败')
     }
@@ -284,33 +239,8 @@ const resetForm = () => {
   sendForm.linkButton = ''
 }
 
-const getTypeTag = (type) => {
-  const map = { text: 'info', image: 'success', link: 'warning', video: 'danger' }
-  return map[type] || ''
-}
-
-const getTypeLabel = (type) => {
-  const map = { text: '文本', image: '图片', link: '链接', video: '视频' }
-  return map[type] || type
-}
-
-const getStatusType = (status) => {
-  const map = { sent: '', delivered: 'success', read: 'success', failed: 'danger' }
-  return map[status] || ''
-}
-
-const getStatusLabel = (status) => {
-  const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败' }
-  return map[status] || status
-}
-
-const formatTime = (time) => {
-  return time ? dayjs(time).format('YYYY-MM-DD HH:mm') : '-'
-}
-
 onMounted(() => {
   fetchAccounts()
-  fetchMessages()
 })
 </script>
 

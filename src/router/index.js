@@ -1,11 +1,12 @@
+
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 直接导入组件
 import Login from '../views/Login.vue'
 import Layout from '../views/Layout.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Accounts from '../views/Accounts.vue'
 import Messages from '../views/Messages.vue'
+import MessageHistory from '../views/MessageHistory.vue'
 import Contacts from '../views/Contacts.vue'
 import Users from '../views/Users.vue'
 
@@ -38,7 +39,13 @@ const routes = [
         path: 'messages',
         name: 'Messages',
         component: Messages,
-        meta: { title: '消息管理' }
+        meta: { title: '发送消息' }
+      },
+      {
+        path: 'message-history',
+        name: 'MessageHistory',
+        component: MessageHistory,
+        meta: { title: '消息记录' }
       },
       {
         path: 'contacts',
@@ -61,7 +68,6 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.path !== '/login' && !token) {
