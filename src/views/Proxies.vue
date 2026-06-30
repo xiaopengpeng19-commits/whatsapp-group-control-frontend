@@ -276,7 +276,7 @@ const handleBatchAdd = async () => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除代理 ${row.host}:${row.port} 吗？`, '提示', { type: 'warning' })
-    const res = await api.delete(`/proxies/${row.id}`)
+    const res = await api.delete(`/proxies/${/delete`row.id}`)
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchProxies()
