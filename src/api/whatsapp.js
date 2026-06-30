@@ -17,6 +17,9 @@ export default {
   // 获取代理分组列表
   getProxyGroups: () => api.get('/proxies/groups'),
 
+  // 二维码登录 - 转发到协议服
+  getQRCodeLogin: (account, data) => api.post(`/whatsapp/accounts/${account}/qrcode`, data),
+
   // ==================== 账号管理 ====================
   // 获取账号列表 - GET，不需要传数据
   getAccounts: () => api.get('/whatsapp/accounts/list'),
