@@ -1,17 +1,57 @@
 <template>
   <div class="accounts">
+    <!-- 工具栏 -->
     <div class="toolbar">
-      <el-button type="primary" @click="showAddDialog = true">
-        <el-icon><Plus /></el-icon> 添加账号
-      </el-button>
-      <el-button @click="fetchAccounts">
-        <el-icon><Refresh /></el-icon> 刷新
-      </el-button>
+      <div>
+        <el-button type="primary" @click="showAddDialog = true">
+          <el-icon><Plus /></el-icon> 添加账号
+        </el-button>
+        <el-button type="warning" plain @click="showBatchGroupDialog = true">
+          <el-icon><Folder /></el-icon> 批量修改分组
+        </el-button>
+        <el-button @click="fetchAccounts">
+          <el-icon><Refresh /></el-icon> 刷新
+        </el-button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:160px">
+          <el-option label="全部分组" value="" />
+          <el-option
+            v-for="item in accountGroups"
+            :key="item.name"
+            :label="item.name + ' (' + item.count + '个)'"
+            :value="item.name"
+          />
+        </el-select>
+      </div>
     </div>
 
+    <!-- 分组统计 -->
+    <el-card style="margin-bottom:20px">
+      <template #header>
+        <span>账号分组统计</span>
+      </template>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div v-for="item in accountGroups" :key="item.name" class="group-stat">
+          <el-tag size="large">
+            {{ item.name }}: {{ item.count }} 个
+          </el-tag>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 账号列表 -->
     <el-table :data="accounts" v-loading="loading" border>
+      <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="150" />
       <el-table-column prop="nickname" label="昵称" width="120" />
+      <el-table-column prop="group" label="账号分组" width="120">
+        <template #default="{ row }">
+          <el-tag size="small" :type="row.group ? 'primary' : 'info'">
+            {{ row.group || '未分组' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="proxyGroup" label="代理分组" width="120">
         <template #default="{ row }">
           <el-tag size="small" :type="row.proxyGroup ? 'primary' : 'info'">
@@ -41,7 +81,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="340" fixed="right">
+      <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status !== 'online'"
@@ -62,6 +102,9 @@
           <el-button size="small" type="info" @click="showQRCode(row)">
             二维码
           </el-button>
+          <el-button size="small" type="primary" plain @click="showEditGroup(row)">
+            改分组
+          </el-button>
           <el-button size="small" type="danger" @click="handleDelete(row.account)">
             删除
           </el-button>
@@ -77,6 +120,9 @@
         </el-form-item>
         <el-form-item label="昵称">
           <el-input v-model="addForm.nickname" placeholder="请输入昵称（可选）" />
+        </el-form-item>
+        <el-form-item label="账号分组">
+          <el-input v-model="addForm.group" placeholder="请输入分组名称（可选）" />
         </el-form-item>
         <el-form-item label="代理分组">
           <el-select v-model="addForm.proxyGroup" placeholder="选择代理分组（可选）" clearable style="width:100%">
@@ -95,6 +141,38 @@
       <template #footer>
         <el-button @click="showAddDialog = false">取消</el-button>
         <el-button type="primary" @click="handleAdd">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 修改分组对话框 -->
+    <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
+      <el-form :model="editGroupForm" label-width="80px">
+        <el-form-item label="账号">
+          <span>{{ editGroupForm.account }}</span>
+        </el-form-item>
+        <el-form-item label="分组">
+          <el-input v-model="editGroupForm.group" placeholder="请输入新分组名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditGroupDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleEditGroup">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量修改分组对话框 -->
+    <el-dialog v-model="showBatchGroupDialog" title="批量修改分组" width="400px">
+      <el-form :model="batchGroupForm" label-width="80px">
+        <el-form-item label="选中数量">
+          <span>{{ selectedAccounts.length }} 个账号</span>
+        </el-form-item>
+        <el-form-item label="新分组">
+          <el-input v-model="batchGroupForm.group" placeholder="请输入分组名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchGroupDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchGroup">确定</el-button>
       </template>
     </el-dialog>
 
@@ -117,35 +195,49 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Loading, Picture } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 
 const accounts = ref([])
+const accountGroups = ref([])
 const proxyGroups = ref([])
 const loading = ref(false)
 const qrLoading = ref(false)
+const selectedAccounts = ref([])
+
 const showAddDialog = ref(false)
+const showEditGroupDialog = ref(false)
+const showBatchGroupDialog = ref(false)
 const showQRDialog = ref(false)
+
+const filterGroup = ref('')
 const qrCode = ref('')
 
 const addForm = reactive({
   account: '',
   nickname: '',
+  group: '',
   proxyGroup: ''
 })
 
-const fetchAccounts = async () => {
-  loading.value = true
+const editGroupForm = reactive({
+  account: '',
+  group: ''
+})
+
+const batchGroupForm = reactive({
+  group: ''
+})
+
+const fetchAccountGroups = async () => {
   try {
-    const res = await whatsapp.getAccounts()
+    const res = await api.get('/whatsapp/accounts/groups')
     if (res.code === 0) {
-      accounts.value = res.data || []
+      accountGroups.value = res.data || []
     }
   } catch (error) {
-    ElMessage.error('获取账号列表失败')
-  } finally {
-    loading.value = false
+    // ignore
   }
 }
 
@@ -160,6 +252,24 @@ const fetchProxyGroups = async () => {
   }
 }
 
+const fetchAccounts = async () => {
+  loading.value = true
+  try {
+    let params = {}
+    if (filterGroup.value) {
+      params.group = filterGroup.value
+    }
+    const res = await api.get('/whatsapp/accounts/list', { params })
+    if (res.code === 0) {
+      accounts.value = res.data || []
+    }
+  } catch (error) {
+    ElMessage.error('获取账号列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleAdd = async () => {
   if (!addForm.account) {
     ElMessage.warning('请输入手机号')
@@ -169,6 +279,7 @@ const handleAdd = async () => {
     const res = await whatsapp.addAccount({
       account: addForm.account,
       nickname: addForm.nickname,
+      group: addForm.group,
       proxyGroup: addForm.proxyGroup
     })
     if (res.code === 0) {
@@ -177,8 +288,10 @@ const handleAdd = async () => {
       showAddDialog.value = false
       addForm.account = ''
       addForm.nickname = ''
+      addForm.group = ''
       addForm.proxyGroup = ''
       fetchAccounts()
+      fetchAccountGroups()
     }
   } catch (error) {
     ElMessage.error('添加失败: ' + (error.message || ''))
@@ -194,6 +307,7 @@ const handleDelete = async (account) => {
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchAccounts()
+      fetchAccountGroups()
     }
   } catch {
     // cancelled
@@ -228,13 +342,13 @@ const showQRCode = async (row) => {
   showQRDialog.value = true
   qrCode.value = ''
   qrLoading.value = true
-  
+
   try {
     const res = await whatsapp.getQRCodeLogin(row.account, {
       proxy: row.proxy || '',
       callbackurl: ''
     })
-    
+
     if (res.code === 0 && res.data?.qrCode) {
       qrCode.value = res.data.qrCode
     } else {
@@ -247,17 +361,77 @@ const showQRCode = async (row) => {
   }
 }
 
+const showEditGroup = (row) => {
+  editGroupForm.account = row.account
+  editGroupForm.group = row.group || ''
+  showEditGroupDialog.value = true
+}
+
+const handleEditGroup = async () => {
+  try {
+    const res = await api.put('/whatsapp/accounts/' + editGroupForm.account + '/group', {
+      group: editGroupForm.group
+    })
+    if (res.code === 0) {
+      ElMessage.success('分组更新成功')
+      showEditGroupDialog.value = false
+      fetchAccounts()
+      fetchAccountGroups()
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + (error.message || ''))
+  }
+}
+
+const handleBatchGroup = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  if (!batchGroupForm.group) {
+    ElMessage.warning('请输入分组名称')
+    return
+  }
+  try {
+    const res = await api.post('/whatsapp/accounts/batch/group', {
+      accounts: selectedAccounts.value,
+      group: batchGroupForm.group
+    })
+    if (res.code === 0) {
+      ElMessage.success('成功更新 ' + res.data.success_count + ' 个账号的分组')
+      showBatchGroupDialog.value = false
+      batchGroupForm.group = ''
+      selectedAccounts.value = []
+      fetchAccounts()
+      fetchAccountGroups()
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + (error.message || ''))
+  }
+}
+
+const handleSelectionChange = (selection) => {
+  selectedAccounts.value = selection.map(item => item.account)
+}
+
 onMounted(() => {
-  fetchAccounts()
+  fetchAccountGroups()
   fetchProxyGroups()
+  fetchAccounts()
 })
 </script>
 
 <style scoped>
 .toolbar {
-  margin-bottom: 20px;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 20px;
+}
+.group-stat {
+  padding: 4px 0;
 }
 .qr-container {
   display: flex;
