@@ -29,6 +29,8 @@
         </template>
       </el-table-column>
       <el-table-column prop="totalTargets" label="总数" width="60" />
+      
+      <!-- 发送进度：sent + delivered + read / total -->
       <el-table-column label="发送进度" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
@@ -39,11 +41,13 @@
               style="flex:1"
             />
             <span style="font-size:11px;color:#999;white-space:nowrap;">
-              {{ row.sentCount }}/{{ row.totalTargets }}
+              {{ getSentCount(row) }}/{{ row.totalTargets }}
             </span>
           </div>
         </template>
       </el-table-column>
+      
+      <!-- 完成进度：(delivered + read) / total -->
       <el-table-column label="完成进度" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
@@ -54,11 +58,12 @@
               style="flex:1"
             />
             <span style="font-size:11px;color:#999;white-space:nowrap;">
-              {{ (row.deliveredCount || 0) + (row.readCount || 0) }}/{{ row.totalTargets }}
+              {{ getCompletedCount(row) }}/{{ row.totalTargets }}
             </span>
           </div>
         </template>
       </el-table-column>
+      
       <el-table-column label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)" size="small">
@@ -335,15 +340,28 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
+// 发送进度：(sent + delivered + read) / total
 const getSendProgress = (row) => {
   if (!row || row.totalTargets === 0) return 0
-  return Math.round((row.sentCount / row.totalTargets) * 100)
+  const sent = (row.sentCount || 0) + (row.deliveredCount || 0) + (row.readCount || 0)
+  return Math.round((sent / row.totalTargets) * 100)
 }
 
+const getSentCount = (row) => {
+  if (!row) return 0
+  return (row.sentCount || 0) + (row.deliveredCount || 0) + (row.readCount || 0)
+}
+
+// 完成进度：(delivered + read) / total
 const getCompleteProgress = (row) => {
   if (!row || row.totalTargets === 0) return 0
   const completed = (row.deliveredCount || 0) + (row.readCount || 0)
   return Math.round((completed / row.totalTargets) * 100)
+}
+
+const getCompletedCount = (row) => {
+  if (!row) return 0
+  return (row.deliveredCount || 0) + (row.readCount || 0)
 }
 
 const getCompleteColor = (row) => {
