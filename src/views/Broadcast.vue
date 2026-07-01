@@ -163,7 +163,7 @@
           />
         </el-form-item>
         <template v-if="createForm.messageType === 'link'">
-          <el-form-item label="链接标题" required>
+          <el-form-item label="链接标题">
             <el-input v-model="createForm.linkTitle" placeholder="请输入链接标题" />
           </el-form-item>
           <el-form-item label="链接描述" required>
