@@ -18,45 +18,60 @@
     </div>
 
     <el-table :data="tasks" v-loading="loading" border>
-      <el-table-column prop="name" label="任务名称" width="150" />
-      <el-table-column prop="accountGroup" label="账号分组" width="120" />
-      <el-table-column prop="targetGroup" label="目标分组" width="120" />
-      <el-table-column prop="messageType" label="消息类型" width="80">
+      <el-table-column prop="name" label="任务名称" width="140" />
+      <el-table-column prop="accountGroup" label="账号分组" width="110" />
+      <el-table-column prop="targetGroup" label="目标分组" width="110" />
+      <el-table-column prop="messageType" label="类型" width="70">
         <template #default="{ row }">
           <el-tag :type="row.messageType === 'text' ? 'info' : 'warning'" size="small">
             {{ row.messageType === 'text' ? '文本' : '链接' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="totalTargets" label="总数" width="70" />
-      <el-table-column label="进度" width="200">
+      <el-table-column prop="totalTargets" label="总数" width="60" />
+      <el-table-column label="发送进度" width="160">
         <template #default="{ row }">
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:6px;">
             <el-progress 
-              :percentage="getProgress(row)" 
-              :color="getProgressColor(row)"
-              :stroke-width="8"
+              :percentage="getSendProgress(row)" 
+              color="#409eff"
+              :stroke-width="6"
               style="flex:1"
             />
-            <span style="font-size:12px;color:#999;white-space:nowrap;">
+            <span style="font-size:11px;color:#999;white-space:nowrap;">
               {{ row.sentCount }}/{{ row.totalTargets }}
             </span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="100">
+      <el-table-column label="完成进度" width="160">
+        <template #default="{ row }">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <el-progress 
+              :percentage="getCompleteProgress(row)" 
+              :color="getCompleteColor(row)"
+              :stroke-width="6"
+              style="flex:1"
+            />
+            <span style="font-size:11px;color:#999;white-space:nowrap;">
+              {{ (row.deliveredCount || 0) + (row.readCount || 0) }}/{{ row.totalTargets }}
+            </span>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)" size="small">
             {{ getStatusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="160">
+      <el-table-column prop="createdAt" label="创建时间" width="150">
         <template #default="{ row }">
           {{ formatTime(row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button size="small" type="primary" @click="showTaskDetail(row)">
             详情
@@ -124,11 +139,9 @@
         </el-form-item>
         <el-form-item label="单账号发送数量">
           <el-input-number v-model="createForm.perAccountLimit" :min="1" :max="100" style="width:100%" />
-          <span style="color:#999;font-size:12px;margin-left:8px;">每个账号发送的目标数</span>
         </el-form-item>
         <el-form-item label="并发数量">
           <el-input-number v-model="createForm.concurrencyLimit" :min="1" :max="20" style="width:100%" />
-          <span style="color:#999;font-size:12px;margin-left:8px;">同时执行的账号数</span>
         </el-form-item>
         <el-form-item label="消息类型" required>
           <el-radio-group v-model="createForm.messageType">
@@ -190,6 +203,21 @@
           <el-descriptions-item label="已读">{{ detailTask.readCount }}</el-descriptions-item>
           <el-descriptions-item label="失败">{{ detailTask.failedCount }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="发送进度">
+            <el-progress 
+              :percentage="getSendProgress(detailTask)" 
+              :stroke-width="8"
+              style="width:120px"
+            />
+          </el-descriptions-item>
+          <el-descriptions-item label="完成进度">
+            <el-progress 
+              :percentage="getCompleteProgress(detailTask)" 
+              :color="getCompleteColor(detailTask)"
+              :stroke-width="8"
+              style="width:120px"
+            />
+          </el-descriptions-item>
         </el-descriptions>
 
         <div style="margin-top:20px">
@@ -307,13 +335,19 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
-const getProgress = (row) => {
-  if (row.totalTargets === 0) return 0
+const getSendProgress = (row) => {
+  if (!row || row.totalTargets === 0) return 0
   return Math.round((row.sentCount / row.totalTargets) * 100)
 }
 
-const getProgressColor = (row) => {
-  const p = getProgress(row)
+const getCompleteProgress = (row) => {
+  if (!row || row.totalTargets === 0) return 0
+  const completed = (row.deliveredCount || 0) + (row.readCount || 0)
+  return Math.round((completed / row.totalTargets) * 100)
+}
+
+const getCompleteColor = (row) => {
+  const p = getCompleteProgress(row)
   if (p === 100) return '#67c23a'
   if (p > 50) return '#409eff'
   return '#e6a23c'
