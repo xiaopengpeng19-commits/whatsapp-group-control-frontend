@@ -60,6 +60,12 @@ const routes = [
         meta: { title: '目标账号' }
       },
       {
+        path: 'broadcast',
+        name: 'Broadcast',
+        component: () => import('@/views/Broadcast.vue'),
+        meta: { title: '群发任务' }
+      },
+      {
         path: 'contacts',
         name: 'Contacts',
         component: Contacts,

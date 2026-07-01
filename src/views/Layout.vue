@@ -36,6 +36,10 @@
           <el-icon><UserFilled /></el-icon>
           <span>目标账号</span>
         </el-menu-item>
+        <el-menu-item index="/broadcast">
+          <el-icon><Promotion /></el-icon>
+          <span>群发任务</span>
+        </el-menu-item>
         <el-menu-item index="/contacts">
           <el-icon><User /></el-icon>
           <span>联系人</span>
