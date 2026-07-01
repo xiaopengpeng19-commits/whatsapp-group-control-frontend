@@ -48,3 +48,5 @@ export default api
 
 // 命名导出各个模块
 export { auth, whatsapp, user }
+// 新增群发任务API
+export { default as broadcast } from './broadcast'

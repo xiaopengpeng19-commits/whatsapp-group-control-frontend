@@ -1,6 +1,5 @@
 <template>
   <div class="broadcast">
-    <!-- 创建任务按钮 -->
     <div class="toolbar">
       <el-button type="primary" @click="showCreateDialog = true">
         <el-icon><Plus /></el-icon> 创建群发任务
@@ -18,7 +17,6 @@
       </el-select>
     </div>
 
-    <!-- 任务列表 -->
     <el-table :data="tasks" v-loading="loading" border>
       <el-table-column prop="name" label="任务名称" width="150" />
       <el-table-column prop="accountGroup" label="账号分组" width="120" />
@@ -86,7 +84,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
       <el-pagination
         v-model:current-page="page"
@@ -101,7 +98,7 @@
 
     <!-- 创建任务对话框 -->
     <el-dialog v-model="showCreateDialog" title="创建群发任务" width="650px" :close-on-click-modal="false">
-      <el-form :model="createForm" label-width="140px" ref="createFormRef">
+      <el-form :model="createForm" label-width="140px">
         <el-form-item label="任务名称" required>
           <el-input v-model="createForm.name" placeholder="请输入任务名称" />
         </el-form-item>
@@ -172,7 +169,7 @@
     </el-dialog>
 
     <!-- 任务详情对话框 -->
-    <el-dialog v-model="showDetailDialog" title="任务详情" width="800px">
+    <el-dialog v-model="showDetailDialog" title="任务详情" width="900px">
       <div v-if="detailTask">
         <el-descriptions :column="3" border>
           <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
@@ -247,6 +244,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
+import broadcast from '@/api/broadcast'
 import api from '@/api'
 import dayjs from 'dayjs'
 
@@ -262,7 +260,6 @@ const targetGroups = ref([])
 
 const showCreateDialog = ref(false)
 const creating = ref(false)
-const createFormRef = ref()
 
 const createForm = reactive({
   name: '',
@@ -375,7 +372,7 @@ const fetchTasks = async () => {
   try {
     const params = { page: page.value, page_size: pageSize.value }
     if (filterStatus.value) params.status = filterStatus.value
-    const res = await api.get('/broadcast/tasks', { params })
+    const res = await broadcast.getTasks({ params })
     if (res.code === 0) {
       tasks.value = res.data.data || []
       total.value = res.data.total || 0
@@ -388,7 +385,6 @@ const fetchTasks = async () => {
 }
 
 const handleCreate = async () => {
-  // 简单校验
   if (!createForm.name) {
     ElMessage.warning('请输入任务名称')
     return
@@ -412,7 +408,7 @@ const handleCreate = async () => {
 
   creating.value = true
   try {
-    const res = await api.post('/broadcast/tasks', createForm)
+    const res = await broadcast.createTask(createForm)
     if (res.code === 0) {
       ElMessage.success(`任务创建成功，已分配 ${res.data.sub_task_count} 个子任务`)
       showCreateDialog.value = false
@@ -443,7 +439,7 @@ const fetchSubTasks = async () => {
       page_size: subPageSize.value
     }
     if (subFilterStatus.value) params.status = subFilterStatus.value
-    const res = await api.get(`/broadcast/tasks/${detailTask.value.id}/subtasks`, { params })
+    const res = await broadcast.getSubTasks(detailTask.value.id, { params })
     if (res.code === 0) {
       subTasks.value = res.data.data || []
       subTotal.value = res.data.total || 0
@@ -458,7 +454,7 @@ const fetchSubTasks = async () => {
 const handleStart = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要执行任务 "${row.name}" 吗？`, '提示', { type: 'info' })
-    const res = await api.post(`/broadcast/tasks/${row.id}/start`)
+    const res = await broadcast.startTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已启动')
       fetchTasks()
@@ -473,7 +469,7 @@ const handleStart = async (row) => {
 const handlePause = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要暂停任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await api.post(`/broadcast/tasks/${row.id}/pause`)
+    const res = await broadcast.pauseTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已暂停')
       fetchTasks()
@@ -488,7 +484,7 @@ const handlePause = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await api.delete(`/broadcast/tasks/${row.id}`)
+    const res = await broadcast.deleteTask(row.id)
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchTasks()
