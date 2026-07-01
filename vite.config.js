@@ -9,6 +9,19 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  build: {
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'element-plus': ['element-plus', '@element-plus/icons-vue'],
+          'vendor': ['axios', 'dayjs']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 800
+  },
   server: {
     port: 3000,
     proxy: {
@@ -17,9 +30,5 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets'
   }
 })
