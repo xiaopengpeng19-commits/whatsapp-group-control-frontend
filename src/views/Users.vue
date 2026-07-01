@@ -1,6 +1,5 @@
 <template>
   <div class="users">
-    <!-- 工具栏 -->
     <div class="toolbar">
       <el-button type="primary" @click="showAddDialog = true">
         <el-icon><Plus /></el-icon> 添加用户
@@ -10,7 +9,6 @@
       </el-button>
     </div>
 
-    <!-- 用户列表 -->
     <el-table :data="users" v-loading="loading" border>
       <el-table-column prop="username" label="用户名" width="150" />
       <el-table-column prop="email" label="邮箱" width="200" />
@@ -41,7 +39,7 @@
       </el-table-column>
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" type="primary" plain @click="showEditDialog(row)">
+          <el-button size="small" type="primary" plain @click="openEditDialog(row)">
             编辑
           </el-button>
           <el-button 
@@ -65,7 +63,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
       <el-pagination
         v-model:current-page="page"
@@ -108,7 +105,7 @@
     </el-dialog>
 
     <!-- 编辑用户对话框 -->
-    <el-dialog v-model="showEditDialog" title="编辑用户" width="500px">
+    <el-dialog v-model="showEditDialogVisible" title="编辑用户" width="500px">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="用户名">
           <el-input v-model="editForm.username" disabled />
@@ -140,7 +137,7 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showEditDialog = false">取消</el-button>
+        <el-button @click="showEditDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleEdit" :loading="editLoading">确定</el-button>
       </template>
     </el-dialog>
@@ -148,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import { user } from '@/api'
@@ -163,7 +160,7 @@ const page = ref(1)
 const pageSize = ref(20)
 
 const showAddDialog = ref(false)
-const showEditDialog = ref(false)
+const showEditDialogVisible = ref(false)
 const addLoading = ref(false)
 const editLoading = ref(false)
 const addFormRef = ref()
@@ -245,7 +242,7 @@ const handleAdd = async () => {
   }
 }
 
-const showEditDialog = (row) => {
+const openEditDialog = (row) => {
   editForm.id = row.id
   editForm.username = row.username
   editForm.email = row.email || ''
@@ -253,7 +250,7 @@ const showEditDialog = (row) => {
   editForm.role = row.role
   editForm.status = row.status
   editForm.newPassword = ''
-  showEditDialog.value = true
+  showEditDialogVisible.value = true
 }
 
 const handleEdit = async () => {
@@ -271,7 +268,7 @@ const handleEdit = async () => {
     const res = await user.update(editForm.id, data)
     if (res.code === 0) {
       ElMessage.success('更新用户成功')
-      showEditDialog.value = false
+      showEditDialogVisible.value = false
       fetchUsers()
     }
   } catch (error) {
