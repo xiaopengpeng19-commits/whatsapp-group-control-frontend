@@ -48,7 +48,7 @@
         <el-card>
           <template #header>
             <span>账号状态</span>
-          </el-template>
+          </template>
           <el-table :data="accountStatus" style="width: 100%">
             <el-table-column prop="account" label="账号" />
             <el-table-column prop="nickname" label="昵称" />
@@ -150,10 +150,7 @@ const fetchData = async () => {
         isLogin: a.isLogin || false
       }))
       
-      // 总账号数
       stats.value[0].value = accounts.length
-      
-      // 在线账号数：统计 online 和 normal 状态
       stats.value[1].value = accounts.filter(a => 
         a.status === 'online' || a.status === 'normal'
       ).length
