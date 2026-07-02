@@ -1,7 +1,5 @@
-
 <template>
   <div class="message-history">
-    <!-- 搜索和筛选 -->
     <el-card>
       <el-form :model="filterForm" inline>
         <el-form-item label="账号">
@@ -48,7 +46,6 @@
       </el-form>
     </el-card>
 
-    <!-- 统计信息 -->
     <el-row :gutter="20" style="margin-top:20px">
       <el-col :span="6">
         <el-card>
@@ -84,7 +81,6 @@
       </el-col>
     </el-row>
 
-    <!-- 消息列表 -->
     <el-card style="margin-top:20px">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -96,14 +92,14 @@
       <el-table :data="messages" border v-loading="loading" stripe>
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="account" label="账号" width="150" />
-        <el-table-column prop="from" label="发送方" width="150">
+        <el-table-column label="发送方" width="150">
           <template #default="{ row }">
-            {{ row.from || row.to }}
+            {{ row.isOutgoing ? row.account : cleanJid(row.from) }}
           </template>
         </el-table-column>
-        <el-table-column prop="to" label="接收方" width="150">
+        <el-table-column label="接收方" width="150">
           <template #default="{ row }">
-            {{ row.to || row.account }}
+            {{ row.isOutgoing ? row.to : row.account }}
           </template>
         </el-table-column>
         <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
@@ -140,7 +136,6 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
       <div style="margin-top:20px;display:flex;justify-content:flex-end">
         <el-pagination
           v-model:current-page="page"
@@ -154,13 +149,16 @@
       </div>
     </el-card>
 
-    <!-- 消息详情对话框 -->
     <el-dialog v-model="showDetailDialog" title="消息详情" width="600px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="消息ID">{{ detailData.messageId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="账号">{{ detailData.account || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="发送方">{{ detailData.from || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="接收方">{{ detailData.to || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="发送方">
+          {{ detailData.isOutgoing ? detailData.account : cleanJid(detailData.from) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="接收方">
+          {{ detailData.isOutgoing ? detailData.to : detailData.account }}
+        </el-descriptions-item>
         <el-descriptions-item label="类型">
           {{ detailData.type === 'text' ? '文本' : detailData.type === 'image' ? '图片' : '链接' }}
         </el-descriptions-item>
@@ -221,6 +219,11 @@ const stats = computed(() => {
     failed: data.filter(m => m.status === 'failed').length
   }
 })
+
+const cleanJid = (jid) => {
+  if (!jid) return ''
+  return jid.split('@')[0]
+}
 
 const getStatusType = (status) => {
   const map = { 
