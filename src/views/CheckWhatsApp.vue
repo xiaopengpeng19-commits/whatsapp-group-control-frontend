@@ -40,57 +40,66 @@
     </el-card>
 
     <!-- 结果统计 -->
-    <el-card style="margin-top:20px" v-if="results.length > 0">
+    <el-card style="margin-top:20px" v-if="resultData.total > 0">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span>检查结果</span>
           <span>
-            <el-tag type="success">已注册: {{ registeredCount }}</el-tag>
-            <el-tag type="danger" style="margin-left:10px">未注册: {{ unregisteredCount }}</el-tag>
-            <el-tag type="info" style="margin-left:10px">总计: {{ results.length }}</el-tag>
+            <el-tag type="success">已注册: {{ resultData.registeredCount }}</el-tag>
+            <el-tag type="danger" style="margin-left:10px">未注册: {{ resultData.unregisteredCount }}</el-tag>
+            <el-tag type="info" style="margin-left:10px">总计: {{ resultData.total }}</el-tag>
           </span>
         </div>
       </template>
 
-      <el-table :data="results" border>
-        <el-table-column prop="phone" label="手机号" width="180">
-          <template #default="{ row }">
-            {{ row.phone || extractPhone(row.jid) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="jid" label="JID" width="200">
-          <template #default="{ row }">
-            {{ row.jid || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="exists" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="row.exists ? 'success' : 'danger'" size="small">
-              {{ row.exists ? '✅ 已注册' : '❌ 未注册' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="{ row }">
-            <el-button 
-              v-if="row.exists" 
-              size="small" 
-              type="primary" 
-              plain
-              @click="copyPhone(row.phone || extractPhone(row.jid))"
-            >
-              复制号码
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- 已注册列表 -->
+      <el-card v-if="resultData.registered.length > 0" shadow="never" style="margin-bottom:15px">
+        <template #header>
+          <span style="color:#67c23a;font-weight:bold;">✅ 已注册 ({{ resultData.registered.length }})</span>
+        </template>
+        <div class="phone-tags">
+          <el-tag
+            v-for="phone in resultData.registered"
+            :key="phone"
+            type="success"
+            size="large"
+            style="margin:4px;cursor:pointer;"
+            @click="copyPhone(phone)"
+          >
+            {{ phone }}
+            <el-icon style="margin-left:4px;"><CopyDocument /></el-icon>
+          </el-tag>
+        </div>
+      </el-card>
 
-      <div style="margin-top:15px">
-        <el-button type="success" plain @click="exportRegistered">
+      <!-- 未注册列表 -->
+      <el-card v-if="resultData.unregistered.length > 0" shadow="never">
+        <template #header>
+          <span style="color:#f56c6c;font-weight:bold;">❌ 未注册 ({{ resultData.unregistered.length }})</span>
+        </template>
+        <div class="phone-tags">
+          <el-tag
+            v-for="phone in resultData.unregistered"
+            :key="phone"
+            type="danger"
+            size="large"
+            style="margin:4px;"
+          >
+            {{ phone }}
+          </el-tag>
+        </div>
+      </el-card>
+
+      <!-- 导出按钮 -->
+      <div style="margin-top:15px;display:flex;gap:10px;">
+        <el-button type="success" plain @click="exportList('registered')">
           <el-icon><Download /></el-icon> 导出已注册号码
         </el-button>
-        <el-button type="danger" plain @click="exportUnregistered">
+        <el-button type="danger" plain @click="exportList('unregistered')">
           <el-icon><Download /></el-icon> 导出未注册号码
+        </el-button>
+        <el-button type="primary" plain @click="exportList('all')">
+          <el-icon><Download /></el-icon> 导出全部
         </el-button>
       </div>
     </el-card>
@@ -98,33 +107,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Delete, Document, Download } from '@element-plus/icons-vue'
+import { Search, Delete, Document, Download, CopyDocument } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 
 const accounts = ref([])
-const results = ref([])
 const checking = ref(false)
+const resultData = reactive({
+  registered: [],
+  unregistered: [],
+  total: 0,
+  registeredCount: 0,
+  unregisteredCount: 0
+})
 
 const form = reactive({
   accountId: '',
   phonesText: ''
 })
-
-const registeredCount = computed(() => {
-  return results.value.filter(r => r.exists).length
-})
-
-const unregisteredCount = computed(() => {
-  return results.value.filter(r => !r.exists).length
-})
-
-const extractPhone = (jid) => {
-  if (!jid) return ''
-  return jid.split('@')[0]
-}
 
 const fetchAccounts = async () => {
   try {
@@ -164,10 +166,13 @@ const handleCheck = async () => {
     
     console.log('API返回:', res)
     
-    if (res.code === 0) {
-      // res.data 就是协议服返回的 data 数组
-      results.value = res.data || []
-      ElMessage.success(`检查完成，共 ${results.value.length} 个号码`)
+    if (res.code === 0 && res.data) {
+      resultData.registered = res.data.registered || []
+      resultData.unregistered = res.data.unregistered || []
+      resultData.total = res.data.total || 0
+      resultData.registeredCount = resultData.registered.length
+      resultData.unregisteredCount = resultData.unregistered.length
+      ElMessage.success(`检查完成，已注册 ${resultData.registeredCount} 个，未注册 ${resultData.unregisteredCount} 个`)
     } else {
       ElMessage.error(res.message || '检查失败')
     }
@@ -180,7 +185,11 @@ const handleCheck = async () => {
 }
 
 const clearResults = () => {
-  results.value = []
+  resultData.registered = []
+  resultData.unregistered = []
+  resultData.total = 0
+  resultData.registeredCount = 0
+  resultData.unregisteredCount = 0
 }
 
 const loadSample = () => {
@@ -197,10 +206,7 @@ const loadSample = () => {
 }
 
 const copyPhone = (phone) => {
-  if (!phone) {
-    ElMessage.warning('没有可复制的号码')
-    return
-  }
+  if (!phone) return
   navigator.clipboard.writeText(phone).then(() => {
     ElMessage.success('已复制: ' + phone)
   }).catch(() => {
@@ -214,26 +220,29 @@ const copyPhone = (phone) => {
   })
 }
 
-const exportRegistered = () => {
-  const phones = results.value.filter(r => r.exists).map(r => r.phone || extractPhone(r.jid))
+const exportList = (type) => {
+  let phones = []
+  let filename = ''
+  
+  if (type === 'registered') {
+    phones = resultData.registered
+    filename = 'registered_phones.txt'
+  } else if (type === 'unregistered') {
+    phones = resultData.unregistered
+    filename = 'unregistered_phones.txt'
+  } else {
+    phones = [...resultData.registered, ...resultData.unregistered]
+    filename = 'all_phones.txt'
+  }
+  
   if (phones.length === 0) {
-    ElMessage.warning('没有已注册的号码')
+    ElMessage.warning('没有号码可导出')
     return
   }
+  
   const text = phones.join('\n')
-  downloadFile(text, 'registered_phones.txt')
-  ElMessage.success(`已导出 ${phones.length} 个已注册号码`)
-}
-
-const exportUnregistered = () => {
-  const phones = results.value.filter(r => !r.exists).map(r => r.phone || extractPhone(r.jid))
-  if (phones.length === 0) {
-    ElMessage.warning('没有未注册的号码')
-    return
-  }
-  const text = phones.join('\n')
-  downloadFile(text, 'unregistered_phones.txt')
-  ElMessage.success(`已导出 ${phones.length} 个未注册号码`)
+  downloadFile(text, filename)
+  ElMessage.success(`已导出 ${phones.length} 个号码`)
 }
 
 const downloadFile = (content, filename) => {
@@ -256,5 +265,19 @@ onMounted(() => {
 <style scoped>
 .check-whatsapp {
   max-width: 900px;
+}
+.phone-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.phone-tags .el-tag {
+  cursor: default;
+}
+.phone-tags .el-tag[type="success"] {
+  cursor: pointer;
+}
+.phone-tags .el-tag[type="success"]:hover {
+  opacity: 0.8;
 }
 </style>
