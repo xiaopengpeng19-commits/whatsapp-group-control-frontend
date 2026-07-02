@@ -1,6 +1,5 @@
 <template>
   <div class="accounts">
-    <!-- 工具栏 -->
     <div class="toolbar">
       <div>
         <el-button type="primary" @click="showAddDialog = true">
@@ -26,7 +25,6 @@
       </div>
     </div>
 
-    <!-- 分组统计 -->
     <el-card style="margin-bottom:20px">
       <template #header>
         <span>账号分组统计</span>
@@ -40,7 +38,6 @@
       </div>
     </el-card>
 
-    <!-- 账号列表 -->
     <el-table 
       :data="accounts" 
       v-loading="loading" 
@@ -75,8 +72,8 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'online' ? 'success' : 'info'" size="small">
-            {{ row.status === 'online' ? '在线' : '离线' }}
+          <el-tag :type="getStatusType(row.status)" size="small">
+            {{ getStatusText(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -90,7 +87,7 @@
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <el-button
-            v-if="row.status !== 'online'"
+            v-if="row.status !== '在线' && row.status !== '正常' && row.status !== '登录中'"
             size="small"
             type="primary"
             @click="handleOnline(row.account)"
@@ -98,12 +95,20 @@
             上线
           </el-button>
           <el-button
-            v-else
+            v-else-if="row.status === '在线' || row.status === '正常'"
             size="small"
             type="warning"
             @click="handleOffline(row.account)"
           >
             下线
+          </el-button>
+          <el-button
+            v-else-if="row.status === '登录中'"
+            size="small"
+            type="info"
+            disabled
+          >
+            登录中...
           </el-button>
           <el-button size="small" type="info" @click="showQRCode(row)">
             二维码
@@ -236,6 +241,32 @@ const batchGroupForm = reactive({
   group: ''
 })
 
+const getStatusType = (status) => {
+  const map = {
+    '在线': 'success',
+    '正常': 'success',
+    '登录中': 'warning',
+    '离线': 'info',
+    '未连接': 'info',
+    '封禁': 'danger',
+    '过期': 'danger'
+  }
+  return map[status] || 'info'
+}
+
+const getStatusText = (status) => {
+  const map = {
+    '在线': '在线',
+    '正常': '在线',
+    '登录中': '登录中',
+    '离线': '离线',
+    '未连接': '离线',
+    '封禁': '封禁',
+    '过期': '过期'
+  }
+  return map[status] || status
+}
+
 const fetchAccountGroups = async () => {
   try {
     const res = await api.get('/whatsapp/accounts/groups')
@@ -328,7 +359,7 @@ const handleOnline = async (account) => {
       fetchAccounts()
     }
   } catch (error) {
-    ElMessage.error('上线失败')
+    ElMessage.error(error.message || '上线失败')
   }
 }
 
@@ -390,7 +421,6 @@ const handleEditGroup = async () => {
 }
 
 const handleBatchGroup = async () => {
-  console.log('selectedAccounts:', selectedAccounts.value)
   if (selectedAccounts.value.length === 0) {
     ElMessage.warning('请先选择账号')
     return
@@ -418,9 +448,7 @@ const handleBatchGroup = async () => {
 }
 
 const handleSelectionChange = (selection) => {
-  console.log('selection changed:', selection)
   selectedAccounts.value = selection.map(item => item.account)
-  console.log('selectedAccounts:', selectedAccounts.value)
 }
 
 onMounted(() => {
