@@ -53,7 +53,11 @@
       </template>
 
       <el-table :data="results" border>
-        <el-table-column prop="phone" label="手机号" width="180" />
+        <el-table-column prop="phone" label="手机号" width="180">
+          <template #default="{ row }">
+            {{ row.phone || extractPhone(row.jid) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="jid" label="JID" width="200">
           <template #default="{ row }">
             {{ row.jid || '-' }}
@@ -73,7 +77,7 @@
               size="small" 
               type="primary" 
               plain
-              @click="copyPhone(row.phone)"
+              @click="copyPhone(row.phone || extractPhone(row.jid))"
             >
               复制号码
             </el-button>
@@ -81,7 +85,6 @@
         </el-table-column>
       </el-table>
 
-      <!-- 导出按钮 -->
       <div style="margin-top:15px">
         <el-button type="success" plain @click="exportRegistered">
           <el-icon><Download /></el-icon> 导出已注册号码
@@ -117,6 +120,11 @@ const registeredCount = computed(() => {
 const unregisteredCount = computed(() => {
   return results.value.filter(r => !r.exists).length
 })
+
+const extractPhone = (jid) => {
+  if (!jid) return ''
+  return jid.split('@')[0]
+}
 
 const fetchAccounts = async () => {
   try {
@@ -154,13 +162,17 @@ const handleCheck = async () => {
       phones: phones
     })
     
+    console.log('API返回:', res)
+    
     if (res.code === 0) {
+      // res.data 就是协议服返回的 data 数组
       results.value = res.data || []
       ElMessage.success(`检查完成，共 ${results.value.length} 个号码`)
     } else {
       ElMessage.error(res.message || '检查失败')
     }
   } catch (error) {
+    console.error('检查失败:', error)
     ElMessage.error('检查失败: ' + (error.message || ''))
   } finally {
     checking.value = false
@@ -185,10 +197,13 @@ const loadSample = () => {
 }
 
 const copyPhone = (phone) => {
+  if (!phone) {
+    ElMessage.warning('没有可复制的号码')
+    return
+  }
   navigator.clipboard.writeText(phone).then(() => {
     ElMessage.success('已复制: ' + phone)
   }).catch(() => {
-    // 如果剪贴板不可用，使用传统方式
     const input = document.createElement('input')
     input.value = phone
     document.body.appendChild(input)
@@ -200,7 +215,7 @@ const copyPhone = (phone) => {
 }
 
 const exportRegistered = () => {
-  const phones = results.value.filter(r => r.exists).map(r => r.phone)
+  const phones = results.value.filter(r => r.exists).map(r => r.phone || extractPhone(r.jid))
   if (phones.length === 0) {
     ElMessage.warning('没有已注册的号码')
     return
@@ -211,7 +226,7 @@ const exportRegistered = () => {
 }
 
 const exportUnregistered = () => {
-  const phones = results.value.filter(r => !r.exists).map(r => r.phone)
+  const phones = results.value.filter(r => !r.exists).map(r => r.phone || extractPhone(r.jid))
   if (phones.length === 0) {
     ElMessage.warning('没有未注册的号码')
     return
