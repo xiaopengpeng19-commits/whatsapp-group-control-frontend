@@ -66,6 +66,12 @@ const routes = [
         meta: { title: '群发任务' }
       },
       {
+        path: 'check-whatsapp',
+        name: 'CheckWhatsApp',
+        component: () => import('@/views/CheckWhatsApp.vue'),
+        meta: { title: '检查注册' }
+      },
+      {
         path: 'contacts',
         name: 'Contacts',
         component: Contacts,

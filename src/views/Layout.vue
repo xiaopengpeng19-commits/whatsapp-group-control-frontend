@@ -40,6 +40,10 @@
           <el-icon><Promotion /></el-icon>
           <span>群发任务</span>
         </el-menu-item>
+        <el-menu-item index="/check-whatsapp">
+          <el-icon><Search /></el-icon>
+          <span>检查注册</span>
+        </el-menu-item>
         <el-menu-item index="/contacts">
           <el-icon><User /></el-icon>
           <span>联系人</span>
