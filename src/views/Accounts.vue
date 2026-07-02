@@ -87,7 +87,7 @@
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
           <el-button
-            v-if="row.status !== '在线' && row.status !== '正常' && row.status !== '登录中'"
+            v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
             size="small"
             type="primary"
             @click="handleOnline(row.account)"
@@ -95,7 +95,7 @@
             上线
           </el-button>
           <el-button
-            v-else-if="row.status === '在线' || row.status === '正常'"
+            v-else-if="row.status === 'online' || row.status === 'normal'"
             size="small"
             type="warning"
             @click="handleOffline(row.account)"
@@ -103,7 +103,7 @@
             下线
           </el-button>
           <el-button
-            v-else-if="row.status === '登录中'"
+            v-else-if="row.status === 'logging'"
             size="small"
             type="info"
             disabled
@@ -123,7 +123,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- 添加账号对话框 -->
     <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
       <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号">
@@ -155,7 +154,6 @@
       </template>
     </el-dialog>
 
-    <!-- 修改分组对话框 -->
     <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
       <el-form :model="editGroupForm" label-width="80px">
         <el-form-item label="账号">
@@ -171,7 +169,6 @@
       </template>
     </el-dialog>
 
-    <!-- 批量修改分组对话框 -->
     <el-dialog v-model="showBatchGroupDialog" title="批量修改分组" width="400px">
       <el-form :model="batchGroupForm" label-width="80px">
         <el-form-item label="选中数量">
@@ -187,7 +184,6 @@
       </template>
     </el-dialog>
 
-    <!-- 二维码对话框 -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
       <div class="qr-container" v-loading="qrLoading">
         <div v-if="qrCode" class="qr-image-wrapper">
@@ -241,30 +237,30 @@ const batchGroupForm = reactive({
   group: ''
 })
 
-const getStatusType = (status) => {
-  const map = {
-    '在线': 'success',
-    '正常': 'success',
-    '登录中': 'warning',
-    '离线': 'info',
-    '未连接': 'info',
-    '封禁': 'danger',
-    '过期': 'danger'
-  }
-  return map[status] || 'info'
+const statusMap = {
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期'
+}
+
+const statusTypeMap = {
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger'
 }
 
 const getStatusText = (status) => {
-  const map = {
-    '在线': '在线',
-    '正常': '在线',
-    '登录中': '登录中',
-    '离线': '离线',
-    '未连接': '离线',
-    '封禁': '封禁',
-    '过期': '过期'
-  }
-  return map[status] || status
+  return statusMap[status] || status
+}
+
+const getStatusType = (status) => {
+  return statusTypeMap[status] || 'info'
 }
 
 const fetchAccountGroups = async () => {
