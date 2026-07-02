@@ -1,6 +1,5 @@
 <template>
   <div class="target-accounts">
-    <!-- 工具栏 -->
     <div class="toolbar">
       <div>
         <el-button type="primary" @click="showAddDialog = true">
@@ -31,29 +30,27 @@
         </el-select>
         <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchAccounts" style="width:120px">
           <el-option label="全部" value="" />
-          <el-option label="初始化" value="初始化" />
-          <el-option label="已使用" value="已使用" />
-          <el-option label="已发送" value="已发送" />
-          <el-option label="已送达" value="已送达" />
-          <el-option label="已读" value="已读" />
-          <el-option label="已回复" value="已回复" />
+          <el-option label="初始化" value="initial" />
+          <el-option label="已使用" value="used" />
+          <el-option label="已发送" value="sent" />
+          <el-option label="已送达" value="delivered" />
+          <el-option label="已读" value="read" />
+          <el-option label="已回复" value="replied" />
         </el-select>
       </div>
     </div>
 
-    <!-- 统计卡片 -->
     <el-row :gutter="20" style="margin-bottom:20px">
       <el-col :span="4" v-for="item in statusStats" :key="item.name">
         <el-card>
           <div style="text-align:center">
             <div style="font-size:24px;color:#409eff">{{ item.count }}</div>
-            <div style="color:#999;font-size:14px">{{ item.name }}</div>
+            <div style="color:#999;font-size:14px">{{ getTargetStatusText(item.name) }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- 分组统计 -->
     <el-card style="margin-bottom:20px">
       <template #header>
         <span>分组统计</span>
@@ -67,7 +64,6 @@
       </div>
     </el-card>
 
-    <!-- 目标账号列表 -->
     <el-table
       :data="accounts"
       v-loading="loading"
@@ -87,8 +83,8 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)" size="small">
-            {{ row.status }}
+          <el-tag :type="getTargetStatusType(row.status)" size="small">
+            {{ getTargetStatusText(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
@@ -118,7 +114,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- 分页 -->
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
       <el-pagination
         v-model:current-page="page"
@@ -219,12 +214,12 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="editStatusForm.status" placeholder="请选择状态" style="width:100%">
-            <el-option label="初始化" value="初始化" />
-            <el-option label="已使用" value="已使用" />
-            <el-option label="已发送" value="已发送" />
-            <el-option label="已送达" value="已送达" />
-            <el-option label="已读" value="已读" />
-            <el-option label="已回复" value="已回复" />
+            <el-option label="初始化" value="initial" />
+            <el-option label="已使用" value="used" />
+            <el-option label="已发送" value="sent" />
+            <el-option label="已送达" value="delivered" />
+            <el-option label="已读" value="read" />
+            <el-option label="已回复" value="replied" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -287,16 +282,30 @@ const editStatusForm = reactive({
   status: ''
 })
 
-const getStatusType = (status) => {
-  const map = {
-    '初始化': 'info',
-    '已使用': 'primary',
-    '已发送': 'warning',
-    '已送达': 'success',
-    '已读': 'success',
-    '已回复': 'success'
-  }
-  return map[status] || 'info'
+const targetStatusMap = {
+  'initial': '初始化',
+  'used': '已使用',
+  'sent': '已发送',
+  'delivered': '已送达',
+  'read': '已读',
+  'replied': '已回复'
+}
+
+const targetStatusTypeMap = {
+  'initial': 'info',
+  'used': 'primary',
+  'sent': 'warning',
+  'delivered': 'success',
+  'read': 'success',
+  'replied': 'success'
+}
+
+const getTargetStatusText = (status) => {
+  return targetStatusMap[status] || status
+}
+
+const getTargetStatusType = (status) => {
+  return targetStatusTypeMap[status] || 'info'
 }
 
 const formatTime = (time) => {
@@ -487,7 +496,7 @@ const handleBatchGroup = async () => {
 const showEditStatus = (row) => {
   editStatusForm.id = row.id
   editStatusForm.phone = row.phone
-  editStatusForm.status = row.status || '初始化'
+  editStatusForm.status = row.status || 'initial'
   showEditStatusDialog.value = true
 }
 
