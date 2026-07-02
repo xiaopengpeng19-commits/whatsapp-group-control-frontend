@@ -1,4 +1,3 @@
-
 <template>
   <div class="dashboard">
     <!-- 统计卡片 -->
@@ -49,14 +48,14 @@
         <el-card>
           <template #header>
             <span>账号状态</span>
-          </template>
+          </el-template>
           <el-table :data="accountStatus" style="width: 100%">
             <el-table-column prop="account" label="账号" />
             <el-table-column prop="nickname" label="昵称" />
             <el-table-column prop="status" label="状态" width="120">
               <template #default="{ row }">
-                <el-tag :type="row.status === 'online' ? 'success' : 'info'">
-                  {{ row.status === 'online' ? '🟢 在线' : '⚪ 离线' }}
+                <el-tag :type="getStatusTagType(row.status)" size="small">
+                  {{ getStatusText(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -90,13 +89,39 @@ const stats = ref([
 const recentMessages = ref([])
 const accountStatus = ref([])
 
+const statusMap = {
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期'
+}
+
+const statusTagTypeMap = {
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger'
+}
+
+const getStatusText = (status) => {
+  return statusMap[status] || status
+}
+
+const getStatusTagType = (status) => {
+  return statusTagTypeMap[status] || 'info'
+}
+
 const getStatusType = (status) => {
   const map = { 
-    sent: 'info', 
+    sent: '', 
     delivered: 'success', 
     read: 'success', 
     failed: 'danger',
-    received: 'info'  // 新增：接收消息
+    received: 'info'
   }
   return map[status] || ''
 }
@@ -107,7 +132,7 @@ const getStatusLabel = (status) => {
     delivered: '已送达', 
     read: '已读', 
     failed: '失败',
-    received: '已接收'  // 新增：接收消息
+    received: '已接收'
   }
   return map[status] || status
 }
@@ -124,8 +149,14 @@ const fetchData = async () => {
         status: a.status || 'offline',
         isLogin: a.isLogin || false
       }))
+      
+      // 总账号数
       stats.value[0].value = accounts.length
-      stats.value[1].value = accounts.filter(a => a.status === 'online').length
+      
+      // 在线账号数：统计 online 和 normal 状态
+      stats.value[1].value = accounts.filter(a => 
+        a.status === 'online' || a.status === 'normal'
+      ).length
     }
 
     // 获取最近消息
