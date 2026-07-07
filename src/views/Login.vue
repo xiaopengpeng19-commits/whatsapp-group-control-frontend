@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-box">
       <div class="login-header">
-        <h1>📱 WhatsApp 群控系统</h1>
+        <h1>{{ APP_ICON }} {{ APP_NAME }}</h1>
         <p>请输入账号密码登录</p>
       </div>
       <el-form
@@ -50,6 +50,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import { APP_ICON, APP_NAME } from '@/config/app'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -93,14 +94,16 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: radial-gradient(circle at top left, #1e3a5f 0%, #0f172a 45%, #080d16 100%);
 }
 .login-box {
   width: 420px;
   padding: 40px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(2, 8, 23, 0.45);
+  backdrop-filter: blur(12px);
 }
 .login-header {
   text-align: center;
@@ -108,11 +111,21 @@ const handleLogin = async () => {
 }
 .login-header h1 {
   font-size: 24px;
-  color: #333;
+  color: #f8fafc;
   margin-bottom: 8px;
 }
 .login-header p {
-  color: #999;
+  color: #cbd5e1;
   font-size: 14px;
+}
+:deep(.el-input__wrapper) {
+  background-color: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.2);
+}
+:deep(.el-input__inner) {
+  color: #f8fafc;
+}
+:deep(.el-input__inner::placeholder) {
+  color: #94a3b8;
 }
 </style>

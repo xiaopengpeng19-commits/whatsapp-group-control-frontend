@@ -198,11 +198,11 @@ onMounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   line-height: 1.2;
 }
 .stat-title {
-  color: #999;
+  color: var(--text-muted);
   font-size: 14px;
   margin-top: 4px;
 }
