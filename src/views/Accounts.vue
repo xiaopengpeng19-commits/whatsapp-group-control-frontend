@@ -1,5 +1,6 @@
 <template>
   <div class="accounts">
+    <!-- 工具栏 -->
     <div class="toolbar">
       <div>
         <el-button type="primary" @click="showAddDialog = true">
@@ -25,6 +26,7 @@
       </div>
     </div>
 
+    <!-- 分组统计 -->
     <el-card style="margin-bottom:20px">
       <template #header>
         <span>账号分组统计</span>
@@ -38,6 +40,7 @@
       </div>
     </el-card>
 
+    <!-- 账号列表 -->
     <el-table 
       :data="accounts" 
       v-loading="loading" 
@@ -46,23 +49,23 @@
       row-key="account"
     >
       <el-table-column type="selection" width="55" />
-      <el-table-column prop="account" label="账号" width="150" />
-      <el-table-column prop="nickname" label="昵称" width="120" />
-      <el-table-column prop="group" label="账号分组" width="120">
+      <el-table-column prop="account" label="账号" width="140" />
+      <el-table-column prop="nickname" label="昵称" width="100" />
+      <el-table-column prop="group" label="账号分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
             {{ row.group || '未分组' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="proxyGroup" label="代理分组" width="120">
+      <el-table-column prop="proxyGroup" label="代理分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.proxyGroup ? 'primary' : 'info'">
             {{ row.proxyGroup || '未分配' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="proxy" label="代理IP" min-width="200" show-overflow-tooltip>
+      <el-table-column prop="proxy" label="代理IP" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.proxy" style="font-size:12px;font-family:monospace;">
             {{ row.proxy }}
@@ -70,7 +73,7 @@
           <span v-else style="color:#999;font-size:12px;">未分配</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)" size="small">
             {{ getStatusText(row.status) }}
@@ -84,7 +87,17 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="380" fixed="right">
+      <el-table-column prop="loginAt" label="登录时间" width="160">
+        <template #default="{ row }">
+          {{ formatTime(row.loginAt) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="statusAt" label="状态更新时间" width="160">
+        <template #default="{ row }">
+          {{ formatTime(row.statusAt) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
@@ -123,6 +136,7 @@
       </el-table-column>
     </el-table>
 
+    <!-- 添加账号对话框 -->
     <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
       <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号">
@@ -154,6 +168,7 @@
       </template>
     </el-dialog>
 
+    <!-- 修改分组对话框 -->
     <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
       <el-form :model="editGroupForm" label-width="80px">
         <el-form-item label="账号">
@@ -169,6 +184,7 @@
       </template>
     </el-dialog>
 
+    <!-- 批量修改分组对话框 -->
     <el-dialog v-model="showBatchGroupDialog" title="批量修改分组" width="400px">
       <el-form :model="batchGroupForm" label-width="80px">
         <el-form-item label="选中数量">
@@ -184,6 +200,7 @@
       </template>
     </el-dialog>
 
+    <!-- 二维码对话框 -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
       <div class="qr-container" v-loading="qrLoading">
         <div v-if="qrCode" class="qr-image-wrapper">
@@ -205,6 +222,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Folder, Picture } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
+import dayjs from 'dayjs'
 
 const accounts = ref([])
 const accountGroups = ref([])
@@ -261,6 +279,11 @@ const getStatusText = (status) => {
 
 const getStatusType = (status) => {
   return statusTypeMap[status] || 'info'
+}
+
+const formatTime = (time) => {
+  if (!time) return '-'
+  return dayjs(time).format('YYYY-MM-DD HH:mm')
 }
 
 const fetchAccountGroups = async () => {
