@@ -1,6 +1,5 @@
 <template>
   <div class="accounts">
-    <!-- 工具栏 -->
     <div class="toolbar">
       <div>
         <el-button type="primary" @click="showAddDialog = true">
@@ -26,7 +25,6 @@
       </div>
     </div>
 
-    <!-- 分组统计 -->
     <el-card style="margin-bottom:20px">
       <template #header>
         <span>账号分组统计</span>
@@ -40,7 +38,6 @@
       </div>
     </el-card>
 
-    <!-- 账号列表 -->
     <el-table 
       :data="accounts" 
       v-loading="loading" 
@@ -97,7 +94,7 @@
           {{ formatTime(row.statusAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="340" fixed="right">
+      <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
@@ -129,6 +126,9 @@
           <el-button size="small" type="primary" plain @click="showEditGroup(row)">
             改分组
           </el-button>
+          <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
+            改代理
+          </el-button>
           <el-button size="small" type="danger" @click="handleDelete(row.account)">
             删除
           </el-button>
@@ -139,7 +139,7 @@
     <!-- 添加账号对话框 -->
     <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
       <el-form :model="addForm" label-width="100px">
-        <el-form-item label="手机号">
+        <el-form-item label="手机号" required>
           <el-input v-model="addForm.account" placeholder="请输入手机号" />
         </el-form-item>
         <el-form-item label="昵称">
@@ -148,8 +148,8 @@
         <el-form-item label="账号分组">
           <el-input v-model="addForm.group" placeholder="请输入分组名称（可选）" />
         </el-form-item>
-        <el-form-item label="代理分组">
-          <el-select v-model="addForm.proxyGroup" placeholder="选择代理分组（可选）" clearable style="width:100%">
+        <el-form-item label="代理分组" required>
+          <el-select v-model="addForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
             <el-option
               v-for="item in proxyGroups"
               :key="item.name"
@@ -181,6 +181,32 @@
       <template #footer>
         <el-button @click="showEditGroupDialog = false">取消</el-button>
         <el-button type="primary" @click="handleEditGroup">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 修改代理分组对话框 -->
+    <el-dialog v-model="showEditProxyGroupDialog" title="修改代理分组" width="400px">
+      <el-form :model="editProxyGroupForm" label-width="100px">
+        <el-form-item label="账号">
+          <span>{{ editProxyGroupForm.account }}</span>
+        </el-form-item>
+        <el-form-item label="代理分组" required>
+          <el-select v-model="editProxyGroupForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
+            <el-option
+              v-for="item in proxyGroups"
+              :key="item.name"
+              :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name"
+            />
+          </el-select>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            切换后自动分配该分组中使用最少的代理IP
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditProxyGroupDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleEditProxyGroup">确定</el-button>
       </template>
     </el-dialog>
 
@@ -233,6 +259,7 @@ const selectedAccounts = ref([])
 
 const showAddDialog = ref(false)
 const showEditGroupDialog = ref(false)
+const showEditProxyGroupDialog = ref(false)
 const showBatchGroupDialog = ref(false)
 const showQRDialog = ref(false)
 
@@ -249,6 +276,11 @@ const addForm = reactive({
 const editGroupForm = reactive({
   account: '',
   group: ''
+})
+
+const editProxyGroupForm = reactive({
+  account: '',
+  proxyGroup: ''
 })
 
 const batchGroupForm = reactive({
@@ -329,6 +361,10 @@ const fetchAccounts = async () => {
 const handleAdd = async () => {
   if (!addForm.account) {
     ElMessage.warning('请输入手机号')
+    return
+  }
+  if (!addForm.proxyGroup) {
+    ElMessage.warning('请选择代理分组')
     return
   }
   try {
@@ -433,6 +469,33 @@ const handleEditGroup = async () => {
       showEditGroupDialog.value = false
       fetchAccounts()
       fetchAccountGroups()
+    }
+  } catch (error) {
+    ElMessage.error('更新失败: ' + (error.message || ''))
+  }
+}
+
+const showEditProxyGroup = (row) => {
+  editProxyGroupForm.account = row.account
+  editProxyGroupForm.proxyGroup = row.proxyGroup || ''
+  showEditProxyGroupDialog.value = true
+}
+
+const handleEditProxyGroup = async () => {
+  if (!editProxyGroupForm.proxyGroup) {
+    ElMessage.warning('请选择代理分组')
+    return
+  }
+  try {
+    const res = await api.put('/whatsapp/accounts/' + editProxyGroupForm.account + '/proxygroup', {
+      proxyGroup: editProxyGroupForm.proxyGroup
+    })
+    if (res.code === 0) {
+      const msg = res.data.proxy ? '已分配代理: ' + res.data.proxy : '未分配代理'
+      ElMessage.success('代理分组更新成功，' + msg)
+      showEditProxyGroupDialog.value = false
+      fetchAccounts()
+      fetchProxyGroups()
     }
   } catch (error) {
     ElMessage.error('更新失败: ' + (error.message || ''))
