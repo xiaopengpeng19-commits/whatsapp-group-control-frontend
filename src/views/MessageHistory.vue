@@ -42,7 +42,7 @@
           <el-button @click="fetchMessages">
             <el-icon><Refresh /></el-icon> 刷新
           </el-button>
-          <el-button type="danger" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+          <el-button type="danger" plain :disabled="selectedIds.length === 0" @click="handleBatchDelete">
             <el-icon><Delete /></el-icon> 批量删除
           </el-button>
         </el-form-item>
@@ -98,51 +98,60 @@
         v-loading="loading" 
         stripe
         @selection-change="handleSelectionChange"
+        size="default"
       >
-        <el-table-column type="selection" width="45" />
-        <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="account" label="账号" width="140" />
-        <el-table-column label="发送方" width="140">
+        <el-table-column type="selection" width="40" />
+        <el-table-column type="index" label="#" width="45" />
+        <el-table-column prop="account" label="账号" width="130" />
+        <el-table-column label="发送方" width="130">
           <template #default="{ row }">
-            {{ row.isOutgoing ? row.account : cleanJid(row.from) }}
+            <span style="font-size:13px;">{{ row.isOutgoing ? row.account : cleanJid(row.from) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="接收方" width="140">
+        <el-table-column label="接收方" width="130">
           <template #default="{ row }">
-            {{ row.isOutgoing ? row.to : row.account }}
+            <span style="font-size:13px;">{{ row.isOutgoing ? row.to : row.account }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="content" label="内容" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="70">
+        <el-table-column prop="content" label="内容" min-width="150" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span style="font-size:13px;">{{ row.content || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" label="类型" width="60" align="center">
           <template #default="{ row }">
             <el-tag :type="row.type === 'text' ? 'info' : row.type === 'image' ? 'success' : 'warning'" size="small">
               {{ row.type === 'text' ? '文本' : row.type === 'image' ? '图片' : '链接' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column prop="status" label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="isOutgoing" label="方向" width="70">
+        <el-table-column prop="isOutgoing" label="方向" width="60" align="center">
           <template #default="{ row }">
             <el-tag :type="row.isOutgoing ? 'primary' : 'success'" size="small">
               {{ row.isOutgoing ? '发送' : '接收' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="sentAt" label="时间" width="160">
+        <el-table-column prop="sentAt" label="时间" width="155">
           <template #default="{ row }">
-            {{ formatTime(row.sentAt) }}
+            <span style="font-size:12px;color:#666;">{{ formatTime(row.sentAt) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="130" fixed="right">
+        <el-table-column label="操作" width="130" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button size="small" type="text" @click="showDetail(row)">详情</el-button>
-            <el-button size="small" type="danger" text @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" type="primary" link @click="showDetail(row)">
+              详情
+            </el-button>
+            <el-button size="small" type="danger" link @click="handleDelete(row)">
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
