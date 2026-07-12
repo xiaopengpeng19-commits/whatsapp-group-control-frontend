@@ -19,6 +19,10 @@ export default {
   getMessages: (params) => api.get('/whatsapp/messages/get', { params }),
   sendLinkMessage: (data) => api.post('/whatsapp/link/send', data),
   
+  // ==================== 消息删除 ====================
+  deleteMessage: (id) => api.delete(`/whatsapp/messages/${id}/delete`),
+  batchDeleteMessages: (data) => api.post('/whatsapp/messages/batch/delete', data),
+
   // ==================== 联系人 ====================
   getContacts: (params) => api.get('/whatsapp/contacts', { params }),
   
