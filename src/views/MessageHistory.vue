@@ -42,6 +42,9 @@
           <el-button @click="fetchMessages">
             <el-icon><Refresh /></el-icon> 刷新
           </el-button>
+          <el-button type="danger" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+            <el-icon><Delete /></el-icon> 批量删除
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -89,49 +92,57 @@
         </div>
       </template>
 
-      <el-table :data="messages" border v-loading="loading" stripe>
+      <el-table 
+        :data="messages" 
+        border 
+        v-loading="loading" 
+        stripe
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="account" label="账号" width="150" />
-        <el-table-column label="发送方" width="150">
+        <el-table-column prop="account" label="账号" width="140" />
+        <el-table-column label="发送方" width="140">
           <template #default="{ row }">
             {{ row.isOutgoing ? row.account : cleanJid(row.from) }}
           </template>
         </el-table-column>
-        <el-table-column label="接收方" width="150">
+        <el-table-column label="接收方" width="140">
           <template #default="{ row }">
             {{ row.isOutgoing ? row.to : row.account }}
           </template>
         </el-table-column>
-        <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="80">
+        <el-table-column prop="content" label="内容" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="type" label="类型" width="70">
           <template #default="{ row }">
             <el-tag :type="row.type === 'text' ? 'info' : row.type === 'image' ? 'success' : 'warning'" size="small">
               {{ row.type === 'text' ? '文本' : row.type === 'image' ? '图片' : '链接' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
               {{ getStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="isOutgoing" label="方向" width="80">
+        <el-table-column prop="isOutgoing" label="方向" width="70">
           <template #default="{ row }">
             <el-tag :type="row.isOutgoing ? 'primary' : 'success'" size="small">
               {{ row.isOutgoing ? '发送' : '接收' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="sentAt" label="时间" width="170">
+        <el-table-column prop="sentAt" label="时间" width="160">
           <template #default="{ row }">
             {{ formatTime(row.sentAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作" width="130" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="text" @click="showDetail(row)">详情</el-button>
+            <el-button size="small" type="danger" text @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -189,8 +200,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Search, RefreshRight, Refresh } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, RefreshRight, Refresh, Delete } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import dayjs from 'dayjs'
 
@@ -202,6 +213,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const showDetailDialog = ref(false)
 const detailData = ref({})
+const selectedIds = ref([])
 
 const filterForm = reactive({
   account: '',
@@ -306,6 +318,42 @@ const resetFilter = () => {
 const showDetail = (row) => {
   detailData.value = row
   showDetailDialog.value = true
+}
+
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除该消息吗？`, '提示', { type: 'warning' })
+    const res = await whatsapp.deleteMessage(row.id)
+    if (res.code === 0) {
+      ElMessage.success('删除成功')
+      fetchMessages()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+const handleBatchDelete = async () => {
+  if (selectedIds.value.length === 0) return
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 条消息吗？`, '提示', { type: 'warning' })
+    const res = await whatsapp.batchDeleteMessages({ ids: selectedIds.value })
+    if (res.code === 0) {
+      ElMessage.success(`成功删除 ${res.data.deleted_count} 条消息`)
+      selectedIds.value = []
+      fetchMessages()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+const handleSelectionChange = (selection) => {
+  selectedIds.value = selection.map(item => item.id)
 }
 
 const formatTime = (time) => {
