@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import dayjs from 'dayjs'
 import { DataLine, ChatDotRound, User, Iphone } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
@@ -88,6 +88,7 @@ const stats = ref([
 
 const recentMessages = ref([])
 const accountStatus = ref([])
+let intervalId = null
 
 const statusMap = {
   'online': '在线',
@@ -139,7 +140,6 @@ const getStatusLabel = (status) => {
 
 const fetchData = async () => {
   try {
-    // 获取账号列表
     const res = await whatsapp.getAccounts()
     if (res.code === 0) {
       const accounts = res.data || []
@@ -156,7 +156,6 @@ const fetchData = async () => {
       ).length
     }
 
-    // 获取最近消息
     const msgRes = await whatsapp.getMessages({ page: 1, page_size: 10 })
     if (msgRes.code === 0) {
       recentMessages.value = msgRes.data?.data || []
@@ -169,7 +168,17 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
   // 每30秒刷新一次
-  setInterval(fetchData, 30000)
+  intervalId = setInterval(fetchData, 30000)
+})
+
+// ==========================================
+// 组件销毁时清除定时器
+// ==========================================
+onBeforeUnmount(() => {
+  if (intervalId) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
 })
 </script>
 
