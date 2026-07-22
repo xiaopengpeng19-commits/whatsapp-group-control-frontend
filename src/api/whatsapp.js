@@ -33,4 +33,9 @@ export default {
   deleteProxy: (id) => api.delete(`/proxies/${id}/delete`),
   batchDeleteProxies: (data) => api.post('/proxies/batch/delete', data),
   toggleProxyStatus: (id, data) => api.put(`/proxies/${id}/status`, data),
+
+  // 联系人管理
+  getContacts: (params) => api.get('/whatsapp/contacts/list', { params }),
+  addContact: (data) => api.post('/whatsapp/contacts/add', data),
+  batchAddContacts: (data) => api.post('/whatsapp/contacts/batch/add', data),
 }
