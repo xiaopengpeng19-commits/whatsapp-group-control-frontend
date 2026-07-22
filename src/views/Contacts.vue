@@ -1,6 +1,5 @@
 <template>
   <div class="contacts">
-    <!-- 工具栏 -->
     <div class="toolbar">
       <el-select v-model="selectedAccount" placeholder="选择账号" @change="fetchContacts" style="width:180px">
         <el-option
@@ -21,18 +20,20 @@
       </el-button>
     </div>
 
-    <!-- 联系人列表 -->
     <el-table :data="contacts" border v-loading="loading">
-      <el-table-column prop="peerName" label="名称" min-width="150">
+      <el-table-column label="名称" min-width="150">
         <template #default="{ row }">
-          {{ formatName(row.peerName) }}
+          {{ getDisplayName(row) }}
         </template>
       </el-table-column>
-      <el-table-column prop="peerPhone" label="手机号" width="150" />
-      <el-table-column prop="peerId" label="JID" min-width="200" />
-      <el-table-column prop="lastMessageTime" label="最后消息时间" width="170">
+      <el-table-column label="手机号" width="150">
         <template #default="{ row }">
-          {{ formatTime(row.lastMessageTime) }}
+          {{ getDisplayPhone(row) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="JID" min-width="200">
+        <template #default="{ row }">
+          {{ row.peerId || '-' }}
         </template>
       </el-table-column>
       <el-table-column prop="updatedAt" label="更新时间" width="170">
@@ -93,8 +94,7 @@
           <span style="color:#999;font-size:12px">
             示例:<br>
             8612345678901, 张三<br>
-            8612345678902, 李四<br>
-            8612345678903, 王五
+            8612345678902, 李四
           </span>
         </el-form-item>
       </el-form>
@@ -132,9 +132,54 @@ const batchForm = ref({
   contactsText: ''
 })
 
-const formatName = (name) => {
-  if (!name) return '-'
-  return name.replace(/^[\*\+]/, '')
+// 清理手机号：移除 +、空格、- 等
+const cleanPhone = (phone) => {
+  if (!phone) return ''
+  return String(phone).replace(/[\s+\-()]/g, '')
+}
+
+// 提取手机号（只保留数字）
+const extractPhone = (value) => {
+  if (!value) return ''
+  return String(value).replace(/\D/g, '')
+}
+
+// 从 JID 提取手机号
+const getPhoneFromJid = (jid) => {
+  if (!jid) return ''
+  return jid.split('@')[0]
+}
+
+// 获取显示名称
+const getDisplayName = (row) => {
+  // 优先使用 peerName
+  if (row.peerName) {
+    const name = String(row.peerName)
+    // 如果包含 @，说明是 JID，提取手机号
+    if (name.includes('@')) {
+      return getPhoneFromJid(name)
+    }
+    // 清理特殊字符
+    return cleanPhone(name)
+  }
+  // 从 peerId 提取
+  if (row.peerId) {
+    return getPhoneFromJid(row.peerId)
+  }
+  return row.phone || '-'
+}
+
+// 获取显示手机号
+const getDisplayPhone = (row) => {
+  // 优先使用 peerPhone
+  if (row.peerPhone) {
+    return cleanPhone(String(row.peerPhone))
+  }
+  // 从 peerId 提取
+  if (row.peerId) {
+    return getPhoneFromJid(row.peerId)
+  }
+  return row.phone || '-'
 }
 
 const formatTime = (time) => {
