@@ -23,12 +23,21 @@
 
     <!-- 联系人列表 -->
     <el-table :data="contacts" border v-loading="loading">
-      <el-table-column prop="peerName" label="名称" min-width="150" />
+      <el-table-column prop="peerName" label="名称" min-width="150">
+        <template #default="{ row }">
+          {{ formatName(row.peerName) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="peerPhone" label="手机号" width="150" />
       <el-table-column prop="peerId" label="JID" min-width="200" />
       <el-table-column prop="lastMessageTime" label="最后消息时间" width="170">
         <template #default="{ row }">
           {{ formatTime(row.lastMessageTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="updatedAt" label="更新时间" width="170">
+        <template #default="{ row }">
+          {{ formatTime(row.updatedAt) }}
         </template>
       </el-table-column>
     </el-table>
@@ -123,6 +132,16 @@ const batchForm = ref({
   contactsText: ''
 })
 
+const formatName = (name) => {
+  if (!name) return '-'
+  return name.replace(/^[\*\+]/, '')
+}
+
+const formatTime = (time) => {
+  if (!time) return '-'
+  return dayjs(time).format('YYYY-MM-DD HH:mm')
+}
+
 const fetchAccounts = async () => {
   try {
     const res = await whatsapp.getAccounts()
@@ -184,14 +203,14 @@ const handleBatchAdd = async () => {
     ElMessage.warning('请输入至少一个联系人')
     return
   }
-  const contacts = lines.map(line => {
+  const contactsList = lines.map(line => {
     const parts = line.split(',').map(s => s.trim())
     return { phone: parts[0], name: parts[1] || parts[0] }
   })
   try {
     const res = await whatsapp.batchAddContacts({
       account: batchForm.value.account,
-      contacts: contacts
+      contacts: contactsList
     })
     if (res.code === 0) {
       const summary = res.data?.summary || {}
@@ -203,10 +222,6 @@ const handleBatchAdd = async () => {
   } catch (error) {
     ElMessage.error('批量导入失败: ' + (error.message || ''))
   }
-}
-
-const formatTime = (time) => {
-  return time ? dayjs(time).format('YYYY-MM-DD HH:mm') : '-'
 }
 
 onMounted(() => {
