@@ -153,11 +153,13 @@
           <el-col :span="12">
             <el-form-item label="发起概率">
               <el-slider v-model="createForm.initiateRate" :min="10" :max="100" :step="5" show-stops />
+              <span style="font-size:12px;color:#999;">概率未命中时自动模拟填充</span>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="回复概率">
               <el-slider v-model="createForm.replyRate" :min="10" :max="100" :step="5" show-stops />
+              <span style="font-size:12px;color:#999;">概率未命中时自动模拟填充</span>
             </el-form-item>
           </el-col>
         </el-row>
@@ -298,14 +300,25 @@
         <div style="margin-top:15px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">对话记录</span>
-            <span style="color:#999;font-size:13px;">共 {{ detailMessages.length }} 条消息</span>
+            <span style="color:#999;font-size:13px;">
+              共 {{ detailMessages.length }} 条消息
+              <el-tag v-if="simulatedCount > 0" type="warning" size="small" style="margin-left:8px;">
+                模拟 {{ simulatedCount }} 条
+              </el-tag>
+            </span>
           </div>
           <div class="message-list" ref="messageListRef">
             <div v-if="detailMessages.length === 0" style="text-align:center;color:#999;padding:40px;">
               暂无消息
             </div>
             <div v-for="msg in detailMessages" :key="msg.id" class="message-item">
-              <div class="message-bubble" :class="msg.direction === 'send' ? 'message-send' : 'message-receive'">
+              <div 
+                class="message-bubble" 
+                :class="[
+                  msg.direction === 'send' ? 'message-send' : 'message-receive',
+                  msg.isSimulated ? 'message-simulated' : ''
+                ]"
+              >
                 <div class="message-header">
                   <span class="message-from">{{ msg.fromAccount }}</span>
                   <span class="message-arrow">→</span>
@@ -316,15 +329,26 @@
                   }">
                     第{{ msg.round }}轮 第{{ msg.roundIndex }}句
                   </span>
+                  <el-tag v-if="msg.isSimulated" type="warning" size="small" style="font-size:11px;">
+                    <el-icon><Timer /></el-icon> 模拟
+                  </el-tag>
                   <span class="message-time">{{ formatTime(msg.sentAt) }}</span>
                 </div>
-                <div class="message-content">{{ msg.content }}</div>
+                <div class="message-content">
+                  <span v-if="msg.isSimulated" style="color:#b3b3b3;font-style:italic;">
+                    [概率未命中，模拟跳过]
+                  </span>
+                  <span v-else>{{ msg.content }}</span>
+                </div>
                 <div class="message-footer">
                   <el-tag :type="getMessageStatusType(msg.status)" size="small">
                     {{ getMessageStatusLabel(msg.status) }}
                   </el-tag>
-                  <span v-if="msg.messageId" style="font-size:11px;color:#999;margin-left:10px;">
+                  <span v-if="msg.messageId && !msg.isSimulated" style="font-size:11px;color:#999;margin-left:10px;">
                     ID: {{ msg.messageId }}
+                  </span>
+                  <span v-if="msg.isSimulated" style="font-size:11px;color:#b3b3b3;margin-left:10px;">
+                    仅记录，未实际发送
                   </span>
                 </div>
               </div>
@@ -337,9 +361,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, onMounted, nextTick, onBeforeUnmount, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
@@ -361,6 +385,11 @@ const sessions = ref([])
 const detailMessages = ref([])
 const messageListRef = ref(null)
 const detailTimer = ref(null)
+
+// 模拟消息数量统计
+const simulatedCount = computed(() => {
+  return detailMessages.value.filter(m => m.isSimulated).length
+})
 
 // ============ 创建表单 ============
 const createForm = reactive({
@@ -698,6 +727,24 @@ onBeforeUnmount(() => {
   border-right: 4px solid #67c23a;
 }
 
+/* ==========================================
+   模拟消息样式
+   ========================================== */
+.message-simulated {
+  opacity: 0.7;
+  border-style: dashed;
+  background: #fafafa;
+}
+
+.message-simulated .message-content {
+  color: #b3b3b3;
+  font-style: italic;
+}
+
+.message-simulated:hover {
+  opacity: 0.9;
+}
+
 .message-header {
   display: flex;
   align-items: center;
@@ -749,6 +796,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* 会话标签样式 */
