@@ -33,6 +33,13 @@
           {{ getLanguageLabel(row.language) }}
         </template>
       </el-table-column>
+      <el-table-column label="配对间隔" width="110">
+        <template #default="{ row }">
+          <span style="font-size:13px;">
+            {{ row.pairIntervalMin || 5 }}~{{ row.pairIntervalMax || 15 }}分钟
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="进度" width="130">
         <template #default="{ row }">
           <el-progress 
@@ -45,6 +52,7 @@
       </el-table-column>
       <el-table-column prop="activeSessions" label="会话数" width="70" align="center" />
       <el-table-column prop="totalMessages" label="消息数" width="70" align="center" />
+      <el-table-column prop="totalPairs" label="配对数" width="70" align="center" />
       <el-table-column prop="status" label="状态" width="90">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)" size="small">
@@ -115,7 +123,7 @@
     </div>
 
     <!-- 创建任务对话框 -->
-    <el-dialog v-model="showCreateDialog" title="创建互聊任务" width="650px" :close-on-click-modal="false">
+    <el-dialog v-model="showCreateDialog" title="创建互聊任务" width="700px" :close-on-click-modal="false">
       <el-form :model="createForm" label-width="120px">
         <el-form-item label="任务名称" required>
           <el-input v-model="createForm.name" placeholder="请输入任务名称" />
@@ -138,6 +146,9 @@
             <el-option label="Português" value="pt" />
           </el-select>
         </el-form-item>
+
+        <el-divider content-position="left">对话参数</el-divider>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="发起概率">
@@ -152,27 +163,19 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="最小间隔">
+            <el-form-item label="消息间隔">
               <el-input-number v-model="createForm.minDelay" :min="1" :max="30" style="width:100%" />
+              <span style="font-size:12px;color:#999;">~</span>
+              <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" style="width:100px" />
               <span style="font-size:12px;color:#999;">秒</span>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="最大间隔">
-              <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" style="width:100%" />
-              <span style="font-size:12px;color:#999;">秒</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="最少轮数">
+            <el-form-item label="对话轮数">
               <el-input-number v-model="createForm.minRounds" :min="1" :max="20" style="width:100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最多轮数">
-              <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" style="width:100%" />
+              <span style="font-size:12px;color:#999;">~</span>
+              <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" style="width:100px" />
+              <span style="font-size:12px;color:#999;">轮</span>
             </el-form-item>
           </el-col>
         </el-row>
@@ -180,11 +183,41 @@
           <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" style="width:100%" />
           <span style="font-size:12px;color:#999;margin-left:8px;">同时进行的对话数</span>
         </el-form-item>
+
+        <el-divider content-position="left">配对间隔</el-divider>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最小间隔">
+              <el-input-number 
+                v-model="createForm.pairIntervalMin" 
+                :min="1" 
+                :max="60" 
+                style="width:100%"
+              />
+              <span style="font-size:12px;color:#999;">分钟</span>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="最大间隔">
+              <el-input-number 
+                v-model="createForm.pairIntervalMax" 
+                :min="2" 
+                :max="120" 
+                style="width:100%"
+              />
+              <span style="font-size:12px;color:#999;">分钟</span>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item label="联系人模式">
           <el-radio-group v-model="createForm.contactMode">
             <el-radio-button value="full">全连接</el-radio-button>
             <el-radio-button value="ondemand">按需添加</el-radio-button>
           </el-radio-group>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            全连接：所有账号互加联系人；按需添加：只添加配对账号
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -219,16 +252,20 @@
           </el-descriptions-item>
           <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
-          <el-descriptions-item label="间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
+          <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
+          <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 5 }}~{{ detailTask.pairIntervalMax || 15 }}分钟</el-descriptions-item>
+          <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
           <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
           <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item v-if="detailTask.lastError" label="错误信息" :span="4">
-            <span style="color:#f56c6c;">{{ detailTask.lastError }}</span>
-          </el-descriptions-item>
+          <el-descriptions-item v-if="detailTask.startedAt" label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
+          <el-descriptions-item v-if="detailTask.completedAt" label="完成时间">{{ formatTime(detailTask.completedAt) }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.stopReason" label="停止原因" :span="4">
             <span style="color:#f56c6c;">{{ detailTask.stopReason }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item v-if="detailTask.lastError" label="错误信息" :span="4">
+            <span style="color:#f56c6c;">{{ detailTask.lastError }}</span>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -300,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import api from '@/api'
@@ -337,7 +374,9 @@ const createForm = reactive({
   maxRounds: 6,
   replyRate: 80,
   maxConcurrent: 2,
-  contactMode: 'full'
+  contactMode: 'full',
+  pairIntervalMin: 5,
+  pairIntervalMax: 15
 })
 
 // ============ 工具函数 ============
@@ -435,11 +474,15 @@ const handleCreate = async () => {
     return
   }
   if (createForm.minDelay > createForm.maxDelay) {
-    ElMessage.warning('最小间隔不能大于最大间隔')
+    ElMessage.warning('最小消息间隔不能大于最大间隔')
     return
   }
   if (createForm.minRounds > createForm.maxRounds) {
     ElMessage.warning('最少轮数不能大于最多轮数')
+    return
+  }
+  if (createForm.pairIntervalMin > createForm.pairIntervalMax) {
+    ElMessage.warning('最小配对间隔不能大于最大间隔')
     return
   }
 
@@ -551,7 +594,6 @@ const showTaskDetail = async (row) => {
       sessions.value = res.data.sessions || []
       detailMessages.value = res.data.messages || []
       
-      // 滚动到底部
       await nextTick()
       scrollToBottom()
     }
@@ -574,7 +616,6 @@ const showTaskDetail = async (row) => {
         if (newMessages.length !== detailMessages.value.length) {
           detailMessages.value = newMessages
           sessions.value = res.data.sessions || []
-          // 更新任务信息
           detailTask.value = res.data.task
           await nextTick()
           scrollToBottom()
@@ -605,8 +646,6 @@ onMounted(() => {
   fetchTasks()
 })
 
-// 组件卸载时清理定时器
-import { onBeforeUnmount } from 'vue'
 onBeforeUnmount(() => {
   if (detailTimer.value) {
     clearInterval(detailTimer.value)
