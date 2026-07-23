@@ -262,6 +262,7 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import api from '@/api'
+import { chat } from '@/api'
 import dayjs from 'dayjs'
 
 const tasks = ref([])
@@ -413,7 +414,7 @@ const handleCreate = async () => {
 const handleStart = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要启动任务 "${row.name}" 吗？`, '提示', { type: 'info' })
-    const res = await api.post(`/chat/tasks/${row.id}/start`)
+    const res = await chat.startTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已启动')
       fetchTasks()
@@ -428,7 +429,7 @@ const handleStart = async (row) => {
 const handlePause = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要暂停任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await api.post(`/chat/tasks/${row.id}/pause`)
+    const res = await chat.pauseTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已暂停')
       fetchTasks()
@@ -443,7 +444,7 @@ const handlePause = async (row) => {
 const handleResume = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要恢复任务 "${row.name}" 吗？`, '提示', { type: 'info' })
-    const res = await api.post(`/chat/tasks/${row.id}/resume`)
+    const res = await chat.resumeTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已恢复')
       fetchTasks()
@@ -458,7 +459,7 @@ const handleResume = async (row) => {
 const handleStop = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要停止任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await api.post(`/chat/tasks/${row.id}/stop`)
+    const res = await chat.stopTask(row.id)
     if (res.code === 0) {
       ElMessage.success('任务已停止')
       fetchTasks()
@@ -473,7 +474,7 @@ const handleStop = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await api.delete(`/chat/tasks/${row.id}`)
+    const res = await chat.deleteTask(row.id)
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchTasks()
@@ -489,7 +490,7 @@ const showTaskDetail = async (row) => {
   showDetailDialog.value = true
   detailTask.value = row
   try {
-    const res = await api.get(`/chat/tasks/${row.id}`)
+    const res = await chat.getTaskDetail(row.id)
     if (res.code === 0) {
       detailTask.value = res.data.task
       detailMessages.value = res.data.messages || []
