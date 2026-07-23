@@ -66,6 +66,12 @@ const routes = [
         meta: { title: '群发任务' }
       },
       {
+        path: 'chat',
+        name: 'Chat',
+        component: () => import('@/views/Chat.vue'),
+        meta: { title: '互聊任务' }
+      },
+      {
         path: 'check-whatsapp',
         name: 'CheckWhatsApp',
         component: () => import('@/views/CheckWhatsApp.vue'),

@@ -40,6 +40,10 @@
           <el-icon><Promotion /></el-icon>
           <span>群发任务</span>
         </el-menu-item>
+        <el-menu-item index="/chat">
+          <el-icon><ChatLineSquare /></el-icon>
+          <span>互聊任务</span>
+        </el-menu-item>
         <el-menu-item index="/check-whatsapp">
           <el-icon><Search /></el-icon>
           <span>检查注册</span>
