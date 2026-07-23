@@ -1,5 +1,6 @@
 <template>
   <div class="chat">
+    <!-- 工具栏 -->
     <div class="toolbar">
       <el-button type="primary" @click="showCreateDialog = true">
         <el-icon><Plus /></el-icon> 创建互聊任务
@@ -193,8 +194,14 @@
     </el-dialog>
 
     <!-- 任务详情对话框 -->
-    <el-dialog v-model="showDetailDialog" title="任务详情" width="900px">
-      <div v-if="detailTask">
+    <el-dialog 
+      v-model="showDetailDialog" 
+      title="任务详情" 
+      width="1000px"
+      :close-on-click-modal="false"
+      @close="closeDetail"
+    >
+      <div v-if="detailTask" v-loading="detailLoading">
         <!-- 任务信息 -->
         <el-descriptions :column="4" border>
           <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
@@ -214,8 +221,8 @@
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
           <el-descriptions-item label="间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
-          <el-descriptions-item label="总消息">{{ detailTask.totalMessages }}</el-descriptions-item>
-          <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions }}</el-descriptions-item>
+          <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.lastError" label="错误信息" :span="4">
             <span style="color:#f56c6c;">{{ detailTask.lastError }}</span>
@@ -225,30 +232,65 @@
           </el-descriptions-item>
         </el-descriptions>
 
+        <!-- 会话列表 -->
+        <div style="margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:bold;">活跃会话</span>
+            <span style="color:#999;font-size:13px;">共 {{ sessions.length }} 个会话</span>
+          </div>
+          <div v-if="sessions.length > 0" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">
+            <el-tag 
+              v-for="session in sessions" 
+              :key="session.id"
+              :type="session.status === 'active' ? 'success' : 'info'"
+              size="large"
+            >
+              {{ session.accountA }} ↔ {{ session.accountB }}
+              <span style="margin-left:8px;font-size:12px;color:#999;">
+                {{ session.rounds }}/{{ session.maxRounds }}轮
+                {{ session.status === 'active' ? '🟢' : '🔴' }}
+              </span>
+            </el-tag>
+          </div>
+          <div v-else style="color:#999;text-align:center;padding:10px;background:#f5f7fa;border-radius:4px;">
+            暂无活跃会话
+          </div>
+        </div>
+
         <!-- 对话消息 -->
-        <div style="margin-top:20px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="margin-top:15px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">对话记录</span>
-            <span style="color:#999;font-size:13px;">共 {{ detailMessages.length }} 条</span>
+            <span style="color:#999;font-size:13px;">共 {{ detailMessages.length }} 条消息</span>
           </div>
           <div class="message-list" ref="messageListRef">
+            <div v-if="detailMessages.length === 0" style="text-align:center;color:#999;padding:40px;">
+              暂无消息
+            </div>
             <div v-for="msg in detailMessages" :key="msg.id" class="message-item">
               <div class="message-bubble" :class="msg.direction === 'send' ? 'message-send' : 'message-receive'">
                 <div class="message-header">
                   <span class="message-from">{{ msg.fromAccount }}</span>
-                  <span class="message-to">→ {{ msg.toAccount }}</span>
+                  <span class="message-arrow">→</span>
+                  <span class="message-to">{{ msg.toAccount }}</span>
+                  <span class="message-round" :style="{ 
+                    background: msg.round % 2 === 0 ? '#ecf5ff' : '#f0f9eb',
+                    color: msg.round % 2 === 0 ? '#409eff' : '#67c23a'
+                  }">
+                    第{{ msg.round }}轮 第{{ msg.roundIndex }}句
+                  </span>
                   <span class="message-time">{{ formatTime(msg.sentAt) }}</span>
                 </div>
                 <div class="message-content">{{ msg.content }}</div>
-                <div class="message-status">
+                <div class="message-footer">
                   <el-tag :type="getMessageStatusType(msg.status)" size="small">
                     {{ getMessageStatusLabel(msg.status) }}
                   </el-tag>
+                  <span v-if="msg.messageId" style="font-size:11px;color:#999;margin-left:10px;">
+                    ID: {{ msg.messageId }}
+                  </span>
                 </div>
               </div>
-            </div>
-            <div v-if="detailMessages.length === 0" style="text-align:center;color:#999;padding:40px;">
-              暂无消息
             </div>
           </div>
         </div>
@@ -258,13 +300,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import api from '@/api'
-import { chat } from '@/api'
 import dayjs from 'dayjs'
 
+// ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
 const loading = ref(false)
@@ -276,10 +318,14 @@ const creating = ref(false)
 
 const showCreateDialog = ref(false)
 const showDetailDialog = ref(false)
+const detailLoading = ref(false)
 const detailTask = ref(null)
+const sessions = ref([])
 const detailMessages = ref([])
 const messageListRef = ref(null)
+const detailTimer = ref(null)
 
+// ============ 创建表单 ============
 const createForm = reactive({
   name: '',
   accounts: [],
@@ -294,6 +340,7 @@ const createForm = reactive({
   contactMode: 'full'
 })
 
+// ============ 工具函数 ============
 const getLanguageLabel = (lang) => {
   const map = { zh: '中文', en: 'English', pt: 'Português' }
   return map[lang] || lang
@@ -323,7 +370,7 @@ const getStatusLabel = (status) => {
 
 const getProgress = (row) => {
   if (!row.totalRounds || row.totalRounds === 0) return 0
-  return Math.round((row.currentRound || 0) / row.totalRounds * 100)
+  return Math.round(((row.currentRound || 0) / row.totalRounds) * 100)
 }
 
 const getProgressColor = (row) => {
@@ -334,12 +381,12 @@ const getProgressColor = (row) => {
 }
 
 const getMessageStatusType = (status) => {
-  const map = { sent: 'info', delivered: 'success', read: 'success', failed: 'danger' }
+  const map = { sent: 'info', delivered: 'success', read: 'success', failed: 'danger', received: 'info' }
   return map[status] || 'info'
 }
 
 const getMessageStatusLabel = (status) => {
-  const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败' }
+  const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败', received: '已接收' }
   return map[status] || status
 }
 
@@ -348,6 +395,7 @@ const formatTime = (time) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
 }
 
+// ============ 数据获取 ============
 const fetchAccounts = async () => {
   try {
     const res = await api.get('/whatsapp/accounts/list')
@@ -376,6 +424,7 @@ const fetchTasks = async () => {
   }
 }
 
+// ============ 创建任务 ============
 const handleCreate = async () => {
   if (!createForm.name) {
     ElMessage.warning('请输入任务名称')
@@ -411,10 +460,11 @@ const handleCreate = async () => {
   }
 }
 
+// ============ 任务操作 ============
 const handleStart = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要启动任务 "${row.name}" 吗？`, '提示', { type: 'info' })
-    const res = await chat.startTask(row.id)
+    const res = await api.post(`/chat/tasks/${row.id}/start`)
     if (res.code === 0) {
       ElMessage.success('任务已启动')
       fetchTasks()
@@ -429,7 +479,7 @@ const handleStart = async (row) => {
 const handlePause = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要暂停任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await chat.pauseTask(row.id)
+    const res = await api.post(`/chat/tasks/${row.id}/pause`)
     if (res.code === 0) {
       ElMessage.success('任务已暂停')
       fetchTasks()
@@ -444,7 +494,7 @@ const handlePause = async (row) => {
 const handleResume = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要恢复任务 "${row.name}" 吗？`, '提示', { type: 'info' })
-    const res = await chat.resumeTask(row.id)
+    const res = await api.post(`/chat/tasks/${row.id}/resume`)
     if (res.code === 0) {
       ElMessage.success('任务已恢复')
       fetchTasks()
@@ -459,7 +509,7 @@ const handleResume = async (row) => {
 const handleStop = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要停止任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await chat.stopTask(row.id)
+    const res = await api.post(`/chat/tasks/${row.id}/stop`)
     if (res.code === 0) {
       ElMessage.success('任务已停止')
       fetchTasks()
@@ -474,7 +524,7 @@ const handleStop = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
-    const res = await chat.deleteTask(row.id)
+    const res = await api.delete(`/chat/tasks/${row.id}`)
     if (res.code === 0) {
       ElMessage.success('删除成功')
       fetchTasks()
@@ -486,27 +536,82 @@ const handleDelete = async (row) => {
   }
 }
 
+// ============ 任务详情 ============
 const showTaskDetail = async (row) => {
   showDetailDialog.value = true
+  detailLoading.value = true
   detailTask.value = row
+  sessions.value = []
+  detailMessages.value = []
+  
   try {
-    const res = await chat.getTaskDetail(row.id)
+    const res = await api.get(`/chat/tasks/${row.id}`)
     if (res.code === 0) {
       detailTask.value = res.data.task
+      sessions.value = res.data.sessions || []
       detailMessages.value = res.data.messages || []
+      
+      // 滚动到底部
       await nextTick()
-      if (messageListRef.value) {
-        messageListRef.value.scrollTop = messageListRef.value.scrollHeight
-      }
+      scrollToBottom()
     }
   } catch (error) {
     ElMessage.error('获取任务详情失败')
+  } finally {
+    detailLoading.value = false
+  }
+  
+  // 每5秒自动刷新消息
+  if (detailTimer.value) {
+    clearInterval(detailTimer.value)
+  }
+  detailTimer.value = setInterval(async () => {
+    if (!showDetailDialog.value || !detailTask.value) return
+    try {
+      const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
+      if (res.code === 0) {
+        const newMessages = res.data.messages || []
+        if (newMessages.length !== detailMessages.value.length) {
+          detailMessages.value = newMessages
+          sessions.value = res.data.sessions || []
+          // 更新任务信息
+          detailTask.value = res.data.task
+          await nextTick()
+          scrollToBottom()
+        }
+      }
+    } catch (error) {
+      // ignore
+    }
+  }, 5000)
+}
+
+const closeDetail = () => {
+  if (detailTimer.value) {
+    clearInterval(detailTimer.value)
+    detailTimer.value = null
   }
 }
 
+const scrollToBottom = () => {
+  if (messageListRef.value) {
+    messageListRef.value.scrollTop = messageListRef.value.scrollHeight
+  }
+}
+
+// ============ 生命周期 ============
 onMounted(() => {
   fetchAccounts()
   fetchTasks()
+})
+
+// 组件卸载时清理定时器
+import { onBeforeUnmount } from 'vue'
+onBeforeUnmount(() => {
+  if (detailTimer.value) {
+    clearInterval(detailTimer.value)
+    detailTimer.value = null
+  }
 })
 </script>
 
@@ -520,9 +625,9 @@ onMounted(() => {
 }
 
 .message-list {
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
-  padding: 10px;
+  padding: 15px;
   background: #f5f7fa;
   border-radius: 8px;
 }
@@ -532,29 +637,36 @@ onMounted(() => {
 }
 
 .message-bubble {
-  max-width: 80%;
-  padding: 10px 14px;
+  max-width: 85%;
+  padding: 12px 16px;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.message-bubble:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .message-send {
   margin-right: auto;
-  border-left: 3px solid #409eff;
+  border-left: 4px solid #409eff;
 }
 
 .message-receive {
   margin-left: auto;
-  border-right: 3px solid #67c23a;
+  border-right: 4px solid #67c23a;
 }
 
 .message-header {
   display: flex;
-  gap: 10px;
-  font-size: 12px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: #999;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .message-from {
@@ -562,14 +674,82 @@ onMounted(() => {
   color: #333;
 }
 
+.message-arrow {
+  color: #ccc;
+}
+
+.message-to {
+  color: #666;
+}
+
+.message-round {
+  font-size: 12px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-weight: 500;
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #bbb;
+  margin-left: auto;
+}
+
 .message-content {
   font-size: 14px;
   color: #333;
   word-wrap: break-word;
+  line-height: 1.6;
+  padding: 4px 0;
 }
 
-.message-status {
-  margin-top: 4px;
-  text-align: right;
+.message-footer {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 会话标签样式 */
+.el-tag--large {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+/* 滚动条美化 */
+.message-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: #e4e7ed;
+  border-radius: 3px;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 3px;
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background: #a0a4ac;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 95%;
+  }
+  
+  .message-header {
+    font-size: 12px;
+  }
+  
+  .message-round {
+    font-size: 11px;
+    padding: 0 6px;
+  }
 }
 </style>
