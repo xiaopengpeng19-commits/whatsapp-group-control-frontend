@@ -122,113 +122,128 @@
       />
     </div>
 
-    <!-- 创建任务对话框 -->
-    <el-dialog v-model="showCreateDialog" title="创建互聊任务" width="700px" :close-on-click-modal="false">
-      <el-form :model="createForm" label-width="120px">
-        <el-form-item label="任务名称" required>
-          <el-input v-model="createForm.name" placeholder="请输入任务名称" />
-        </el-form-item>
-        <el-form-item label="参与账号" required>
-          <el-select v-model="createForm.accounts" multiple placeholder="选择参与账号" style="width:100%">
-            <el-option
-              v-for="item in allAccounts"
-              :key="item.account"
-              :label="item.account"
-              :value="item.account"
-            />
-          </el-select>
-          <div style="font-size:12px;color:#999;margin-top:4px;">至少选择2个账号</div>
-        </el-form-item>
-        <el-form-item label="消息语言">
-          <el-select v-model="createForm.language" style="width:100%">
-            <el-option label="中文" value="zh" />
-            <el-option label="English" value="en" />
-            <el-option label="Português" value="pt" />
-          </el-select>
-        </el-form-item>
-
-        <el-divider content-position="left">对话参数</el-divider>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="发起概率">
-              <el-slider v-model="createForm.initiateRate" :min="10" :max="100" :step="5" show-stops />
-              <span style="font-size:12px;color:#999;">概率未命中时自动模拟填充</span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="回复概率">
-              <el-slider v-model="createForm.replyRate" :min="10" :max="100" :step="5" show-stops />
-              <span style="font-size:12px;color:#999;">概率未命中时自动模拟填充</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="消息间隔">
-              <el-input-number v-model="createForm.minDelay" :min="1" :max="30" style="width:100%" />
-              <span style="font-size:12px;color:#999;">~</span>
-              <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" style="width:100px" />
-              <span style="font-size:12px;color:#999;">秒</span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="对话轮数">
-              <el-input-number v-model="createForm.minRounds" :min="1" :max="20" style="width:100%" />
-              <span style="font-size:12px;color:#999;">~</span>
-              <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" style="width:100px" />
-              <span style="font-size:12px;color:#999;">轮</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="最大并发">
-          <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" style="width:100%" />
-          <span style="font-size:12px;color:#999;margin-left:8px;">同时进行的对话数</span>
-        </el-form-item>
-
-        <el-divider content-position="left">配对间隔</el-divider>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="最小间隔">
-              <el-input-number 
-                v-model="createForm.pairIntervalMin" 
-                :min="1" 
-                :max="60" 
-                style="width:100%"
-              />
-              <span style="font-size:12px;color:#999;">分钟</span>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="最大间隔">
-              <el-input-number 
-                v-model="createForm.pairIntervalMax" 
-                :min="2" 
-                :max="120" 
-                style="width:100%"
-              />
-              <span style="font-size:12px;color:#999;">分钟</span>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="联系人模式">
-          <el-radio-group v-model="createForm.contactMode">
-            <el-radio-button value="full">全连接</el-radio-button>
-            <el-radio-button value="ondemand">按需添加</el-radio-button>
-          </el-radio-group>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            全连接：所有账号互加联系人；按需添加：只添加配对账号
+    <!-- ========================================== -->
+    <!-- 创建任务对话框 - 美化版 -->
+    <!-- ========================================== -->
+    <el-dialog 
+      v-model="showCreateDialog" 
+      title="创建互聊任务" 
+      width="680px" 
+      :close-on-click-modal="false"
+      class="create-chat-dialog"
+    >
+      <el-form :model="createForm" label-width="100px" label-position="right">
+        <!-- 基本信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="section-line"></span>
+            基本信息
           </div>
-        </el-form-item>
+          <el-form-item label="任务名称" required>
+            <el-input v-model="createForm.name" placeholder="请输入任务名称" size="large" />
+          </el-form-item>
+          <el-form-item label="参与账号" required>
+            <el-select v-model="createForm.accounts" multiple placeholder="选择参与账号" style="width:100%" size="large">
+              <el-option
+                v-for="item in allAccounts"
+                :key="item.account"
+                :label="item.account"
+                :value="item.account"
+              />
+            </el-select>
+            <div class="form-tip">至少选择2个账号</div>
+          </el-form-item>
+          <el-form-item label="消息语言">
+            <el-radio-group v-model="createForm.language" size="large">
+              <el-radio-button value="zh">中文</el-radio-button>
+              <el-radio-button value="en">English</el-radio-button>
+              <el-radio-button value="pt">Português</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="联系人模式">
+            <el-radio-group v-model="createForm.contactMode" size="large">
+              <el-radio-button value="full">全连接</el-radio-button>
+              <el-radio-button value="ondemand">按需添加</el-radio-button>
+            </el-radio-group>
+            <div class="form-tip">全连接：所有账号互加联系人；按需添加：只添加配对账号</div>
+          </el-form-item>
+        </div>
+
+        <!-- 对话参数 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="section-line"></span>
+            对话参数
+          </div>
+          <el-form-item label="发起概率">
+            <div class="slider-wrapper">
+              <el-slider v-model="createForm.initiateRate" :min="10" :max="100" :step="5" />
+              <span class="slider-value">{{ createForm.initiateRate }}%</span>
+            </div>
+            <div class="form-tip">概率未命中时自动模拟填充</div>
+          </el-form-item>
+          <el-form-item label="回复概率">
+            <div class="slider-wrapper">
+              <el-slider v-model="createForm.replyRate" :min="10" :max="100" :step="5" />
+              <span class="slider-value">{{ createForm.replyRate }}%</span>
+            </div>
+            <div class="form-tip">概率未命中时自动模拟填充</div>
+          </el-form-item>
+          <el-form-item label="消息间隔">
+            <div class="range-wrapper">
+              <el-input-number v-model="createForm.minDelay" :min="1" :max="30" size="large" />
+              <span class="range-sep">~</span>
+              <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" size="large" />
+              <span class="range-unit">秒</span>
+            </div>
+          </el-form-item>
+          <el-form-item label="对话轮数">
+            <div class="range-wrapper">
+              <el-input-number v-model="createForm.minRounds" :min="1" :max="20" size="large" />
+              <span class="range-sep">~</span>
+              <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" size="large" />
+              <span class="range-unit">轮</span>
+            </div>
+          </el-form-item>
+          <el-form-item label="最大并发">
+            <div class="range-wrapper">
+              <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
+              <span class="range-unit" style="margin-left:8px;">同时进行的对话数</span>
+            </div>
+          </el-form-item>
+        </div>
+
+        <!-- 配对间隔 -->
+        <div class="form-section">
+          <div class="section-title">
+            <span class="section-line"></span>
+            配对间隔
+          </div>
+          <el-form-item label="间隔范围">
+            <div class="range-wrapper">
+              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="60" size="large" />
+              <span class="range-sep">~</span>
+              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="120" size="large" />
+              <span class="range-unit">分钟</span>
+            </div>
+            <div class="form-tip">账号完成对话后，在此范围内随机冷却，冷却结束后可再次配对</div>
+          </el-form-item>
+        </div>
       </el-form>
+
       <template #footer>
-        <el-button @click="showCreateDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate" :loading="creating">创建</el-button>
+        <div class="dialog-footer">
+          <el-button @click="showCreateDialog = false" size="large">取消</el-button>
+          <el-button type="primary" @click="handleCreate" :loading="creating" size="large">
+            {{ creating ? '创建中...' : '创建任务' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
 
+    <!-- ========================================== -->
     <!-- 任务详情对话框 -->
+    <!-- ========================================== -->
     <el-dialog 
       v-model="showDetailDialog" 
       title="任务详情" 
@@ -684,6 +699,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* ==========================================
+   工具栏
+   ========================================== */
 .toolbar {
   display: flex;
   align-items: center;
@@ -692,6 +710,143 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+/* ==========================================
+   创建对话框样式
+   ========================================== */
+.create-chat-dialog :deep(.el-dialog__header) {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.create-chat-dialog :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.create-chat-dialog :deep(.el-dialog__body) {
+  padding: 20px 24px 8px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.create-chat-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 表单分区 */
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 16px;
+}
+
+.section-line {
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  background: #409eff;
+  border-radius: 2px;
+  margin-right: 10px;
+}
+
+/* 表单提示 */
+.form-tip {
+  font-size: 12px;
+  color: #86909c;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* 滑块 */
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.slider-wrapper .el-slider {
+  flex: 1;
+}
+
+.slider-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #409eff;
+  min-width: 44px;
+  text-align: center;
+}
+
+/* 范围选择器 */
+.range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.range-wrapper .el-input-number {
+  width: 110px;
+}
+
+.range-sep {
+  color: #86909c;
+  font-size: 14px;
+  padding: 0 2px;
+}
+
+.range-unit {
+  color: #86909c;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+/* 底部按钮 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* 表单项间距优化 */
+.create-chat-dialog :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.create-chat-dialog :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
+
+/* 滚动条 */
+.create-chat-dialog :deep(.el-dialog__body::-webkit-scrollbar) {
+  width: 4px;
+}
+
+.create-chat-dialog :deep(.el-dialog__body::-webkit-scrollbar-track) {
+  background: #f0f0f0;
+  border-radius: 2px;
+}
+
+.create-chat-dialog :deep(.el-dialog__body::-webkit-scrollbar-thumb) {
+  background: #d0d0d0;
+  border-radius: 2px;
+}
+
+/* ==========================================
+   消息列表样式
+   ========================================== */
 .message-list {
   max-height: 500px;
   overflow-y: auto;
@@ -727,9 +882,7 @@ onBeforeUnmount(() => {
   border-right: 4px solid #67c23a;
 }
 
-/* ==========================================
-   模拟消息样式
-   ========================================== */
+/* 模拟消息样式 */
 .message-simulated {
   opacity: 0.7;
   border-style: dashed;
@@ -824,8 +977,27 @@ onBeforeUnmount(() => {
   background: #a0a4ac;
 }
 
-/* 响应式 */
+/* ==========================================
+   响应式
+   ========================================== */
 @media (max-width: 768px) {
+  .create-chat-dialog :deep(.el-dialog) {
+    width: 95% !important;
+  }
+  
+  .range-wrapper .el-input-number {
+    width: 80px;
+  }
+  
+  .slider-wrapper {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .slider-wrapper .el-slider {
+    width: 100%;
+  }
+
   .message-bubble {
     max-width: 95%;
   }
