@@ -160,13 +160,6 @@
               <el-radio-button value="pt">Português</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="联系人模式">
-            <el-radio-group v-model="createForm.contactMode" size="large">
-              <el-radio-button value="full">全连接</el-radio-button>
-              <el-radio-button value="ondemand">按需添加</el-radio-button>
-            </el-radio-group>
-            <div class="form-tip">全连接：所有账号互加联系人；按需添加：只添加配对账号</div>
-          </el-form-item>
         </div>
 
         <!-- 对话参数 -->
@@ -261,7 +254,6 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="语言">{{ getLanguageLabel(detailTask.language) }}</el-descriptions-item>
-          <el-descriptions-item label="模式">{{ detailTask.contactMode === 'full' ? '全连接' : '按需添加' }}</el-descriptions-item>
           <el-descriptions-item label="参与账号" :span="4">
             <el-tag v-for="acc in detailTask.accounts" :key="acc" size="small" style="margin:2px">
               {{ acc }}
@@ -418,7 +410,6 @@ const createForm = reactive({
   maxRounds: 6,
   replyRate: 80,
   maxConcurrent: 2,
-  contactMode: 'full',
   pairIntervalMin: 5,
   pairIntervalMax: 15
 })
