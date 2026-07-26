@@ -36,7 +36,7 @@
       <el-table-column label="配对间隔" width="110">
         <template #default="{ row }">
           <span style="font-size:13px;">
-            {{ row.pairIntervalMin || 5 }}~{{ row.pairIntervalMax || 15 }}分钟
+            {{ row.pairIntervalMin || 30 }}~{{ row.pairIntervalMax || 45 }}分钟
           </span>
         </template>
       </el-table-column>
@@ -123,7 +123,7 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- 创建任务对话框 - 美化版 -->
+    <!-- 创建任务对话框 -->
     <!-- ========================================== -->
     <el-dialog 
       v-model="showCreateDialog" 
@@ -214,9 +214,9 @@
           </div>
           <el-form-item label="间隔范围">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="60" size="large" />
+              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="120" size="large" />
               <span class="range-sep">~</span>
-              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="120" size="large" />
+              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="180" size="large" />
               <span class="range-unit">分钟</span>
             </div>
             <div class="form-tip">账号完成对话后，在此范围内随机冷却，冷却结束后可再次配对</div>
@@ -254,16 +254,12 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="语言">{{ getLanguageLabel(detailTask.language) }}</el-descriptions-item>
-          <el-descriptions-item label="参与账号" :span="4">
-            <el-tag v-for="acc in detailTask.accounts" :key="acc" size="small" style="margin:2px">
-              {{ acc }}
-            </el-tag>
-          </el-descriptions-item>
+          <el-descriptions-item label="最大并发">{{ detailTask.maxConcurrent }}</el-descriptions-item>
           <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
-          <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 5 }}~{{ detailTask.pairIntervalMax || 15 }}分钟</el-descriptions-item>
+          <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45 }}分钟</el-descriptions-item>
           <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
           <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
           <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -278,7 +274,35 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <!-- 会话列表 -->
+        <!-- ========================================== -->
+        <!-- 账号状态 -->
+        <!-- ========================================== -->
+        <div style="margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:bold;">账号状态</span>
+            <span style="color:#999;font-size:13px;">
+              <el-tag size="small" type="success">在线 {{ onlineCount }}</el-tag>
+              <el-tag size="small" type="info">离线 {{ offlineCount }}</el-tag>
+              <el-tag size="small" type="warning">冷却中 {{ cooldownCount }}</el-tag>
+              <el-tag size="small" type="danger">封禁 {{ bannedCount }}</el-tag>
+            </span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <el-tag 
+              v-for="acc in detailTask.accounts" 
+              :key="acc"
+              :type="getAccountStatusType(acc)"
+              size="large"
+            >
+              {{ acc }}
+              <span style="margin-left:8px;font-size:12px;">
+                {{ getAccountStatusText(acc) }}
+              </span>
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 活跃会话 -->
         <div style="margin-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">活跃会话</span>
@@ -393,11 +417,6 @@ const detailMessages = ref([])
 const messageListRef = ref(null)
 const detailTimer = ref(null)
 
-// 模拟消息数量统计
-const simulatedCount = computed(() => {
-  return detailMessages.value.filter(m => m.isSimulated).length
-})
-
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
@@ -410,9 +429,108 @@ const createForm = reactive({
   maxRounds: 6,
   replyRate: 80,
   maxConcurrent: 2,
-  pairIntervalMin: 5,
-  pairIntervalMax: 15
+  pairIntervalMin: 30,
+  pairIntervalMax: 45
 })
+
+// ============ 计算属性 ============
+
+// 模拟消息数量统计
+const simulatedCount = computed(() => {
+  return detailMessages.value.filter(m => m.isSimulated).length
+})
+
+// 账号状态统计
+const onlineCount = computed(() => {
+  if (!detailTask.value) return 0
+  return detailTask.value.accounts.filter(acc => {
+    const status = getAccountStatus(acc)
+    return status.status === 'online' && !isAccountCooling(acc)
+  }).length
+})
+
+const offlineCount = computed(() => {
+  if (!detailTask.value) return 0
+  return detailTask.value.accounts.filter(acc => {
+    const status = getAccountStatus(acc)
+    return status.status === 'offline' && !isAccountCooling(acc)
+  }).length
+})
+
+const cooldownCount = computed(() => {
+  if (!detailTask.value) return 0
+  return detailTask.value.accounts.filter(acc => isAccountCooling(acc)).length
+})
+
+const bannedCount = computed(() => {
+  if (!detailTask.value) return 0
+  return detailTask.value.accounts.filter(acc => {
+    const status = getAccountStatus(acc)
+    return status.status === 'banned' || status.status === 'expired'
+  }).length
+})
+
+// ============ 账号状态函数 ============
+
+// 获取账号在线状态
+const getAccountStatus = (account) => {
+  const found = allAccounts.value.find(a => a.account === account)
+  if (!found) return { status: 'unknown', label: '未知', type: 'info' }
+  
+  const statusMap = {
+    'online': { status: 'online', label: '在线', type: 'success' },
+    'normal': { status: 'online', label: '在线', type: 'success' },
+    'logging': { status: 'logging', label: '登录中', type: 'warning' },
+    'offline': { status: 'offline', label: '离线', type: 'info' },
+    'banned': { status: 'banned', label: '封禁', type: 'danger' },
+    'expired': { status: 'expired', label: '过期', type: 'danger' }
+  }
+  return statusMap[found.status] || { status: 'unknown', label: '未知', type: 'info' }
+}
+
+// 检查账号是否在冷却中
+const isAccountCooling = (account) => {
+  if (!detailTask.value || !detailTask.value.accountCooldowns) return false
+  const cooldownAt = detailTask.value.accountCooldowns[account]
+  if (!cooldownAt) return false
+  return new Date() < new Date(cooldownAt)
+}
+
+// 获取账号状态类型（用于标签颜色）
+const getAccountStatusType = (account) => {
+  const status = getAccountStatus(account)
+  if (status.status === 'banned' || status.status === 'expired') return 'danger'
+  if (isAccountCooling(account)) return 'warning'
+  if (status.status === 'online') return 'success'
+  if (status.status === 'logging') return 'warning'
+  return 'info'
+}
+
+// 获取账号状态文本
+const getAccountStatusText = (account) => {
+  const status = getAccountStatus(account)
+  
+  // 封禁优先
+  if (status.status === 'banned') return '🚫 封禁'
+  if (status.status === 'expired') return '⏰ 过期'
+  
+  // 冷却中
+  if (isAccountCooling(account)) {
+    const cooldownAt = detailTask.value.accountCooldowns[account]
+    const remaining = Math.ceil((new Date(cooldownAt) - new Date()) / 60000)
+    if (remaining > 0) {
+      return `⏳ 冷却中 ${remaining}分钟`
+    }
+    return '⏳ 冷却中'
+  }
+  
+  // 在线状态
+  if (status.status === 'online') return '🟢 在线'
+  if (status.status === 'logging') return '🟡 登录中'
+  if (status.status === 'offline') return '⚪ 离线'
+  
+  return '❓ 未知'
+}
 
 // ============ 工具函数 ============
 const getLanguageLabel = (lang) => {
@@ -426,7 +544,8 @@ const getStatusType = (status) => {
     running: 'warning',
     paused: 'warning',
     completed: 'success',
-    stopped: 'danger'
+    stopped: 'danger',
+    syncing: 'warning'
   }
   return map[status] || 'info'
 }
@@ -437,7 +556,8 @@ const getStatusLabel = (status) => {
     running: '执行中',
     paused: '已暂停',
     completed: '已完成',
-    stopped: '已停止'
+    stopped: '已停止',
+    syncing: '同步中'
   }
   return map[status] || status
 }
