@@ -1,30 +1,39 @@
 <template>
   <div class="accounts">
+    <!-- 工具栏 -->
     <div class="toolbar">
       <div>
         <el-button type="primary" @click="showAddDialog = true">
-          <el-icon><Plus /></el-icon> 添加账号
+          <el-icon>
+            <Plus />
+          </el-icon> 添加账号
+        </el-button>
+        <el-button type="success" @click="showImportDialog = true">
+          <el-icon>
+            <Upload />
+          </el-icon> 导入账号
         </el-button>
         <el-button type="warning" plain @click="showBatchGroupDialog = true">
-          <el-icon><Folder /></el-icon> 批量修改分组
+          <el-icon>
+            <Folder />
+          </el-icon> 批量修改分组
         </el-button>
         <el-button @click="fetchAccounts">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon>
+            <Refresh />
+          </el-icon> 刷新
         </el-button>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
         <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:160px">
           <el-option label="全部分组" value="" />
-          <el-option
-            v-for="item in accountGroups"
-            :key="item.name"
-            :label="item.name + ' (' + item.count + '个)'"
-            :value="item.name"
-          />
+          <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+            :value="item.name" />
         </el-select>
       </div>
     </div>
 
+    <!-- 账号分组统计 -->
     <el-card style="margin-bottom:20px">
       <template #header>
         <span>账号分组统计</span>
@@ -38,13 +47,8 @@
       </div>
     </el-card>
 
-    <el-table 
-      :data="accounts" 
-      v-loading="loading" 
-      border
-      @selection-change="handleSelectionChange"
-      row-key="account"
-    >
+    <!-- 账号列表 -->
+    <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
       <el-table-column prop="nickname" label="昵称" width="100" />
@@ -96,28 +100,15 @@
       </el-table-column>
       <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <el-button
-            v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
-            size="small"
-            type="primary"
-            @click="handleOnline(row.account)"
-          >
+          <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
+            type="primary" @click="handleOnline(row.account)">
             上线
           </el-button>
-          <el-button
-            v-else-if="row.status === 'online' || row.status === 'normal'"
-            size="small"
-            type="warning"
-            @click="handleOffline(row.account)"
-          >
+          <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
+            @click="handleOffline(row.account)">
             下线
           </el-button>
-          <el-button
-            v-else-if="row.status === 'logging'"
-            size="small"
-            type="info"
-            disabled
-          >
+          <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
             登录中...
           </el-button>
           <el-button size="small" type="info" @click="showQRCode(row)">
@@ -136,7 +127,16 @@
       </el-table-column>
     </el-table>
 
+    <!-- 分页 -->
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]"
+        :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
+        @current-change="fetchAccounts" />
+    </div>
+
+    <!-- ========================================== -->
     <!-- 添加账号对话框 -->
+    <!-- ========================================== -->
     <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
       <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号" required>
@@ -150,12 +150,8 @@
         </el-form-item>
         <el-form-item label="代理分组" required>
           <el-select v-model="addForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
-            <el-option
-              v-for="item in proxyGroups"
-              :key="item.name"
-              :label="item.name + ' (' + item.count + '个)'"
-              :value="item.name"
-            />
+            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
           </el-select>
           <div style="font-size:12px;color:#999;margin-top:4px;">
             选择后自动分配该分组中使用最少的代理IP
@@ -168,7 +164,44 @@
       </template>
     </el-dialog>
 
+    <!-- ========================================== -->
+    <!-- 导入账号对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showImportDialog" title="导入账号" width="550px">
+      <el-form :model="importForm" label-width="100px">
+        <el-form-item label="凭证文件" required>
+          <el-upload ref="uploadRef" :auto-upload="false" :limit="1" accept=".json" :on-change="handleFileChange"
+            :on-remove="handleFileRemove">
+            <el-button type="primary" plain>
+              <el-icon>
+                <FolderOpened />
+              </el-icon> 选择凭证文件
+            </el-button>
+            <template #tip>
+              <div style="font-size:12px;color:#999;margin-top:4px;">
+                支持 .json 格式的凭证文件，由协议服导出
+              </div>
+            </template>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="代理">
+          <el-input v-model="importForm.proxy" placeholder="可选，socks5://ip:port" />
+        </el-form-item>
+        <el-form-item label="Session ID">
+          <el-input v-model="importForm.sessionId" placeholder="可选" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showImportDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleImport" :loading="importing">
+          {{ importing ? '导入中...' : '导入' }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
     <!-- 修改分组对话框 -->
+    <!-- ========================================== -->
     <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
       <el-form :model="editGroupForm" label-width="80px">
         <el-form-item label="账号">
@@ -184,7 +217,9 @@
       </template>
     </el-dialog>
 
+    <!-- ========================================== -->
     <!-- 修改代理分组对话框 -->
+    <!-- ========================================== -->
     <el-dialog v-model="showEditProxyGroupDialog" title="修改代理分组" width="400px">
       <el-form :model="editProxyGroupForm" label-width="100px">
         <el-form-item label="账号">
@@ -192,12 +227,8 @@
         </el-form-item>
         <el-form-item label="代理分组" required>
           <el-select v-model="editProxyGroupForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
-            <el-option
-              v-for="item in proxyGroups"
-              :key="item.name"
-              :label="item.name + ' (' + item.count + '个)'"
-              :value="item.name"
-            />
+            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
           </el-select>
           <div style="font-size:12px;color:#999;margin-top:4px;">
             切换后自动分配该分组中使用最少的代理IP
@@ -210,7 +241,9 @@
       </template>
     </el-dialog>
 
+    <!-- ========================================== -->
     <!-- 批量修改分组对话框 -->
+    <!-- ========================================== -->
     <el-dialog v-model="showBatchGroupDialog" title="批量修改分组" width="400px">
       <el-form :model="batchGroupForm" label-width="80px">
         <el-form-item label="选中数量">
@@ -226,15 +259,20 @@
       </template>
     </el-dialog>
 
+    <!-- ========================================== -->
     <!-- 二维码对话框 -->
+    <!-- ========================================== -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
       <div class="qr-container" v-loading="qrLoading">
         <div v-if="qrCode" class="qr-image-wrapper">
-          <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCode)" alt="二维码" />
+          <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCode)"
+            alt="二维码" />
           <p class="qr-tip">请使用 WhatsApp 扫描二维码登录</p>
         </div>
         <div v-else-if="!qrLoading" class="qr-empty">
-          <el-icon :size="48"><Picture /></el-icon>
+          <el-icon :size="48">
+            <Picture />
+          </el-icon>
           <p>暂无二维码</p>
         </div>
       </div>
@@ -245,32 +283,46 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Folder, Picture } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+// ============ 状态 ============
 const accounts = ref([])
 const accountGroups = ref([])
 const proxyGroups = ref([])
 const loading = ref(false)
 const qrLoading = ref(false)
 const selectedAccounts = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
 
 const showAddDialog = ref(false)
+const showImportDialog = ref(false)
 const showEditGroupDialog = ref(false)
 const showEditProxyGroupDialog = ref(false)
 const showBatchGroupDialog = ref(false)
 const showQRDialog = ref(false)
+const importing = ref(false)
+const uploadRef = ref(null)
 
 const filterGroup = ref('')
 const qrCode = ref('')
 
+// ============ 表单 ============
 const addForm = reactive({
   account: '',
   nickname: '',
   group: '',
   proxyGroup: ''
+})
+
+const importForm = reactive({
+  credsFile: null,
+  proxy: '',
+  sessionId: ''
 })
 
 const editGroupForm = reactive({
@@ -287,6 +339,7 @@ const batchGroupForm = reactive({
   group: ''
 })
 
+// ============ 状态映射 ============
 const statusMap = {
   'online': '在线',
   'normal': '在线',
@@ -306,7 +359,7 @@ const statusTypeMap = {
 }
 
 const getStatusText = (status) => {
-  return statusMap[status] || status
+  return statusMap[status] || status || '未知'
 }
 
 const getStatusType = (status) => {
@@ -318,6 +371,7 @@ const formatTime = (time) => {
   return dayjs(time).format('YYYY-MM-DD HH:mm')
 }
 
+// ============ 数据获取 ============
 const fetchAccountGroups = async () => {
   try {
     const res = await api.get('/whatsapp/accounts/groups')
@@ -343,13 +397,14 @@ const fetchProxyGroups = async () => {
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = { page: page.value, page_size: pageSize.value }
     if (filterGroup.value) {
       params.group = filterGroup.value
     }
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
       accounts.value = res.data || []
+      total.value = res.data.total || 0
     }
   } catch (error) {
     ElMessage.error('获取账号列表失败')
@@ -358,6 +413,7 @@ const fetchAccounts = async () => {
   }
 }
 
+// ============ 添加账号 ============
 const handleAdd = async () => {
   if (!addForm.account) {
     ElMessage.warning('请输入手机号')
@@ -390,6 +446,65 @@ const handleAdd = async () => {
   }
 }
 
+// ============ 导入账号 ============
+const handleFileChange = (file) => {
+  importForm.credsFile = file.raw
+}
+
+const handleFileRemove = () => {
+  importForm.credsFile = null
+}
+
+const handleImport = async () => {
+  if (!importForm.credsFile) {
+    ElMessage.warning('请选择凭证文件')
+    return
+  }
+
+  importing.value = true
+  try {
+    const reader = new FileReader()
+    const fileContent = await new Promise((resolve, reject) => {
+      reader.onload = (e) => resolve(e.target.result)
+      reader.onerror = reject
+      reader.readAsText(importForm.credsFile)
+    })
+
+    // 验证 JSON 格式
+    try {
+      JSON.parse(fileContent)
+    } catch {
+      ElMessage.error('凭证文件格式错误，请上传有效的 JSON 文件')
+      importing.value = false
+      return
+    }
+
+    const res = await whatsapp.importAccount({
+      credsFile: fileContent,
+      proxy: importForm.proxy || '',
+      sessionId: importForm.sessionId || ''
+    })
+
+    if (res.code === 0) {
+      ElMessage.success(res.data.message || '导入成功')
+      showImportDialog.value = false
+      importForm.credsFile = null
+      importForm.proxy = ''
+      importForm.sessionId = ''
+      uploadRef.value?.clearFiles()
+      fetchAccounts()
+      fetchAccountGroups()
+    } else {
+      ElMessage.error(res.message || '导入失败')
+    }
+  } catch (error) {
+    ElMessage.error('导入失败: ' + (error.message || ''))
+  } finally {
+    importing.value = false
+  }
+}
+
+// ============ 删除账号 ============
 const handleDelete = async (account) => {
   try {
     await ElMessageBox.confirm(`确定要删除账号 ${account} 吗？`, '提示', {
@@ -406,6 +521,7 @@ const handleDelete = async (account) => {
   }
 }
 
+// ============ 上线/下线 ============
 const handleOnline = async (account) => {
   try {
     const res = await whatsapp.online(account)
@@ -430,6 +546,7 @@ const handleOffline = async (account) => {
   }
 }
 
+// ============ 二维码 ============
 const showQRCode = async (row) => {
   showQRDialog.value = true
   qrCode.value = ''
@@ -453,6 +570,7 @@ const showQRCode = async (row) => {
   }
 }
 
+// ============ 修改分组 ============
 const showEditGroup = (row) => {
   editGroupForm.account = row.account
   editGroupForm.group = row.group || ''
@@ -475,6 +593,7 @@ const handleEditGroup = async () => {
   }
 }
 
+// ============ 修改代理分组 ============
 const showEditProxyGroup = (row) => {
   editProxyGroupForm.account = row.account
   editProxyGroupForm.proxyGroup = row.proxyGroup || ''
@@ -500,6 +619,11 @@ const handleEditProxyGroup = async () => {
   } catch (error) {
     ElMessage.error('更新失败: ' + (error.message || ''))
   }
+}
+
+// ============ 批量操作 ============
+const handleSelectionChange = (selection) => {
+  selectedAccounts.value = selection.map(item => item.account)
 }
 
 const handleBatchGroup = async () => {
@@ -529,10 +653,7 @@ const handleBatchGroup = async () => {
   }
 }
 
-const handleSelectionChange = (selection) => {
-  selectedAccounts.value = selection.map(item => item.account)
-}
-
+// ============ 生命周期 ============
 onMounted(() => {
   fetchAccountGroups()
   fetchProxyGroups()
@@ -549,9 +670,11 @@ onMounted(() => {
   gap: 12px;
   margin-bottom: 20px;
 }
+
 .group-stat {
   padding: 4px 0;
 }
+
 .qr-container {
   display: flex;
   flex-direction: column;
@@ -560,22 +683,26 @@ onMounted(() => {
   min-height: 250px;
   padding: 20px 0;
 }
+
 .qr-image-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
 }
+
 .qr-container img {
   width: 250px;
   height: 250px;
   border: 2px solid #e4e7ed;
   border-radius: 8px;
 }
+
 .qr-tip {
   color: #999;
   font-size: 14px;
 }
+
 .qr-empty {
   display: flex;
   flex-direction: column;
@@ -583,6 +710,7 @@ onMounted(() => {
   gap: 12px;
   color: #999;
 }
+
 .qr-empty .el-icon {
   font-size: 48px;
 }

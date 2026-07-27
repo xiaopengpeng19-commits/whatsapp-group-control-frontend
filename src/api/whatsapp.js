@@ -38,4 +38,6 @@ export default {
   getContacts: (params) => api.get('/whatsapp/contacts/list', { params }),
   addContact: (data) => api.post('/whatsapp/contacts/add', data),
   batchAddContacts: (data) => api.post('/whatsapp/contacts/batch/add', data),
+
+  importAccount: (data) => api.post('/whatsapp/accounts/import', data),
 }
