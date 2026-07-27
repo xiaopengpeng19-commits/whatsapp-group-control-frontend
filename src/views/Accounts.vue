@@ -11,7 +11,7 @@
         <el-button type="success" @click="showImportDialog = true">
           <el-icon>
             <Upload />
-          </el-icon> 导入账号
+          </el-icon> 批量导入
         </el-button>
         <el-button type="warning" plain @click="showBatchGroupDialog = true">
           <el-icon>
@@ -165,21 +165,21 @@
     </el-dialog>
 
     <!-- ========================================== -->
-    <!-- 导入账号对话框 -->
+    <!-- 批量导入对话框 -->
     <!-- ========================================== -->
-    <el-dialog v-model="showImportDialog" title="导入账号" width="550px">
+    <el-dialog v-model="showImportDialog" title="批量导入账号" width="600px">
       <el-form :model="importForm" label-width="100px">
         <el-form-item label="凭证文件" required>
-          <el-upload ref="uploadRef" :auto-upload="false" :limit="1" accept=".json" :on-change="handleFileChange"
-            :on-remove="handleFileRemove">
+          <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json" :on-change="handleFileChange"
+            :on-remove="handleFileRemove" :on-exceed="handleExceed" :limit="20">
             <el-button type="primary" plain>
               <el-icon>
                 <FolderOpened />
-              </el-icon> 选择凭证文件
+              </el-icon> 选择凭证文件（可多选）
             </el-button>
             <template #tip>
               <div style="font-size:12px;color:#999;margin-top:4px;">
-                支持 .json 格式的凭证文件，由协议服导出
+                支持 .json 格式的凭证文件，可一次选择多个文件批量导入
               </div>
             </template>
           </el-upload>
@@ -193,11 +193,18 @@
             选择后自动分配该分组中使用最少的代理IP
           </div>
         </el-form-item>
+        <el-form-item v-if="importFiles.length > 0" label="已选文件">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <el-tag v-for="(file, index) in importFiles" :key="index" size="small" closable @close="removeFile(index)">
+              {{ file.name }}
+            </el-tag>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showImportDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleImport" :loading="importing">
-          {{ importing ? '导入中...' : '导入' }}
+        <el-button type="primary" @click="handleBatchImport" :loading="importing">
+          {{ importing ? '导入中...' : '批量导入' }}
         </el-button>
       </template>
     </el-dialog>
@@ -310,6 +317,7 @@ const showBatchGroupDialog = ref(false)
 const showQRDialog = ref(false)
 const importing = ref(false)
 const uploadRef = ref(null)
+const importFiles = ref([])
 
 const filterGroup = ref('')
 const qrCode = ref('')
@@ -323,7 +331,6 @@ const addForm = reactive({
 })
 
 const importForm = reactive({
-  credsFile: null,
   proxyGroup: ''
 })
 
@@ -448,59 +455,88 @@ const handleAdd = async () => {
   }
 }
 
-// ============ 导入账号 ============
+// ============ 批量导入 ============
 const handleFileChange = (file) => {
-  importForm.credsFile = file.raw
+  importFiles.value.push(file)
 }
 
-const handleFileRemove = () => {
-  importForm.credsFile = null
+const handleFileRemove = (file) => {
+  const index = importFiles.value.findIndex(f => f.uid === file.uid)
+  if (index !== -1) {
+    importFiles.value.splice(index, 1)
+  }
 }
 
-const handleImport = async () => {
-  if (!importForm.credsFile) {
+const removeFile = (index) => {
+  importFiles.value.splice(index, 1)
+}
+
+const handleExceed = () => {
+  ElMessage.warning('最多只能选择20个文件')
+}
+
+const handleBatchImport = async () => {
+  if (importFiles.value.length === 0) {
     ElMessage.warning('请选择凭证文件')
     return
   }
 
   importing.value = true
   try {
-    const reader = new FileReader()
-    const fileContent = await new Promise((resolve, reject) => {
-      reader.onload = (e) => resolve(e.target.result)
-      reader.onerror = reject
-      reader.readAsText(importForm.credsFile)
-    })
+    const credsContents = []
+    for (const file of importFiles.value) {
+      const content = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target.result)
+        reader.onerror = reject
+        reader.readAsText(file.raw)
+      })
+      try {
+        JSON.parse(content)
+        credsContents.push(content)
+      } catch {
+        ElMessage.warning(`文件 ${file.name} 格式错误，已跳过`)
+      }
+    }
 
-    // 验证 JSON 格式
-    try {
-      JSON.parse(fileContent)
-    } catch {
-      ElMessage.error('凭证文件格式错误，请上传有效的 JSON 文件')
+    if (credsContents.length === 0) {
+      ElMessage.warning('没有有效的凭证文件')
       importing.value = false
       return
     }
 
-    const res = await whatsapp.importAccount({
-      credsFile: fileContent,
+    const res = await whatsapp.batchImportAccount({
+      credsFiles: credsContents,
       proxyGroup: importForm.proxyGroup || ''
     })
 
     if (res.code === 0) {
-      const msg = res.data.proxy ? `已分配代理: ${res.data.proxy}` : '未分配代理'
-      ElMessage.success(res.data.message + '，' + msg)
+      const { total, success, failed } = res.data
+      ElMessage.success(`导入完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
+
+      if (failed > 0) {
+        const failedList = res.data.results
+          .filter(r => !r.success)
+          .map(r => `${r.phone || '未知'}: ${r.message}`)
+          .join('\n')
+        ElMessage.warning({
+          message: `失败详情：\n${failedList}`,
+          duration: 0,
+          showClose: true
+        })
+      }
+
       showImportDialog.value = false
-      importForm.credsFile = null
-      importForm.proxyGroup = ''
+      importFiles.value = []
       uploadRef.value?.clearFiles()
       fetchAccounts()
       fetchAccountGroups()
       fetchProxyGroups()
     } else {
-      ElMessage.error(res.message || '导入失败')
+      ElMessage.error(res.message || '批量导入失败')
     }
   } catch (error) {
-    ElMessage.error('导入失败: ' + (error.message || ''))
+    ElMessage.error('批量导入失败: ' + (error.message || ''))
   } finally {
     importing.value = false
   }
