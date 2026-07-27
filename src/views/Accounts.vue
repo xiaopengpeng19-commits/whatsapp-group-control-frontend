@@ -184,11 +184,14 @@
             </template>
           </el-upload>
         </el-form-item>
-        <el-form-item label="代理">
-          <el-input v-model="importForm.proxy" placeholder="可选，socks5://ip:port" />
-        </el-form-item>
-        <el-form-item label="Session ID">
-          <el-input v-model="importForm.sessionId" placeholder="可选" />
+        <el-form-item label="代理分组">
+          <el-select v-model="importForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
+            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            选择后自动分配该分组中使用最少的代理IP
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -321,8 +324,7 @@ const addForm = reactive({
 
 const importForm = reactive({
   credsFile: null,
-  proxy: '',
-  sessionId: ''
+  proxyGroup: ''
 })
 
 const editGroupForm = reactive({
@@ -481,19 +483,19 @@ const handleImport = async () => {
 
     const res = await whatsapp.importAccount({
       credsFile: fileContent,
-      proxy: importForm.proxy || '',
-      sessionId: importForm.sessionId || ''
+      proxyGroup: importForm.proxyGroup || ''
     })
 
     if (res.code === 0) {
-      ElMessage.success(res.data.message || '导入成功')
+      const msg = res.data.proxy ? `已分配代理: ${res.data.proxy}` : '未分配代理'
+      ElMessage.success(res.data.message + '，' + msg)
       showImportDialog.value = false
       importForm.credsFile = null
-      importForm.proxy = ''
-      importForm.sessionId = ''
+      importForm.proxyGroup = ''
       uploadRef.value?.clearFiles()
       fetchAccounts()
       fetchAccountGroups()
+      fetchProxyGroups()
     } else {
       ElMessage.error(res.message || '导入失败')
     }
