@@ -184,6 +184,12 @@
             </template>
           </el-upload>
         </el-form-item>
+        <el-form-item label="账号分组">
+          <el-input v-model="importForm.accountGroup" placeholder="请输入分组名称（可选）" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            所有导入账号将分配到该分组
+          </div>
+        </el-form-item>
         <el-form-item label="代理分组">
           <el-select v-model="importForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
             <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
@@ -331,7 +337,8 @@ const addForm = reactive({
 })
 
 const importForm = reactive({
-  proxyGroup: ''
+  proxyGroup: '',
+  accountGroup: ''
 })
 
 const editGroupForm = reactive({
@@ -507,7 +514,8 @@ const handleBatchImport = async () => {
 
     const res = await whatsapp.batchImportAccount({
       credsFiles: credsContents,
-      proxyGroup: importForm.proxyGroup || ''
+      proxyGroup: importForm.proxyGroup || '',
+      accountGroup: importForm.accountGroup || ''
     })
 
     if (res.code === 0) {
@@ -528,6 +536,7 @@ const handleBatchImport = async () => {
 
       showImportDialog.value = false
       importFiles.value = []
+      importForm.accountGroup = ''
       uploadRef.value?.clearFiles()
       fetchAccounts()
       fetchAccountGroups()
