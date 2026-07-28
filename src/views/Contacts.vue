@@ -176,18 +176,10 @@ const formatTime = (time) => {
 const fetchAccounts = async () => {
   try {
     const res = await api.get('/whatsapp/accounts/list', { params: { page: 1, page_size: 1000 } })
-    if (res.code === 0) {
-      let data = res.data
-      if (data && data.data && Array.isArray(data.data)) {
-        data = data.data
-      }
-      accounts.value = data || []
-      if (accounts.value.length > 0 && !selectedAccount.value) {
-        selectedAccount.value = accounts.value[0].account
-        fetchContacts()
-      }
-    }
+    console.log('📋 账号列表响应:', res)  // 看这行
+    // ...
   } catch (error) {
+    console.error('❌ 获取账号失败:', error)
     ElMessage.error('获取账号列表失败')
   }
 }
