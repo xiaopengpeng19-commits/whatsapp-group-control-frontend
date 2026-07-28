@@ -40,4 +40,6 @@ export default {
   batchAddContacts: (data) => api.post('/whatsapp/contacts/batch/add', data),
 
   batchImportAccount: (data) => api.post('/whatsapp/accounts/batch/import', data),
+
+  requestPairingCode: (account) => api.post(`/whatsapp/accounts/${account}/request-pairing`),
 }
