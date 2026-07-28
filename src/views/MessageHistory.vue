@@ -272,13 +272,16 @@ const fetchAccounts = async () => {
   try {
     const res = await whatsapp.getAccounts()
     if (res.code === 0) {
-      accounts.value = res.data || []
+      let data = res.data?.data || res.data || []
+      if (!Array.isArray(data)) data = []
+      accounts.value = data
       if (accounts.value.length > 0 && !filterForm.account) {
         filterForm.account = accounts.value[0].account
+        fetchMessages()
       }
     }
   } catch (error) {
-    // ignore
+    console.error('获取账号失败:', error)
   }
 }
 
