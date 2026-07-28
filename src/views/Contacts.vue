@@ -1,47 +1,142 @@
 <template>
   <div class="contacts">
+    <!-- 顶部工具栏 -->
     <div class="toolbar">
-      <el-select v-model="selectedAccount" placeholder="选择账号" @change="fetchContacts" style="width:180px">
-        <el-option
-          v-for="item in accounts"
-          :key="item.account"
-          :label="item.account"
-          :value="item.account"
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
+        <!-- 搜索框 -->
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索账号"
+          clearable
+          prefix-icon="Search"
+          style="width:200px"
+          @input="filterAccounts"
         />
-      </el-select>
-      <el-button type="primary" @click="showAddDialog = true">
-        <el-icon><Plus /></el-icon> 添加联系人
-      </el-button>
-      <el-button type="success" @click="showBatchDialog = true">
-        <el-icon><DocumentAdd /></el-icon> 批量导入
-      </el-button>
-      <el-button @click="fetchAccounts">
-        <el-icon><Refresh /></el-icon> 刷新
-      </el-button>
+        
+        <!-- 分组快速筛选 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <el-button 
+            :type="filterGroup === '' ? 'primary' : ''" 
+            size="small"
+            @click="filterGroup = ''; filterAccounts()"
+          >
+            全部
+          </el-button>
+          <el-button 
+            v-for="g in groupList" 
+            :key="g"
+            :type="filterGroup === g ? 'primary' : ''" 
+            size="small"
+            @click="filterGroup = g; filterAccounts()"
+          >
+            {{ g }}
+          </el-button>
+        </div>
+        
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <el-button type="primary" size="small" @click="showAddDialog = true">
+            <el-icon><Plus /></el-icon> 添加
+          </el-button>
+          <el-button type="success" size="small" @click="showBatchDialog = true">
+            <el-icon><DocumentAdd /></el-icon> 批量
+          </el-button>
+          <el-button size="small" @click="fetchAccounts">
+            <el-icon><Refresh /></el-icon> 刷新
+          </el-button>
+        </div>
+      </div>
     </div>
 
-    <el-table :data="contacts" border v-loading="loading">
-      <el-table-column label="名称" min-width="150">
+    <!-- 账号列表 -->
+    <el-table 
+      :data="filteredAccounts" 
+      border 
+      v-loading="loading"
+      @selection-change="handleSelectionChange"
+      max-height="300"
+    >
+      <el-table-column type="selection" width="40" />
+      <el-table-column prop="account" label="账号" width="150" />
+      <el-table-column prop="group" label="分组" width="100">
         <template #default="{ row }">
-          {{ getDisplayName(row) }}
+          <el-tag size="small" :type="row.group ? 'primary' : 'info'">
+            {{ row.group || '未分组' }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="手机号" width="150">
+      <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }">
-          {{ getDisplayPhone(row) }}
+          <el-tag :type="getStatusType(row.status)" size="small">
+            {{ getStatusText(row.status) }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="JID" min-width="200">
+      <el-table-column label="操作" width="120">
         <template #default="{ row }">
-          {{ row.peerId || '-' }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="updatedAt" label="更新时间" width="170">
-        <template #default="{ row }">
-          {{ formatTime(row.updatedAt) }}
+          <el-button size="small" type="primary" @click="viewContacts(row.account)">
+            查看联系人
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 已选信息 -->
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span style="color:#999;font-size:13px;">
+        已选: {{ selectedAccounts.length }} 个账号
+        <span v-if="selectedAccounts.length > 0" style="color:#333;font-weight:500;">
+          ({{ selectedAccounts.join(', ') }})
+        </span>
+      </span>
+      <el-button 
+        size="small" 
+        type="primary" 
+        :disabled="selectedAccounts.length === 0"
+        @click="viewSelectedContacts"
+      >
+        查看联系人
+      </el-button>
+    </div>
+
+    <!-- 联系人列表 -->
+    <el-card style="margin-top:20px;" v-if="selectedAccount || selectedAccounts.length > 0">
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span>
+            联系人 - {{ selectedAccount || '多个账号' }}
+            <el-tag size="small" type="info" style="margin-left:8px;">
+              {{ contacts.length }} 个
+            </el-tag>
+          </span>
+          <el-button size="small" @click="closeContacts">
+            关闭
+          </el-button>
+        </div>
+      </template>
+      
+      <el-table :data="contacts" border v-loading="contactsLoading" max-height="400">
+        <el-table-column label="名称" min-width="150">
+          <template #default="{ row }">
+            {{ getDisplayName(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="手机号" width="150">
+          <template #default="{ row }">
+            {{ getDisplayPhone(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="JID" min-width="200">
+          <template #default="{ row }">
+            {{ row.peerId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="updatedAt" label="更新时间" width="170">
+          <template #default="{ row }">
+            {{ formatTime(row.updatedAt) }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
 
     <!-- 添加联系人对话框 -->
     <el-dialog v-model="showAddDialog" title="添加联系人" width="500px">
@@ -90,13 +185,6 @@
             placeholder="每行一个联系人，格式: 手机号, 昵称"
           />
         </el-form-item>
-        <el-form-item>
-          <span style="color:#999;font-size:12px;">
-            示例:<br>
-            8612345678901, 张三<br>
-            8612345678902, 李四
-          </span>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showBatchDialog = false">取消</el-button>
@@ -107,17 +195,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, DocumentAdd, Refresh } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
-import api from '@/api'  // ← 加上这行
 import dayjs from 'dayjs'
 
 const accounts = ref([])
+const filteredAccounts = ref([])
 const contacts = ref([])
-const selectedAccount = ref('')
 const loading = ref(false)
+const contactsLoading = ref(false)
+const searchKeyword = ref('')
+const filterGroup = ref('')
+const selectedAccounts = ref([])
+const selectedAccount = ref(null)
 
 const showAddDialog = ref(false)
 const showBatchDialog = ref(false)
@@ -133,14 +225,53 @@ const batchForm = reactive({
   contactsText: ''
 })
 
+// 分组列表
+const groupList = computed(() => {
+  const groups = new Set()
+  accounts.value.forEach(a => {
+    if (a.group) groups.add(a.group)
+  })
+  return Array.from(groups)
+})
+
+// 状态映射
+const statusMap = {
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期'
+}
+
+const statusTypeMap = {
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger'
+}
+
+const getStatusText = (status) => statusMap[status] || status || '未知'
+const getStatusType = (status) => statusTypeMap[status] || 'info'
+
+// 过滤账号
+const filterAccounts = () => {
+  let list = [...accounts.value]
+  if (searchKeyword.value) {
+    const kw = searchKeyword.value.toLowerCase()
+    list = list.filter(a => a.account.includes(kw))
+  }
+  if (filterGroup.value) {
+    list = list.filter(a => a.group === filterGroup.value)
+  }
+  filteredAccounts.value = list
+}
+
 const cleanPhone = (phone) => {
   if (!phone) return ''
   return String(phone).replace(/[\s+\-()]/g, '')
-}
-
-const extractPhone = (value) => {
-  if (!value) return ''
-  return String(value).replace(/\D/g, '')
 }
 
 const getPhoneFromJid = (jid) => {
@@ -151,24 +282,16 @@ const getPhoneFromJid = (jid) => {
 const getDisplayName = (row) => {
   if (row.peerName) {
     const name = String(row.peerName)
-    if (name.includes('@')) {
-      return getPhoneFromJid(name)
-    }
+    if (name.includes('@')) return getPhoneFromJid(name)
     return cleanPhone(name)
   }
-  if (row.peerId) {
-    return getPhoneFromJid(row.peerId)
-  }
+  if (row.peerId) return getPhoneFromJid(row.peerId)
   return row.phone || '-'
 }
 
 const getDisplayPhone = (row) => {
-  if (row.peerPhone) {
-    return cleanPhone(String(row.peerPhone))
-  }
-  if (row.peerId) {
-    return getPhoneFromJid(row.peerId)
-  }
+  if (row.peerPhone) return cleanPhone(String(row.peerPhone))
+  if (row.peerId) return getPhoneFromJid(row.peerId)
   return row.phone || '-'
 }
 
@@ -178,40 +301,39 @@ const formatTime = (time) => {
 }
 
 const fetchAccounts = async () => {
+  loading.value = true
   try {
     const res = await whatsapp.getAccounts()
     if (res.code === 0) {
       let data = res.data
-      // 兼容分页格式
       if (data && data.data && Array.isArray(data.data)) {
         data = data.data
       }
       accounts.value = data || []
-      if (accounts.value.length > 0 && !selectedAccount.value) {
-        selectedAccount.value = accounts.value[0].account
-        fetchContacts()
-      }
+      filterAccounts()
     }
   } catch (error) {
     console.error('获取账号失败:', error)
     ElMessage.warning('获取账号列表失败')
+  } finally {
+    loading.value = false
   }
 }
 
-const fetchContacts = async () => {
-  if (!selectedAccount.value) {
+const fetchContacts = async (account) => {
+  if (!account) {
     ElMessage.warning('请选择账号')
     return
   }
-  loading.value = true
+  contactsLoading.value = true
   try {
-    const res = await whatsapp.getContacts({ account: selectedAccount.value })
+    const res = await whatsapp.getContacts({ account })
     if (res.code === 0) {
       const rawContacts = res.data?.contacts || []
-      contacts.value = rawContacts.filter(contact => {
-        const peerId = contact.peerId || ''
-        const peerPhone = contact.peerPhone || ''
-        const peerName = contact.peerName || ''
+      contacts.value = rawContacts.filter(c => {
+        const peerId = c.peerId || ''
+        const peerPhone = c.peerPhone || ''
+        const peerName = c.peerName || ''
         if (peerId === '0@s.whatsapp.net') return false
         if (peerPhone === '0') return false
         if (peerName === 'WhatsApp') return false
@@ -222,22 +344,49 @@ const fetchContacts = async () => {
   } catch (error) {
     ElMessage.error('获取联系人失败')
   } finally {
-    loading.value = false
+    contactsLoading.value = false
   }
 }
 
+const viewContacts = (account) => {
+  selectedAccount.value = account
+  fetchContacts(account)
+}
+
+const viewSelectedContacts = () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  // 取第一个账号查看
+  selectedAccount.value = selectedAccounts.value[0]
+  fetchContacts(selectedAccount.value)
+  ElMessage.info(`当前显示 ${selectedAccount.value} 的联系人，共 ${selectedAccounts.value.length} 个账号`)
+}
+
+const closeContacts = () => {
+  selectedAccount.value = null
+  contacts.value = []
+}
+
+const handleSelectionChange = (selection) => {
+  selectedAccounts.value = selection.map(item => item.account)
+}
+
 const handleAdd = async () => {
-  if (!addForm.value.account || !addForm.value.phone) {
+  if (!addForm.account || !addForm.phone) {
     ElMessage.warning('请完整填写信息')
     return
   }
   try {
-    const res = await whatsapp.addContact(addForm.value)
+    const res = await whatsapp.addContact(addForm)
     if (res.code === 0) {
       ElMessage.success('添加成功')
       showAddDialog.value = false
-      addForm.value = { account: '', phone: '', name: '' }
-      fetchContacts()
+      addForm.account = ''
+      addForm.phone = ''
+      addForm.name = ''
+      if (selectedAccount.value) fetchContacts(selectedAccount.value)
     }
   } catch (error) {
     ElMessage.error('添加失败: ' + (error.message || ''))
@@ -245,11 +394,11 @@ const handleAdd = async () => {
 }
 
 const handleBatchAdd = async () => {
-  if (!batchForm.value.account) {
+  if (!batchForm.account) {
     ElMessage.warning('请选择账号')
     return
   }
-  const lines = batchForm.value.contactsText.split('\n').filter(line => line.trim())
+  const lines = batchForm.contactsText.split('\n').filter(line => line.trim())
   if (lines.length === 0) {
     ElMessage.warning('请输入至少一个联系人')
     return
@@ -260,15 +409,15 @@ const handleBatchAdd = async () => {
   })
   try {
     const res = await whatsapp.batchAddContacts({
-      account: batchForm.value.account,
+      account: batchForm.account,
       contacts: contactsList
     })
     if (res.code === 0) {
       const summary = res.data?.summary || {}
-      ElMessage.success(`成功添加 ${summary.success || 0} 个联系人，失败 ${summary.failed || 0} 个`)
+      ElMessage.success(`成功添加 ${summary.success || 0} 个`)
       showBatchDialog.value = false
-      batchForm.value = { account: '', contactsText: '' }
-      fetchContacts()
+      batchForm.contactsText = ''
+      if (selectedAccount.value) fetchContacts(selectedAccount.value)
     }
   } catch (error) {
     ElMessage.error('批量导入失败: ' + (error.message || ''))
@@ -284,8 +433,6 @@ onMounted(() => {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 </style>
