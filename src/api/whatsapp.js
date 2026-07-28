@@ -2,7 +2,10 @@ import api from "./index";
 
 export default {
   // ==================== 账号管理 ====================
-  getAccounts: () => api.get("/whatsapp/accounts/list"),
+  getAccounts: () =>
+    api.get("/whatsapp/accounts/list", {
+      params: { page: 1, page_size: 1000 },
+    }),
   addAccount: (data) => api.post("/whatsapp/accounts/add", data),
   deleteAccount: (account) => api.post(`/whatsapp/accounts/${account}/del`),
   online: (account) => api.post(`/whatsapp/accounts/${account}/online`),
