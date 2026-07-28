@@ -711,19 +711,20 @@ const handleBatchGroup = async () => {
 }
 
 // ============ 导出凭证 ============
+// Accounts.vue - handleExport
 const handleExport = async (account) => {
   try {
-    const accountStr = String(account)
-    const res = await whatsapp.exportCreds(accountStr)
+    const res = await whatsapp.exportCreds(account)
     if (res.code === 0) {
+      // ==========================================
+      // 取 creds 字段（协议服返回的是 { creds: {...} }）
+      // ==========================================
       let credsData = res.data
-      if (res.data && typeof res.data === 'object') {
-        if (res.data.creds) {
-          credsData = res.data.creds
-        }
+      if (res.data && res.data.creds) {
+        credsData = res.data.creds
       }
 
-      const filename = `${accountStr}_${Date.now()}.json`
+      const filename = `${account}_${Date.now()}.json`
       const blob = new Blob([JSON.stringify(credsData, null, 2)], {
         type: 'application/json'
       })
