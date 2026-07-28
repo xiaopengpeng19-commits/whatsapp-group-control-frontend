@@ -710,15 +710,15 @@ const handleBatchGroup = async () => {
   }
 }
 
-// ============ 导出凭证 ============
-// Accounts.vue - handleExport
 const handleExport = async (account) => {
   try {
     const res = await whatsapp.exportCreds(account)
-    if (res.code === 0) {
-      // ==========================================
-      // 取 creds 字段（协议服返回的是 { creds: {...} }）
-      // ==========================================
+    console.log('📤 导出响应:', res)
+
+    // ==========================================
+    // 协议服返回 code: 200 表示成功
+    // ==========================================
+    if (res.code === 200) {
       let credsData = res.data
       if (res.data && res.data.creds) {
         credsData = res.data.creds
@@ -742,6 +742,7 @@ const handleExport = async (account) => {
       ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
+    console.error('导出错误:', error)
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
 }
