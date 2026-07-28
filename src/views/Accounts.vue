@@ -718,25 +718,21 @@ const handleExport = async (account) => {
     console.log('2. res:', res)
     console.log('3. res.code:', res.code)
     
-    if (res.code === 200) {
+    // ==========================================
+    // 改成判断 code === 0
+    // ==========================================
+    if (res.code === 0) {
       console.log('4. 进入成功分支')
       
       const credsData = res.data?.creds || res.data
       console.log('5. credsData:', credsData)
       
-      console.log('6. 开始 JSON.stringify')
       const jsonStr = JSON.stringify(credsData, null, 2)
-      console.log('7. JSON 序列化成功, 长度:', jsonStr.length)
+      console.log('6. JSON 序列化成功, 长度:', jsonStr.length)
       
       const filename = `${account}_${Date.now()}.json`
-      console.log('8. filename:', filename)
-      
       const blob = new Blob([jsonStr], { type: 'application/json' })
-      console.log('9. blob:', blob)
-      
       const url = URL.createObjectURL(blob)
-      console.log('10. url:', url)
-      
       const link = document.createElement('a')
       link.href = url
       link.download = filename
@@ -747,12 +743,11 @@ const handleExport = async (account) => {
       
       ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
-      console.log('❌ res.code 不是 200, 是:', res.code)
+      console.log('❌ res.code 不是 0, 是:', res.code)
       ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
     console.error('❌ 导出错误:', error)
-    console.error('❌ 错误堆栈:', error.stack)
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
 }
