@@ -74,25 +74,11 @@
           <span v-else style="color:#999;font-size:12px;">未分配</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="120">
+      <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag v-if="row.status === 'requesting_pair_code'" type="warning" size="small">
-            请求中...
-          </el-tag>
-          <el-tag v-else-if="row.status === 'waiting_pair_code'" type="warning" size="small">
-            等待配对码
-          </el-tag>
-          <el-tag v-else :type="getStatusType(row.status)" size="small">
+          <el-tag :type="getStatusType(row.status)" size="small">
             {{ getStatusText(row.status) }}
           </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="pairingCode" label="配对码" width="130">
-        <template #default="{ row }">
-          <span v-if="row.pairingCode" style="font-weight:bold;color:#409eff;font-size:18px;letter-spacing:3px;">
-            {{ row.pairingCode }}
-          </span>
-          <span v-else style="color:#999;font-size:12px;">-</span>
         </template>
       </el-table-column>
       <el-table-column prop="isLogin" label="登录" width="80">
@@ -112,18 +98,11 @@
           {{ formatTime(row.statusAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="580" fixed="right">
+      <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <!-- 请求配对码（仅离线/过期状态显示） -->
-          <el-button v-if="row.status === 'offline' || row.status === 'expired'" size="small" type="primary" plain
-            @click="handleRequestPairing(row.account)">
-            请求配对码
-          </el-button>
-
           <!-- 上线按钮 -->
-          <el-button
-            v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'requesting_pair_code' && row.status !== 'waiting_pair_code'"
-            size="small" type="primary" @click="handleOnline(row.account)">
+          <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
+            type="primary" @click="handleOnline(row.account)">
             上线
           </el-button>
           <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
@@ -387,9 +366,7 @@ const statusMap = {
   'logging': '登录中',
   'offline': '离线',
   'banned': '封禁',
-  'expired': '过期',
-  'requesting_pair_code': '请求配对码中',
-  'waiting_pair_code': '等待配对码'
+  'expired': '过期'
 }
 
 const statusTypeMap = {
@@ -398,9 +375,7 @@ const statusTypeMap = {
   'logging': 'warning',
   'offline': 'info',
   'banned': 'danger',
-  'expired': 'danger',
-  'requesting_pair_code': 'warning',
-  'waiting_pair_code': 'warning'
+  'expired': 'danger'
 }
 
 const getStatusText = (status) => {
@@ -446,9 +421,7 @@ const fetchAccounts = async () => {
     if (filterGroup.value) {
       params.group = filterGroup.value
     }
-    console.log('📊 请求参数:', params)
     const res = await api.get('/whatsapp/accounts/list', { params })
-    console.log('📊 响应数据:', res.data)
     if (res.code === 0) {
       const result = res.data
       if (Array.isArray(result)) {
@@ -769,68 +742,6 @@ const handleExport = async (account) => {
   } catch (error) {
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
-}
-
-// ============ 请求配对码 ============
-const handleRequestPairing = async (account) => {
-  try {
-    const res = await whatsapp.requestPairingCode({
-      account: row.account,
-      proxy: row.proxy || ''  // 传递 proxy
-    })
-    if (res.code === 0) {
-      ElMessage.success('配对码请求已发送，请等待协议服返回')
-      fetchAccounts()
-      // 轮询等待配对码
-      waitForPairingCode(account)
-    } else {
-      ElMessage.error(res.message || '请求失败')
-    }
-  } catch (error) {
-    ElMessage.error('请求失败: ' + (error.message || ''))
-  }
-}
-
-// 轮询等待配对码
-const waitForPairingCode = (account) => {
-  let attempts = 0
-  const maxAttempts = 20 // 20次 * 3秒 = 60秒
-
-  const interval = setInterval(async () => {
-    attempts++
-    try {
-      const res = await api.get('/whatsapp/accounts/list', {
-        params: { page: 1, page_size: 1000 }
-      })
-      if (res.code === 0) {
-        const list = res.data.data || res.data || []
-        const found = list.find(a => a.account === account)
-        if (found) {
-          if (found.status === 'waiting_pair_code' && found.pairingCode) {
-            ElMessage.success({
-              message: `配对码: ${found.pairingCode}`,
-              duration: 0,
-              showClose: true
-            })
-            clearInterval(interval)
-            fetchAccounts()
-          }
-          if (found.status === 'online') {
-            ElMessage.success('账号已登录成功')
-            clearInterval(interval)
-            fetchAccounts()
-          }
-        }
-      }
-    } catch (error) {
-      // ignore
-    }
-
-    if (attempts >= maxAttempts) {
-      clearInterval(interval)
-      ElMessage.warning('等待配对码超时，请刷新页面查看状态')
-    }
-  }, 3000)
 }
 
 // ============ 生命周期 ============
