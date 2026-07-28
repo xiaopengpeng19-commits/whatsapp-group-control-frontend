@@ -774,7 +774,10 @@ const handleExport = async (account) => {
 // ============ 请求配对码 ============
 const handleRequestPairing = async (account) => {
   try {
-    const res = await whatsapp.requestPairingCode(account)
+    const res = await whatsapp.requestPairingCode({
+      account: row.account,
+      proxy: row.proxy || ''  // 传递 proxy
+    })
     if (res.code === 0) {
       ElMessage.success('配对码请求已发送，请等待协议服返回')
       fetchAccounts()
