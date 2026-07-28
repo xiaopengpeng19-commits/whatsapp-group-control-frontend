@@ -419,8 +419,19 @@ const fetchAccounts = async () => {
     }
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
-      accounts.value = res.data || []
-      total.value = res.data.total || 0
+      // ==========================================
+      // 适配新格式：data.data 是列表，data.total 是总数
+      // ==========================================
+      const result = res.data
+      if (Array.isArray(result)) {
+        // 兼容旧格式（直接返回数组）
+        accounts.value = result
+        total.value = result.length
+      } else {
+        // 新格式（分页对象）
+        accounts.value = result.data || []
+        total.value = result.total || 0
+      }
     }
   } catch (error) {
     ElMessage.error('获取账号列表失败')
