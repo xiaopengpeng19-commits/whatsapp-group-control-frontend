@@ -713,7 +713,8 @@ const handleBatchGroup = async () => {
 // ============ 导出凭证 ============
 const handleExport = async (account) => {
   try {
-    const res = await whatsapp.exportCreds(account)
+    const accountStr = String(account)
+    const res = await whatsapp.exportCreds(accountStr)
     if (res.code === 0) {
       let credsData = res.data
       if (res.data && typeof res.data === 'object') {
@@ -722,7 +723,7 @@ const handleExport = async (account) => {
         }
       }
 
-      const filename = `${account}_${Date.now()}.json`
+      const filename = `${accountStr}_${Date.now()}.json`
       const blob = new Blob([JSON.stringify(credsData, null, 2)], {
         type: 'application/json'
       })
