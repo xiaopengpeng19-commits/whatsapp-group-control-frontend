@@ -713,31 +713,34 @@ const handleBatchGroup = async () => {
 const handleExport = async (account) => {
   try {
     const res = await whatsapp.exportCreds(account)
-    console.log('📤 导出响应:', res)
-
-    // ==========================================
-    // 协议服返回 code: 200 表示成功
-    // ==========================================
-    if (res.code === 200) {
-      let credsData = res.data
-      if (res.data && res.data.creds) {
-        credsData = res.data.creds
+    console.log('📤 res:', res)
+    
+    if (res.code === 200 || res.code === 0) {
+      try {
+        const credsData = res.data?.creds || res.data
+        console.log('📤 credsData:', credsData)
+        
+        const jsonStr = JSON.stringify(credsData, null, 2)
+        console.log('📤 JSON 序列化成功，长度:', jsonStr.length)
+        
+        const filename = `${account}_${Date.now()}.json`
+        const blob = new Blob([jsonStr], { 
+          type: 'application/json' 
+        })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        
+        ElMessage.success(`凭证 ${filename} 导出成功`)
+      } catch (jsonError) {
+        console.error('JSON 处理失败:', jsonError)
+        ElMessage.error('数据序列化失败: ' + jsonError.message)
       }
-
-      const filename = `${account}_${Date.now()}.json`
-      const blob = new Blob([JSON.stringify(credsData, null, 2)], {
-        type: 'application/json'
-      })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = filename
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-
-      ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
       ElMessage.error(res.message || '导出失败')
     }
