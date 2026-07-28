@@ -104,56 +104,58 @@
       <!-- ========================================== -->
       <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
-          <!-- 主按钮：上线/下线 -->
-          <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
-            type="primary" @click="handleOnline(row.account)">
-            上线
-          </el-button>
-          <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
-            @click="handleOffline(row.account)">
-            下线
-          </el-button>
-          <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
-            登录中...
-          </el-button>
-
-          <!-- 更多操作下拉菜单 -->
-          <el-dropdown @command="(cmd) => handleDropdown(cmd, row)">
-            <el-button size="small">
-              更多 <el-icon>
-                <ArrowDown />
-              </el-icon>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <!-- 主按钮：上线/下线 -->
+            <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
+              size="small" type="primary" @click="handleOnline(row.account)">
+              上线
             </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="qr">
-                  <el-icon>
-                    <Picture />
-                  </el-icon> 二维码
-                </el-dropdown-item>
-                <el-dropdown-item command="group">
-                  <el-icon>
-                    <Folder />
-                  </el-icon> 改分组
-                </el-dropdown-item>
-                <el-dropdown-item command="proxy">
-                  <el-icon>
-                    <Connection />
-                  </el-icon> 改代理
-                </el-dropdown-item>
-                <el-dropdown-item command="export">
-                  <el-icon>
-                    <Download />
-                  </el-icon> 导出凭证
-                </el-dropdown-item>
-                <el-dropdown-item divided command="delete" style="color:#f56c6c;">
-                  <el-icon>
-                    <Delete />
-                  </el-icon> 删除
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
+              @click="handleOffline(row.account)">
+              下线
+            </el-button>
+            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
+              登录中...
+            </el-button>
+
+            <!-- 更多操作下拉菜单 -->
+            <el-dropdown @command="(cmd) => handleDropdown(cmd, row)">
+              <el-button size="small">
+                更多 <el-icon>
+                  <ArrowDown />
+                </el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="qr">
+                    <el-icon>
+                      <Picture />
+                    </el-icon> 二维码
+                  </el-dropdown-item>
+                  <el-dropdown-item command="group">
+                    <el-icon>
+                      <Folder />
+                    </el-icon> 改分组
+                  </el-dropdown-item>
+                  <el-dropdown-item command="proxy">
+                    <el-icon>
+                      <Connection />
+                    </el-icon> 改代理
+                  </el-dropdown-item>
+                  <el-dropdown-item command="export">
+                    <el-icon>
+                      <Download />
+                    </el-icon> 导出凭证
+                  </el-dropdown-item>
+                  <el-dropdown-item divided command="delete" style="color:#f56c6c;">
+                    <el-icon>
+                      <Delete />
+                    </el-icon> 删除
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </template>
       </el-table-column>
     </el-table>
