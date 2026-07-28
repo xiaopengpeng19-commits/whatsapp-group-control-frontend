@@ -41,7 +41,8 @@ export default {
   getContacts: (params) => api.get("/whatsapp/contacts/list", { params }),
   addContact: (data) => api.post("/whatsapp/contacts/add", data),
   batchAddContacts: (data) => api.post("/whatsapp/contacts/batch/add", data),
-
+  // ==================== 导出凭证 ====================
+  exportCreds: (account) => api.get(`/whatsapp/accounts/${account}/export`),
   batchImportAccount: (data) =>
     api.post("/whatsapp/accounts/batch/import", data),
 
