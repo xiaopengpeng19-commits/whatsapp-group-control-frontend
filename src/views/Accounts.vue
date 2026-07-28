@@ -712,21 +712,31 @@ const handleBatchGroup = async () => {
 
 const handleExport = async (account) => {
   try {
-    const res = await whatsapp.exportCreds(account)
-    console.log('📤 导出响应:', res)
+    console.log('1. 开始导出, account:', account)
     
-    // ==========================================
-    // 直接判断 res.data 是否存在
-    // ==========================================
-    if (res && res.data && res.data.creds) {
-      const credsData = res.data.creds
-      console.log('📤 凭证数据:', Object.keys(credsData))
+    const res = await whatsapp.exportCreds(account)
+    console.log('2. res:', res)
+    console.log('3. res.code:', res.code)
+    
+    if (res.code === 200) {
+      console.log('4. 进入成功分支')
+      
+      const credsData = res.data?.creds || res.data
+      console.log('5. credsData:', credsData)
+      
+      console.log('6. 开始 JSON.stringify')
+      const jsonStr = JSON.stringify(credsData, null, 2)
+      console.log('7. JSON 序列化成功, 长度:', jsonStr.length)
       
       const filename = `${account}_${Date.now()}.json`
-      const blob = new Blob([JSON.stringify(credsData, null, 2)], { 
-        type: 'application/json' 
-      })
+      console.log('8. filename:', filename)
+      
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      console.log('9. blob:', blob)
+      
       const url = URL.createObjectURL(blob)
+      console.log('10. url:', url)
+      
       const link = document.createElement('a')
       link.href = url
       link.download = filename
@@ -737,10 +747,12 @@ const handleExport = async (account) => {
       
       ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
-      ElMessage.error(res?.message || '导出失败：数据格式错误')
+      console.log('❌ res.code 不是 200, 是:', res.code)
+      ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
-    console.error('导出错误:', error)
+    console.error('❌ 导出错误:', error)
+    console.error('❌ 错误堆栈:', error.stack)
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
 }
