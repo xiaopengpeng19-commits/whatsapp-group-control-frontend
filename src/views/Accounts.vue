@@ -102,7 +102,7 @@
       <!-- ========================================== -->
       <!-- 操作列 - 下拉菜单 -->
       <!-- ========================================== -->
-      <el-table-column label="操作" width="180" fixed="right">
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <!-- 主按钮：上线/下线 -->
           <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
