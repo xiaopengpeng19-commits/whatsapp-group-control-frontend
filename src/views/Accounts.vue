@@ -98,9 +98,13 @@
           {{ formatTime(row.statusAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="420" fixed="right">
+
+      <!-- ========================================== -->
+      <!-- 操作列 - 下拉菜单 -->
+      <!-- ========================================== -->
+      <el-table-column label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <!-- 上线按钮 -->
+          <!-- 主按钮：上线/下线 -->
           <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
             type="primary" @click="handleOnline(row.account)">
             上线
@@ -112,21 +116,44 @@
           <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
             登录中...
           </el-button>
-          <el-button size="small" type="info" @click="showQRCode(row)">
-            二维码
-          </el-button>
-          <el-button size="small" type="primary" plain @click="showEditGroup(row)">
-            改分组
-          </el-button>
-          <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
-            改代理
-          </el-button>
-          <el-button size="small" type="warning" plain @click="handleExport(row.account)">
-            导出凭证
-          </el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row.account)">
-            删除
-          </el-button>
+
+          <!-- 更多操作下拉菜单 -->
+          <el-dropdown @command="(cmd) => handleDropdown(cmd, row)">
+            <el-button size="small">
+              更多 <el-icon>
+                <ArrowDown />
+              </el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="qr">
+                  <el-icon>
+                    <Picture />
+                  </el-icon> 二维码
+                </el-dropdown-item>
+                <el-dropdown-item command="group">
+                  <el-icon>
+                    <Folder />
+                  </el-icon> 改分组
+                </el-dropdown-item>
+                <el-dropdown-item command="proxy">
+                  <el-icon>
+                    <Connection />
+                  </el-icon> 改代理
+                </el-dropdown-item>
+                <el-dropdown-item command="export">
+                  <el-icon>
+                    <Download />
+                  </el-icon> 导出凭证
+                </el-dropdown-item>
+                <el-dropdown-item divided command="delete" style="color:#f56c6c;">
+                  <el-icon>
+                    <Delete />
+                  </el-icon> 删除
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>
@@ -303,7 +330,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, ArrowDown, Connection, Download, Delete } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
@@ -389,6 +416,27 @@ const getStatusType = (status) => {
 const formatTime = (time) => {
   if (!time) return '-'
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+}
+
+// ============ 下拉菜单处理 ============
+const handleDropdown = (cmd, row) => {
+  switch (cmd) {
+    case 'qr':
+      showQRCode(row)
+      break
+    case 'group':
+      showEditGroup(row)
+      break
+    case 'proxy':
+      showEditProxyGroup(row)
+      break
+    case 'export':
+      handleExport(row.account)
+      break
+    case 'delete':
+      handleDelete(row.account)
+      break
+  }
 }
 
 // ============ 数据获取 ============
@@ -710,28 +758,16 @@ const handleBatchGroup = async () => {
   }
 }
 
+// ============ 导出凭证 ============
 const handleExport = async (account) => {
   try {
-    console.log('1. 开始导出, account:', account)
-    
     const res = await whatsapp.exportCreds(account)
-    console.log('2. res:', res)
-    console.log('3. res.code:', res.code)
-    
-    // ==========================================
-    // 改成判断 code === 0
-    // ==========================================
     if (res.code === 0) {
-      console.log('4. 进入成功分支')
-      
       const credsData = res.data?.creds || res.data
-      console.log('5. credsData:', credsData)
-      
-      const jsonStr = JSON.stringify(credsData, null, 2)
-      console.log('6. JSON 序列化成功, 长度:', jsonStr.length)
-      
       const filename = `${account}_${Date.now()}.json`
-      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const blob = new Blob([JSON.stringify(credsData, null, 2)], {
+        type: 'application/json'
+      })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -740,14 +776,12 @@ const handleExport = async (account) => {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      
       ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
-      console.log('❌ res.code 不是 0, 是:', res.code)
       ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
-    console.error('❌ 导出错误:', error)
+    console.error('导出错误:', error)
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
 }
