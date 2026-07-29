@@ -766,7 +766,7 @@ const showTaskDetail = async (row) => {
           sessions.value = res.data.sessions || []
           detailTask.value = res.data.task
           await nextTick()
-          scrollToBottom()
+          // scrollToBottom()
         }
       }
     } catch (error) {
