@@ -743,7 +743,7 @@ const showTaskDetail = async (row) => {
       detailMessages.value = res.data.messages || []
 
       await nextTick()
-      scrollToBottom()
+      // scrollToBottom()
     }
   } catch (error) {
     ElMessage.error('获取任务详情失败')
