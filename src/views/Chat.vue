@@ -295,16 +295,29 @@
           </div>
         </div>
 
-        <!-- 对话消息 -->
+        <!-- ========================================== -->
+        <!-- 对话记录 -->
+        <!-- ========================================== -->
         <div style="margin-top:15px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">对话记录</span>
-            <span style="color:#999;font-size:13px;">
-              共 {{ detailMessages.length }} 条消息
-              <el-tag v-if="simulatedCount > 0" type="warning" size="small" style="margin-left:8px;">
-                模拟 {{ simulatedCount }} 条
-              </el-tag>
-            </span>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <!-- 状态筛选下拉 -->
+              <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:120px"
+                @change="fetchTaskMessages">
+                <el-option label="全部" value="" />
+                <el-option label="已发送" value="sent" />
+                <el-option label="已送达" value="delivered" />
+                <el-option label="已读" value="read" />
+                <el-option label="失败" value="failed" />
+              </el-select>
+              <span style="color:#999;font-size:13px;">
+                共 {{ messageTotal }} 条消息
+                <el-tag v-if="failedCount > 0" type="danger" size="small" style="margin-left:8px;">
+                  失败 {{ failedCount }}
+                </el-tag>
+              </span>
+            </div>
           </div>
           <div class="message-list" ref="messageListRef">
             <div v-if="detailMessages.length === 0" style="text-align:center;color:#999;padding:40px;">
@@ -330,6 +343,9 @@
                       <Timer />
                     </el-icon> 模拟
                   </el-tag>
+                  <el-tag :type="getMessageStatusType(msg.status)" size="small">
+                    {{ getMessageStatusLabel(msg.status) }}
+                  </el-tag>
                   <span class="message-time">{{ formatTime(msg.sentAt) }}</span>
                 </div>
                 <div class="message-content">
@@ -339,13 +355,10 @@
                   <span v-else>{{ msg.content }}</span>
                 </div>
                 <div class="message-footer">
-                  <el-tag :type="getMessageStatusType(msg.status)" size="small">
-                    {{ getMessageStatusLabel(msg.status) }}
-                  </el-tag>
-                  <span v-if="msg.messageId && !msg.isSimulated" style="font-size:11px;color:#999;margin-left:10px;">
+                  <span v-if="msg.messageId && !msg.isSimulated" style="font-size:11px;color:#999;">
                     ID: {{ msg.messageId }}
                   </span>
-                  <span v-if="msg.isSimulated" style="font-size:11px;color:#b3b3b3;margin-left:10px;">
+                  <span v-if="msg.isSimulated" style="font-size:11px;color:#b3b3b3;">
                     仅记录，未实际发送
                   </span>
                 </div>
@@ -385,6 +398,10 @@ const detailMessages = ref([])
 const messageListRef = ref(null)
 const detailTimer = ref(null)
 
+// ============ 消息筛选 ============
+const messageFilterStatus = ref('')
+const messageTotal = ref(0)
+
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
@@ -406,6 +423,11 @@ const createForm = reactive({
 // 模拟消息数量统计
 const simulatedCount = computed(() => {
   return detailMessages.value.filter(m => m.isSimulated).length
+})
+
+// 失败消息数量
+const failedCount = computed(() => {
+  return detailMessages.value.filter(m => m.status === 'failed').length
 })
 
 // 账号状态统计
@@ -727,6 +749,22 @@ const handleDelete = async (row) => {
   }
 }
 
+// ============ 获取任务消息（带筛选） ============
+const fetchTaskMessages = async () => {
+  if (!detailTask.value) return
+
+  try {
+    const params = { status: messageFilterStatus.value || '' }
+    const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
+    if (res.code === 0) {
+      detailMessages.value = res.data.messages || []
+      messageTotal.value = res.data.total || 0
+    }
+  } catch (error) {
+    // ignore
+  }
+}
+
 // ============ 任务详情 ============
 const showTaskDetail = async (row) => {
   showDetailDialog.value = true
@@ -734,6 +772,7 @@ const showTaskDetail = async (row) => {
   detailTask.value = row
   sessions.value = []
   detailMessages.value = []
+  messageFilterStatus.value = ''  // 重置筛选
 
   try {
     const res = await api.get(`/chat/tasks/${row.id}`)
@@ -741,9 +780,9 @@ const showTaskDetail = async (row) => {
       detailTask.value = res.data.task
       sessions.value = res.data.sessions || []
       detailMessages.value = res.data.messages || []
+      messageTotal.value = res.data.total || 0
 
       await nextTick()
-      // scrollToBottom()
     }
   } catch (error) {
     ElMessage.error('获取任务详情失败')
@@ -751,22 +790,23 @@ const showTaskDetail = async (row) => {
     detailLoading.value = false
   }
 
-  // 每5秒自动刷新消息
+  // 每5秒自动刷新消息（带当前筛选状态）
   if (detailTimer.value) {
     clearInterval(detailTimer.value)
   }
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
     try {
-      const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
+      const params = { status: messageFilterStatus.value || '' }
+      const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
       if (res.code === 0) {
         const newMessages = res.data.messages || []
         if (newMessages.length !== detailMessages.value.length) {
           detailMessages.value = newMessages
+          messageTotal.value = res.data.total || 0
           sessions.value = res.data.sessions || []
           detailTask.value = res.data.task
           await nextTick()
-          // scrollToBottom()
         }
       }
     } catch (error) {
@@ -779,12 +819,6 @@ const closeDetail = () => {
   if (detailTimer.value) {
     clearInterval(detailTimer.value)
     detailTimer.value = null
-  }
-}
-
-const scrollToBottom = () => {
-  if (messageListRef.value) {
-    messageListRef.value.scrollTop = messageListRef.value.scrollHeight
   }
 }
 
