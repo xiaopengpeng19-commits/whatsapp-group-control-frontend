@@ -3,17 +3,12 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <el-button type="primary" @click="showCreateDialog = true">
-        <el-icon>
-          <Plus />
-        </el-icon> 创建互聊任务
+        <el-icon><Plus /></el-icon> 创建互聊任务
       </el-button>
       <el-button @click="fetchTasks">
-        <el-icon>
-          <Refresh />
-        </el-icon> 刷新
+        <el-icon><Refresh /></el-icon> 刷新
       </el-button>
-      <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchTasks"
-        style="width:130px;margin-left:10px">
+      <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchTasks" style="width:130px;margin-left:10px">
         <el-option label="全部" value="" />
         <el-option label="待执行" value="pending" />
         <el-option label="执行中" value="running" />
@@ -54,8 +49,12 @@
       </el-table-column>
       <el-table-column label="进度" width="130">
         <template #default="{ row }">
-          <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6"
-            style="width:100px" />
+          <el-progress 
+            :percentage="getProgress(row)" 
+            :color="getProgressColor(row)"
+            :stroke-width="6"
+            style="width:100px"
+          />
         </template>
       </el-table-column>
       <el-table-column prop="activeSessions" label="会话数" width="70" align="center" />
@@ -78,18 +77,36 @@
           <el-button size="small" type="primary" @click="showTaskDetail(row)">
             详情
           </el-button>
-          <el-button v-if="row.status === 'pending' || row.status === 'paused'" size="small" type="success"
-            @click="handleStart(row)">
+          <el-button 
+            v-if="row.status === 'pending' || row.status === 'paused'"
+            size="small" 
+            type="success" 
+            @click="handleStart(row)"
+          >
             启动
           </el-button>
-          <el-button v-if="row.status === 'running'" size="small" type="warning" @click="handlePause(row)">
+          <el-button 
+            v-if="row.status === 'running'"
+            size="small" 
+            type="warning" 
+            @click="handlePause(row)"
+          >
             暂停
           </el-button>
-          <el-button v-if="row.status === 'paused'" size="small" type="success" @click="handleResume(row)">
+          <el-button 
+            v-if="row.status === 'paused'"
+            size="small" 
+            type="success" 
+            @click="handleResume(row)"
+          >
             恢复
           </el-button>
-          <el-button v-if="row.status === 'running' || row.status === 'paused'" size="small" type="danger"
-            @click="handleStop(row)">
+          <el-button 
+            v-if="row.status === 'running' || row.status === 'paused'"
+            size="small" 
+            type="danger" 
+            @click="handleStop(row)"
+          >
             停止
           </el-button>
           <el-button size="small" type="danger" plain @click="handleDelete(row)">
@@ -101,15 +118,27 @@
 
     <!-- 分页 -->
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
-      <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50]" :total="total"
-        layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks" @current-change="fetchTasks" />
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50]"
+        :total="total"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="fetchTasks"
+        @current-change="fetchTasks"
+      />
     </div>
 
     <!-- ========================================== -->
     <!-- 创建任务对话框 -->
     <!-- ========================================== -->
-    <el-dialog v-model="showCreateDialog" title="创建互聊任务" width="680px" :close-on-click-modal="false"
-      class="create-chat-dialog">
+    <el-dialog 
+      v-model="showCreateDialog" 
+      title="创建互聊任务" 
+      width="680px" 
+      :close-on-click-modal="false"
+      class="create-chat-dialog"
+    >
       <el-form :model="createForm" label-width="120px" label-position="right">
         <!-- 基本信息 -->
         <div class="form-section">
@@ -122,8 +151,12 @@
           </el-form-item>
           <el-form-item label="账号分组" required>
             <el-select v-model="createForm.accountGroup" placeholder="选择账号分组" style="width:100%" size="large">
-              <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
-                :value="item.name" />
+              <el-option
+                v-for="item in accountGroups"
+                :key="item.name"
+                :label="item.name + ' (' + item.count + '个)'"
+                :value="item.name"
+              />
             </el-select>
             <div class="form-tip">选择分组后，该分组下所有账号将参与互聊</div>
           </el-form-item>
@@ -211,8 +244,13 @@
     <!-- ========================================== -->
     <!-- 任务详情对话框 -->
     <!-- ========================================== -->
-    <el-dialog v-model="showDetailDialog" title="任务详情" width="1000px" :close-on-click-modal="false"
-      @close="closeDetail">
+    <el-dialog 
+      v-model="showDetailDialog" 
+      title="任务详情" 
+      width="1000px"
+      :close-on-click-modal="false"
+      @close="closeDetail"
+    >
       <div v-if="detailTask" v-loading="detailLoading">
         <!-- 任务信息 -->
         <el-descriptions :column="4" border>
@@ -235,16 +273,13 @@
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
-          <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45
-            }}分钟</el-descriptions-item>
+          <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45 }}分钟</el-descriptions-item>
           <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
           <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
           <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item v-if="detailTask.startedAt" label="启动时间">{{ formatTime(detailTask.startedAt)
-            }}</el-descriptions-item>
-          <el-descriptions-item v-if="detailTask.completedAt" label="完成时间">{{ formatTime(detailTask.completedAt)
-            }}</el-descriptions-item>
+          <el-descriptions-item v-if="detailTask.startedAt" label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
+          <el-descriptions-item v-if="detailTask.completedAt" label="完成时间">{{ formatTime(detailTask.completedAt) }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.stopReason" label="停止原因" :span="4">
             <span style="color:#f56c6c;">{{ detailTask.stopReason }}</span>
           </el-descriptions-item>
@@ -265,7 +300,12 @@
             </span>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <el-tag v-for="acc in detailTask.accounts" :key="acc" :type="getAccountStatusType(acc)" size="large">
+            <el-tag 
+              v-for="acc in detailTask.accounts" 
+              :key="acc"
+              :type="getAccountStatusType(acc)"
+              size="large"
+            >
               {{ acc }}
               <span style="margin-left:8px;font-size:12px;">
                 {{ getAccountStatusText(acc) }}
@@ -274,25 +314,41 @@
           </div>
         </div>
 
-        <!-- 活跃会话 -->
+        <!-- ========================================== -->
+        <!-- 活跃会话（只显示活跃会话，超过10个显示"查看全部"） -->
+        <!-- ========================================== -->
         <div style="margin-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">活跃会话</span>
-            <span style="color:#999;font-size:13px;">共 {{ sessions.length }} 个会话</span>
+            <span style="color:#999;font-size:13px;">
+              共 {{ activeSessions.length }} 个会话
+            </span>
           </div>
-          <div v-if="sessions.length > 0" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;">
-            <el-tag v-for="session in sessions" :key="session.id"
-              :type="session.status === 'active' ? 'success' : 'info'" size="large">
+          <div v-if="activeSessions.length > 0" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <el-tag 
+              v-for="session in displaySessions" 
+              :key="session.id"
+              type="success"
+              size="large"
+            >
               {{ session.accountA }} ↔ {{ session.accountB }}
               <span style="margin-left:8px;font-size:12px;color:#999;">
-                {{ session.rounds }}/{{ session.maxRounds }}轮
-                {{ session.status === 'active' ? '🟢' : '🔴' }}
+                {{ session.rounds }}/{{ session.maxRounds }}轮 🟢
               </span>
             </el-tag>
           </div>
           <div v-else style="color:#999;text-align:center;padding:10px;background:#f5f7fa;border-radius:4px;">
             暂无活跃会话
           </div>
+          <el-button 
+            v-if="activeSessions.length > 10" 
+            size="small" 
+            type="primary" 
+            plain
+            @click="showAllSessions = !showAllSessions"
+          >
+            {{ showAllSessions ? '收起' : `查看全部 (${activeSessions.length}个)` }}
+          </el-button>
         </div>
 
         <!-- ========================================== -->
@@ -303,8 +359,14 @@
             <span style="font-weight:bold;">对话记录</span>
             <div style="display:flex;align-items:center;gap:10px;">
               <!-- 状态筛选下拉 -->
-              <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:120px"
-                @change="fetchTaskMessages">
+              <el-select 
+                v-model="messageFilterStatus" 
+                placeholder="全部状态" 
+                clearable 
+                size="small" 
+                style="width:120px" 
+                @change="fetchTaskMessages"
+              >
                 <el-option label="全部" value="" />
                 <el-option label="已发送" value="sent" />
                 <el-option label="已送达" value="delivered" />
@@ -324,24 +386,25 @@
               暂无消息
             </div>
             <div v-for="msg in detailMessages" :key="msg.id" class="message-item">
-              <div class="message-bubble" :class="[
-                msg.direction === 'send' ? 'message-send' : 'message-receive',
-                msg.isSimulated ? 'message-simulated' : ''
-              ]">
+              <div 
+                class="message-bubble" 
+                :class="[
+                  msg.direction === 'send' ? 'message-send' : 'message-receive',
+                  msg.isSimulated ? 'message-simulated' : ''
+                ]"
+              >
                 <div class="message-header">
                   <span class="message-from">{{ msg.fromAccount }}</span>
                   <span class="message-arrow">→</span>
                   <span class="message-to">{{ msg.toAccount }}</span>
-                  <span class="message-round" :style="{
+                  <span class="message-round" :style="{ 
                     background: msg.round % 2 === 0 ? '#ecf5ff' : '#f0f9eb',
                     color: msg.round % 2 === 0 ? '#409eff' : '#67c23a'
                   }">
                     第{{ msg.round }}轮 第{{ msg.roundIndex }}句
                   </span>
                   <el-tag v-if="msg.isSimulated" type="warning" size="small" style="font-size:11px;">
-                    <el-icon>
-                      <Timer />
-                    </el-icon> 模拟
+                    <el-icon><Timer /></el-icon> 模拟
                   </el-tag>
                   <el-tag :type="getMessageStatusType(msg.status)" size="small">
                     {{ getMessageStatusLabel(msg.status) }}
@@ -402,6 +465,9 @@ const detailTimer = ref(null)
 const messageFilterStatus = ref('')
 const messageTotal = ref(0)
 
+// ============ 活跃会话展开/收起 ============
+const showAllSessions = ref(false)
+
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
@@ -428,6 +494,19 @@ const simulatedCount = computed(() => {
 // 失败消息数量
 const failedCount = computed(() => {
   return detailMessages.value.filter(m => m.status === 'failed').length
+})
+
+// 只显示活跃会话（status === 'active'）
+const activeSessions = computed(() => {
+  return sessions.value.filter(s => s.status === 'active')
+})
+
+// 显示列表：超过10个时只显示前10个，点击"查看全部"展开
+const displaySessions = computed(() => {
+  if (showAllSessions.value || activeSessions.value.length <= 10) {
+    return activeSessions.value
+  }
+  return activeSessions.value.slice(0, 10)
 })
 
 // 账号状态统计
@@ -466,7 +545,7 @@ const bannedCount = computed(() => {
 const getAccountStatus = (account) => {
   const found = allAccounts.value.find(a => a.account === account)
   if (!found) return { status: 'unknown', label: '未知', type: 'info' }
-
+  
   const statusMap = {
     'online': { status: 'online', label: '在线', type: 'success' },
     'normal': { status: 'online', label: '在线', type: 'success' },
@@ -499,10 +578,10 @@ const getAccountStatusType = (account) => {
 // 获取账号状态文本
 const getAccountStatusText = (account) => {
   const status = getAccountStatus(account)
-
+  
   if (status.status === 'banned') return '🚫 封禁'
   if (status.status === 'expired') return '⏰ 过期'
-
+  
   if (isAccountCooling(account)) {
     const cooldownAt = detailTask.value.accountCooldowns[account]
     const remaining = Math.ceil((new Date(cooldownAt) - new Date()) / 60000)
@@ -511,11 +590,11 @@ const getAccountStatusText = (account) => {
     }
     return '⏳ 冷却中'
   }
-
+  
   if (status.status === 'online') return '🟢 在线'
   if (status.status === 'logging') return '🟡 登录中'
   if (status.status === 'offline') return '⚪ 离线'
-
+  
   return '❓ 未知'
 }
 
@@ -752,7 +831,7 @@ const handleDelete = async (row) => {
 // ============ 获取任务消息（带筛选） ============
 const fetchTaskMessages = async () => {
   if (!detailTask.value) return
-
+  
   try {
     const params = { status: messageFilterStatus.value || '' }
     const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
@@ -773,7 +852,8 @@ const showTaskDetail = async (row) => {
   sessions.value = []
   detailMessages.value = []
   messageFilterStatus.value = ''  // 重置筛选
-
+  showAllSessions.value = false   // 重置展开状态
+  
   try {
     const res = await api.get(`/chat/tasks/${row.id}`)
     if (res.code === 0) {
@@ -781,7 +861,7 @@ const showTaskDetail = async (row) => {
       sessions.value = res.data.sessions || []
       detailMessages.value = res.data.messages || []
       messageTotal.value = res.data.total || 0
-
+      
       await nextTick()
     }
   } catch (error) {
@@ -789,7 +869,7 @@ const showTaskDetail = async (row) => {
   } finally {
     detailLoading.value = false
   }
-
+  
   // 每5秒自动刷新消息（带当前筛选状态）
   if (detailTimer.value) {
     clearInterval(detailTimer.value)
@@ -1003,12 +1083,12 @@ onBeforeUnmount(() => {
   padding: 12px 16px;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   transition: all 0.2s;
 }
 
 .message-bubble:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .message-send {
@@ -1123,16 +1203,16 @@ onBeforeUnmount(() => {
   .create-chat-dialog :deep(.el-dialog) {
     width: 95% !important;
   }
-
+  
   .range-wrapper .el-input-number {
     width: 80px;
   }
-
+  
   .slider-wrapper {
     flex-direction: column;
     gap: 8px;
   }
-
+  
   .slider-wrapper .el-slider {
     width: 100%;
   }
@@ -1140,11 +1220,11 @@ onBeforeUnmount(() => {
   .message-bubble {
     max-width: 95%;
   }
-
+  
   .message-header {
     font-size: 12px;
   }
-
+  
   .message-round {
     font-size: 11px;
     padding: 0 6px;
