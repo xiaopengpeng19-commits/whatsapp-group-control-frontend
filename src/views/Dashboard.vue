@@ -6,7 +6,9 @@
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" :style="{ background: stat.color }">
-              <el-icon :size="28"><component :is="stat.icon" /></el-icon>
+              <el-icon :size="28">
+                <component :is="stat.icon" />
+              </el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stat.value }}</div>
@@ -117,10 +119,10 @@ const getStatusTagType = (status) => {
 }
 
 const getStatusType = (status) => {
-  const map = { 
-    sent: '', 
-    delivered: 'success', 
-    read: 'success', 
+  const map = {
+    sent: '',
+    delivered: 'success',
+    read: 'success',
     failed: 'danger',
     received: 'info'
   }
@@ -128,10 +130,10 @@ const getStatusType = (status) => {
 }
 
 const getStatusLabel = (status) => {
-  const map = { 
-    sent: '已发送', 
-    delivered: '已送达', 
-    read: '已读', 
+  const map = {
+    sent: '已发送',
+    delivered: '已送达',
+    read: '已读',
     failed: '失败',
     received: '已接收'
   }
@@ -140,28 +142,38 @@ const getStatusLabel = (status) => {
 
 const fetchData = async () => {
   try {
+    // 获取账号列表
     const res = await whatsapp.getAccounts()
     if (res.code === 0) {
-      const accounts = res.data || []
+      let data = res.data
+      if (data && data.data && Array.isArray(data.data)) {
+        data = data.data
+      }
+      const accounts = data || []
       accountStatus.value = accounts.map(a => ({
         account: a.account,
         nickname: a.nickname || a.account,
         status: a.status || 'offline',
         isLogin: a.isLogin || false
       }))
-      
+
       stats.value[0].value = accounts.length
-      stats.value[1].value = accounts.filter(a => 
+      stats.value[1].value = accounts.filter(a =>
         a.status === 'online' || a.status === 'normal'
       ).length
     }
 
+    // 获取消息列表
     const msgRes = await whatsapp.getMessages({ page: 1, page_size: 10 })
     if (msgRes.code === 0) {
-      recentMessages.value = msgRes.data?.data || []
+      let msgs = msgRes.data
+      if (msgs && msgs.data && Array.isArray(msgs.data)) {
+        msgs = msgs.data
+      }
+      recentMessages.value = msgs || []
     }
   } catch (error) {
-    // ignore
+    console.error('获取数据失败:', error)
   }
 }
 
@@ -186,11 +198,13 @@ onBeforeUnmount(() => {
 .stat-card {
   border-radius: 12px;
 }
+
 .stat-content {
   display: flex;
   align-items: center;
   gap: 16px;
 }
+
 .stat-icon {
   width: 56px;
   height: 56px;
@@ -201,15 +215,18 @@ onBeforeUnmount(() => {
   color: #fff;
   flex-shrink: 0;
 }
+
 .stat-info {
   flex: 1;
 }
+
 .stat-value {
   font-size: 28px;
   font-weight: 600;
   color: #333;
   line-height: 1.2;
 }
+
 .stat-title {
   color: #999;
   font-size: 14px;
