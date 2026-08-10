@@ -94,7 +94,7 @@
     <el-dialog
       v-model="showGroupsDialog"
       :title="`群组列表 - ${selectedAccount}`"
-      width="800px"
+      width="1000px"
       :close-on-click-modal="false"
       @close="closeGroups"
     >
@@ -140,8 +140,31 @@
             {{ formatTime(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" align="center">
+
+        <!-- 操作列 -->
+        <el-table-column label="操作" width="280" align="center" fixed="right">
           <template #default="{ row }">
+            <el-button size="small" type="info" plain @click="viewGroupDetail(row)">
+              详情
+            </el-button>
+            <el-button
+              v-if="row.status === 'active'"
+              size="small"
+              type="warning"
+              plain
+              @click="leaveGroup(row)"
+            >
+              退出
+            </el-button>
+            <el-button
+              v-if="row.status === 'active'"
+              size="small"
+              type="success"
+              plain
+              @click="getInviteLink(row)"
+            >
+              邀请链接
+            </el-button>
             <el-button size="small" type="danger" plain @click="deleteGroup(row)">
               删除
             </el-button>
@@ -262,7 +285,6 @@ const handleSearch = () => {
 }
 
 // ============ 群组操作 ============
-// Groups.vue - fetchGroups
 const fetchGroups = async (account) => {
   groupLoading.value = true
   try {
@@ -271,9 +293,7 @@ const fetchGroups = async (account) => {
     })
     if (res.code === 0) {
       const data = res.data.data || []
-      // ==========================================
-      // 过滤掉 isCommunity: true
-      // ==========================================
+      // 过滤掉社区
       groupList.value = data.filter(g => !g.isCommunity)
       groupCache.value[account] = groupList.value
     }
@@ -289,10 +309,8 @@ const viewGroups = (account) => {
   showGroupsDialog.value = true
   if (groupCache.value[account]) {
     groupList.value = groupCache.value[account]
-    fetchGroups(account)
-  } else {
-    fetchGroups(account)
   }
+  fetchGroups(account)
 }
 
 const closeGroups = () => {
@@ -339,6 +357,86 @@ const syncAllAccounts = async () => {
   }
 }
 
+// ==========================================
+// 群组操作
+// ==========================================
+
+// 查看群组详情
+const viewGroupDetail = async (row) => {
+  try {
+    const res = await api.post('/groups/detail', {
+      account: selectedAccount.value,
+      groupId: row.groupId
+    })
+    if (res.code === 0) {
+      const data = res.data
+      ElMessage.info({
+        message: `群组: ${data.subject || row.subject}\n群主: ${data.owner || row.owner}\n成员数: ${data.size || row.size}`,
+        duration: 0,
+        showClose: true
+      })
+    }
+  } catch (error) {
+    ElMessage.error('获取群组详情失败')
+  }
+}
+
+// 退出群组
+const leaveGroup = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要退出群组 "${row.subject || row.groupId}" 吗？`,
+      '提示',
+      { type: 'warning' }
+    )
+    const res = await api.post('/groups/leave', {
+      account: selectedAccount.value,
+      groupId: row.groupId
+    })
+    if (res.code === 0) {
+      ElMessage.success('已退出群组')
+      row.status = 'left'
+      fetchGroups(selectedAccount.value)
+      fetchAccounts()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('退出群组失败')
+    }
+  }
+}
+
+// 获取邀请链接
+const getInviteLink = async (row) => {
+  try {
+    const res = await api.post('/groups/invite-link', {
+      account: selectedAccount.value,
+      groupId: row.groupId
+    })
+    if (res.code === 0) {
+      const data = res.data
+      await ElMessageBox.alert(
+        `邀请链接: ${data.inviteLink || data.inviteCode}`,
+        '邀请链接',
+        {
+          confirmButtonText: '复制',
+          callback: () => {
+            if (data.inviteLink) {
+              navigator.clipboard.writeText(data.inviteLink)
+            } else {
+              navigator.clipboard.writeText(data.inviteCode)
+            }
+            ElMessage.success('已复制')
+          }
+        }
+      )
+    }
+  } catch (error) {
+    ElMessage.error('获取邀请链接失败')
+  }
+}
+
+// 删除群组记录
 const deleteGroup = async (row) => {
   try {
     await ElMessageBox.confirm(
