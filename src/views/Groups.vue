@@ -270,8 +270,12 @@ const fetchGroups = async (account) => {
     })
     if (res.code === 0) {
       const data = res.data.data || []
-      groupList.value = data
-      groupCache.value[account] = data
+      // ==========================================
+      // 过滤掉社区 (group_id 不以 @g.us 结尾)
+      // 或者过滤掉 isCommunity: true (如果有存储)
+      // ==========================================
+      groupList.value = data.filter(g => g.groupId?.endsWith('@g.us'))
+      groupCache.value[account] = groupList.value
     }
   } catch (error) {
     ElMessage.error('获取群组列表失败')
