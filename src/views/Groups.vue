@@ -52,17 +52,19 @@
                 </template>
             </el-table-column>
             <el-table-column prop="nickname" label="昵称" min-width="100" />
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="操作" width="220">
                 <template #default="{ row }">
-                    <el-button size="small" type="primary" @click="viewGroups(row.account)">
-                        群组
-                    </el-button>
-                    <el-button size="small" type="success" plain @click="syncAccount(row.account)">
-                        同步
-                    </el-button>
-                    <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
-                        创建群
-                    </el-button>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                        <el-button size="small" type="primary" @click="viewGroups(row.account)">
+                            群组
+                        </el-button>
+                        <el-button size="small" type="success" plain @click="syncAccount(row.account)">
+                            同步
+                        </el-button>
+                        <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
+                            创建群
+                        </el-button>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>
