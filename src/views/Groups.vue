@@ -262,6 +262,7 @@ const handleSearch = () => {
 }
 
 // ============ 群组操作 ============
+// Groups.vue - fetchGroups
 const fetchGroups = async (account) => {
   groupLoading.value = true
   try {
@@ -271,10 +272,9 @@ const fetchGroups = async (account) => {
     if (res.code === 0) {
       const data = res.data.data || []
       // ==========================================
-      // 过滤掉社区 (group_id 不以 @g.us 结尾)
-      // 或者过滤掉 isCommunity: true (如果有存储)
+      // 过滤掉 isCommunity: true
       // ==========================================
-      groupList.value = data.filter(g => g.groupId?.endsWith('@g.us'))
+      groupList.value = data.filter(g => !g.isCommunity)
       groupCache.value[account] = groupList.value
     }
   } catch (error) {
