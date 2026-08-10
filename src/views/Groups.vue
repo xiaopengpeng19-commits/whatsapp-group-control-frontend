@@ -3,122 +3,73 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <!-- 账号筛选 -->
-        <el-select v-model="filterAccount" placeholder="全部账号" clearable @change="fetchGroups" style="width:180px">
-          <el-option label="全部账号" value="" />
+        <!-- 搜索框 -->
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索账号或群组"
+          clearable
+          prefix-icon="Search"
+          style="width:220px"
+          @input="handleSearch"
+        />
+
+        <!-- 分组筛选 -->
+        <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:150px">
+          <el-option label="全部分组" value="" />
           <el-option
-            v-for="acc in accountList"
-            :key="acc"
-            :label="acc"
-            :value="acc"
+            v-for="item in accountGroups"
+            :key="item.name"
+            :label="item.name + ' (' + item.count + '个)'"
+            :value="item.name"
           />
         </el-select>
 
-        <!-- 状态筛选 -->
-        <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchGroups" style="width:120px">
-          <el-option label="全部" value="" />
-          <el-option label="活跃" value="active" />
-          <el-option label="已退出" value="left" />
-        </el-select>
-
-        <el-button type="primary" @click="showSyncDialog = true">
-          <el-icon><Refresh /></el-icon> 同步群组
+        <el-button type="primary" @click="syncAllAccounts">
+          <el-icon><Refresh /></el-icon> 同步全部
         </el-button>
-        <el-button @click="fetchGroups">
+        <el-button @click="fetchAccounts">
           <el-icon><Refresh /></el-icon> 刷新
         </el-button>
       </div>
     </div>
 
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" style="margin-bottom:20px;">
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:48px;height:48px;border-radius:12px;background:#ecf5ff;display:flex;align-items:center;justify-content:center;color:#409eff;font-size:24px;">
-              <el-icon><Connection /></el-icon>
-            </div>
-            <div>
-              <div style="font-size:24px;font-weight:600;color:#333;">{{ total }}</div>
-              <div style="color:#999;font-size:14px;">总群组</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:48px;height:48px;border-radius:12px;background:#f0f9eb;display:flex;align-items:center;justify-content:center;color:#67c23a;font-size:24px;">
-              <el-icon><CircleCheck /></el-icon>
-            </div>
-            <div>
-              <div style="font-size:24px;font-weight:600;color:#333;">{{ activeCount }}</div>
-              <div style="color:#999;font-size:14px;">活跃群组</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:48px;height:48px;border-radius:12px;background:#fef0f0;display:flex;align-items:center;justify-content:center;color:#f56c6c;font-size:24px;">
-              <el-icon><CircleClose /></el-icon>
-            </div>
-            <div>
-              <div style="font-size:24px;font-weight:600;color:#333;">{{ leftCount }}</div>
-              <div style="color:#999;font-size:14px;">已退出</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover">
-          <div style="display:flex;align-items:center;gap:16px;">
-            <div style="width:48px;height:48px;border-radius:12px;background:#fdf6ec;display:flex;align-items:center;justify-content:center;color:#e6a23c;font-size:24px;">
-              <el-icon><User /></el-icon>
-            </div>
-            <div>
-              <div style="font-size:24px;font-weight:600;color:#333;">{{ accountCount }}</div>
-              <div style="color:#999;font-size:14px;">涉及账号</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 群组列表 -->
-    <el-table :data="groups" v-loading="loading" border stripe>
-      <el-table-column prop="groupId" label="群ID" min-width="200" show-overflow-tooltip />
-      <el-table-column prop="account" label="所属账号" width="140" />
-      <el-table-column prop="subject" label="群名称" min-width="150">
+    <!-- 账号列表 -->
+    <el-table
+      :data="filteredAccounts"
+      v-loading="loading"
+      border
+      stripe
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="40" />
+      <el-table-column prop="account" label="账号" width="150" />
+      <el-table-column prop="group" label="分组" width="120">
         <template #default="{ row }">
-          <span v-if="row.subject">{{ row.subject }}</span>
-          <span v-else style="color:#999;">未命名</span>
-        </template>
-      </el-table-column>
-      <el-table-column prop="participants" label="成员数" width="80" align="center" />
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-            {{ row.status === 'active' ? '🟢 活跃' : '⚪ 已退出' }}
+          <el-tag size="small" :type="row.group ? 'primary' : 'info'">
+            {{ row.group || '未分组' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="owner" label="群主" width="140" show-overflow-tooltip>
+      <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <span v-if="row.owner">{{ row.owner }}</span>
-          <span v-else style="color:#999;">-</span>
+          <el-tag :type="getStatusType(row.status)" size="small">
+            {{ getStatusText(row.status) }}
+          </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="添加时间" width="170">
+      <el-table-column label="群组数" width="80" align="center">
         <template #default="{ row }">
-          {{ formatTime(row.createdAt) }}
+          <el-tag type="info" size="small">{{ getGroupCount(row.account) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right" align="center">
+      <el-table-column prop="nickname" label="昵称" min-width="100" />
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" type="danger" plain @click="handleDelete(row)">
-            删除
+          <el-button size="small" type="primary" @click="viewGroups(row.account)">
+            群组
+          </el-button>
+          <el-button size="small" type="success" plain @click="syncAccount(row.account)">
+            同步
           </el-button>
         </template>
       </el-table-column>
@@ -132,34 +83,71 @@
         :page-sizes="[10, 20, 50, 100]"
         :total="total"
         layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchGroups"
-        @current-change="fetchGroups"
+        @size-change="fetchAccounts"
+        @current-change="fetchAccounts"
       />
     </div>
 
-    <!-- 同步对话框 -->
-    <el-dialog v-model="showSyncDialog" title="同步群组" width="500px" :close-on-click-modal="false">
-      <el-form :model="syncForm" label-width="80px">
-        <el-form-item label="选择账号" required>
-          <el-select v-model="syncForm.account" placeholder="请选择要同步的账号" style="width:100%">
-            <el-option
-              v-for="acc in accountList"
-              :key="acc"
-              :label="acc"
-              :value="acc"
-            />
-          </el-select>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            从 WhatsApp 实时拉取该账号的所有群组
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showSyncDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleSyncConfirm" :loading="syncing">
-          {{ syncing ? '同步中...' : '同步' }}
+    <!-- ========================================== -->
+    <!-- 群组列表对话框 -->
+    <!-- ========================================== -->
+    <el-dialog
+      v-model="showGroupsDialog"
+      :title="`群组列表 - ${selectedAccount}`"
+      width="800px"
+      :close-on-click-modal="false"
+      @close="closeGroups"
+    >
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="color:#999;font-size:13px;">
+          共 {{ groupList.length }} 个群组
+          <el-tag v-if="groupList.filter(g => g.status === 'active').length > 0" type="success" size="small" style="margin-left:8px;">
+            活跃 {{ groupList.filter(g => g.status === 'active').length }}
+          </el-tag>
+          <el-tag v-if="groupList.filter(g => g.status === 'left').length > 0" type="info" size="small" style="margin-left:4px;">
+            已退出 {{ groupList.filter(g => g.status === 'left').length }}
+          </el-tag>
+        </span>
+        <el-button size="small" type="primary" @click="syncAccount(selectedAccount)" :loading="syncing">
+          <el-icon><Refresh /></el-icon> 同步
         </el-button>
-      </template>
+      </div>
+
+      <el-table :data="groupList" border v-loading="groupLoading" max-height="450">
+        <el-table-column prop="groupId" label="群ID" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="subject" label="群名称" min-width="150">
+          <template #default="{ row }">
+            <span v-if="row.subject">{{ row.subject }}</span>
+            <span v-else style="color:#999;">未命名</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="participants" label="成员数" width="80" align="center" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+              {{ row.status === 'active' ? '🟢 活跃' : '⚪ 已退出' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="owner" label="群主" width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.owner">{{ row.owner }}</span>
+            <span v-else style="color:#999;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="添加时间" width="170">
+          <template #default="{ row }">
+            {{ formatTime(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="80" align="center">
+          <template #default="{ row }">
+            <el-button size="small" type="danger" plain @click="deleteGroup(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-dialog>
   </div>
 </template>
@@ -167,83 +155,157 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Connection, CircleCheck, CircleClose, User } from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
+import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
-const groups = ref([])
-const accountList = ref([])
+// ============ 状态 ============
+const accounts = ref([])
+const filteredAccounts = ref([])
+const groupList = ref([])
+const groupCache = ref({})
+const accountGroups = ref([])
 const loading = ref(false)
+const groupLoading = ref(false)
 const syncing = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 
-const filterAccount = ref('')
-const filterStatus = ref('')
-const showSyncDialog = ref(false)
+const selectedAccount = ref('')
+const showGroupsDialog = ref(false)
+const searchKeyword = ref('')
+const filterGroup = ref('')
 
-const syncForm = reactive({
-  account: ''
-})
+// ============ 状态映射 ============
+const statusMap = {
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期'
+}
 
-const activeCount = computed(() => {
-  return groups.value.filter(g => g.status === 'active').length
-})
+const statusTypeMap = {
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger'
+}
 
-const leftCount = computed(() => {
-  return groups.value.filter(g => g.status === 'left').length
-})
+const getStatusText = (status) => statusMap[status] || status || '未知'
+const getStatusType = (status) => statusTypeMap[status] || 'info'
 
-const accountCount = computed(() => {
-  const accs = new Set(groups.value.map(g => g.account))
-  return accs.size
-})
+// ============ 工具函数 ============
+const formatTime = (time) => {
+  if (!time) return '-'
+  return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+}
 
-const fetchAccountList = async () => {
+const getGroupCount = (account) => {
+  return groupCache.value[account]?.length || 0
+}
+
+// ============ 数据获取 ============
+const fetchAccountGroups = async () => {
   try {
-    const res = await api.get('/groups/accounts')
+    const res = await api.get('/whatsapp/accounts/groups')
     if (res.code === 0) {
-      accountList.value = res.data || []
+      accountGroups.value = res.data || []
     }
   } catch (error) {
     // ignore
   }
 }
 
-const fetchGroups = async () => {
+const fetchAccounts = async () => {
   loading.value = true
   try {
-    const params = { page: page.value, page_size: pageSize.value }
-    if (filterAccount.value) params.account = filterAccount.value
-    if (filterStatus.value) params.status = filterStatus.value
-    const res = await api.get('/groups/list', { params })
+    const res = await whatsapp.getAccounts()
     if (res.code === 0) {
-      groups.value = res.data.data || []
-      total.value = res.data.total || 0
+      let data = res.data
+      if (data && data.data && Array.isArray(data.data)) {
+        data = data.data
+      }
+      accounts.value = data || []
+      applyFilters()
+      total.value = filteredAccounts.value.length
     }
   } catch (error) {
-    ElMessage.error('获取群组列表失败')
+    ElMessage.error('获取账号列表失败')
   } finally {
     loading.value = false
   }
 }
 
-const handleSyncConfirm = async () => {
-  if (!syncForm.account) {
-    ElMessage.warning('请选择账号')
-    return
+// ============ 筛选 ============
+const applyFilters = () => {
+  let list = [...accounts.value]
+  if (searchKeyword.value) {
+    const kw = searchKeyword.value.toLowerCase()
+    list = list.filter(a => a.account.includes(kw))
   }
+  if (filterGroup.value) {
+    list = list.filter(a => a.group === filterGroup.value)
+  }
+  filteredAccounts.value = list
+}
+
+const handleSearch = () => {
+  page.value = 1
+  applyFilters()
+  total.value = filteredAccounts.value.length
+}
+
+// ============ 群组操作 ============
+const fetchGroups = async (account) => {
+  groupLoading.value = true
+  try {
+    const res = await api.get('/groups/list', {
+      params: { account, page: 1, page_size: 1000 }
+    })
+    if (res.code === 0) {
+      const data = res.data.data || []
+      groupList.value = data
+      groupCache.value[account] = data
+    }
+  } catch (error) {
+    ElMessage.error('获取群组列表失败')
+  } finally {
+    groupLoading.value = false
+  }
+}
+
+const viewGroups = (account) => {
+  selectedAccount.value = account
+  showGroupsDialog.value = true
+  if (groupCache.value[account]) {
+    groupList.value = groupCache.value[account]
+    fetchGroups(account)
+  } else {
+    fetchGroups(account)
+  }
+}
+
+const closeGroups = () => {
+  selectedAccount.value = ''
+  groupList.value = []
+}
+
+const syncAccount = async (account) => {
   syncing.value = true
   try {
     const res = await api.post('/groups/sync', null, {
-      params: { account: syncForm.account }
+      params: { account }
     })
     if (res.code === 0) {
-      ElMessage.success(`账号 ${syncForm.account} 同步成功`)
-      showSyncDialog.value = false
-      fetchGroups()
-      fetchAccountList()
+      ElMessage.success(`账号 ${account} 同步成功`)
+      await fetchGroups(account)
+      fetchAccounts()
     }
   } catch (error) {
     ElMessage.error('同步失败: ' + (error.message || ''))
@@ -252,13 +314,39 @@ const handleSyncConfirm = async () => {
   }
 }
 
-const handleDelete = async (row) => {
+const syncAllAccounts = async () => {
+  syncing.value = true
   try {
-    await ElMessageBox.confirm(`确定要删除群组 "${row.subject || row.groupId}" 的记录吗？`, '提示', { type: 'warning' })
+    const accountsToSync = filteredAccounts.value.map(a => a.account)
+    let successCount = 0
+    for (const acc of accountsToSync) {
+      const res = await api.post('/groups/sync', null, { params: { account: acc } })
+      if (res.code === 0) successCount++
+    }
+    ElMessage.success(`同步完成: ${successCount}/${accountsToSync.length} 个账号`)
+    fetchAccounts()
+    if (selectedAccount.value) {
+      fetchGroups(selectedAccount.value)
+    }
+  } catch (error) {
+    ElMessage.error('同步失败: ' + (error.message || ''))
+  } finally {
+    syncing.value = false
+  }
+}
+
+const deleteGroup = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除群组 "${row.subject || row.groupId}" 的记录吗？`,
+      '提示',
+      { type: 'warning' }
+    )
     const res = await api.delete(`/groups/${row.id}/delete`)
     if (res.code === 0) {
       ElMessage.success('删除成功')
-      fetchGroups()
+      fetchGroups(selectedAccount.value)
+      fetchAccounts()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -267,14 +355,15 @@ const handleDelete = async (row) => {
   }
 }
 
-const formatTime = (time) => {
-  if (!time) return '-'
-  return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+// ============ 选中 ============
+const handleSelectionChange = (selection) => {
+  // 预留批量操作
 }
 
+// ============ 生命周期 ============
 onMounted(() => {
-  fetchAccountList()
-  fetchGroups()
+  fetchAccountGroups()
+  fetchAccounts()
 })
 </script>
 
@@ -286,9 +375,5 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
-}
-
-.groups .el-card {
-  border-radius: 12px;
 }
 </style>
