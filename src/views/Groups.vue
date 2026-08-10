@@ -142,7 +142,7 @@
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" width="280" align="center" fixed="right">
+        <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="info" plain @click="viewGroupDetail(row)">
               详情
@@ -165,12 +165,80 @@
             >
               邀请链接
             </el-button>
-            <el-button size="small" type="danger" plain @click="deleteGroup(row)">
-              删除
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
+    </el-dialog>
+
+    <!-- ========================================== -->
+    <!-- 群组详情弹窗 -->
+    <!-- ========================================== -->
+    <el-dialog
+      v-model="showGroupDetailDialog"
+      :title="`群组详情 - ${groupDetail?.subject || groupDetail?.groupId || ''}`"
+      width="700px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="groupDetail" v-loading="groupDetailLoading">
+        <!-- 基本信息 -->
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="群ID">{{ groupDetail.groupId }}</el-descriptions-item>
+          <el-descriptions-item label="群名称">{{ groupDetail.subject || '未命名' }}</el-descriptions-item>
+          <el-descriptions-item label="群主">{{ groupDetail.owner || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="成员数">{{ groupDetail.size || groupDetail.participants?.length || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">
+            {{ groupDetail.creation ? formatTime(groupDetail.creation * 1000) : '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="是否社区">
+            <el-tag :type="groupDetail.isCommunity ? 'warning' : 'info'" size="small">
+              {{ groupDetail.isCommunity ? '是' : '否' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="全员禁言">
+            <el-tag :type="groupDetail.announce ? 'danger' : 'success'" size="small">
+              {{ groupDetail.announce ? '已开启' : '未开启' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="仅管理员可改群名">
+            <el-tag :type="groupDetail.restrict ? 'danger' : 'success'" size="small">
+              {{ groupDetail.restrict ? '是' : '否' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 成员列表 -->
+        <div style="margin-top:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:bold;">成员列表</span>
+            <span style="color:#999;font-size:13px;">
+              共 {{ groupDetail.participants?.length || 0 }} 人
+            </span>
+          </div>
+          <el-table :data="groupDetail.participants || []" border size="small" max-height="300">
+            <el-table-column type="index" label="#" width="50" />
+            <el-table-column prop="phoneNumber" label="手机号" min-width="150">
+              <template #default="{ row }">
+                {{ row.phoneNumber || row.id || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="id" label="ID" min-width="180" show-overflow-tooltip />
+            <el-table-column label="角色" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.admin === 'superadmin' ? 'danger' : row.admin === 'admin' ? 'warning' : 'info'" size="small">
+                  {{ row.admin === 'superadmin' ? '👑 群主' : row.admin === 'admin' ? '🔑 管理员' : '👤 成员' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showGroupDetailDialog = false">关闭</el-button>
+        <el-button type="primary" @click="syncSingleGroup" :loading="syncing">
+          同步
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -200,6 +268,12 @@ const selectedAccount = ref('')
 const showGroupsDialog = ref(false)
 const searchKeyword = ref('')
 const filterGroup = ref('')
+
+// ============ 群组详情弹窗 ============
+const showGroupDetailDialog = ref(false)
+const groupDetail = ref(null)
+const groupDetailLoading = ref(false)
+const currentGroupRow = ref(null)
 
 // ============ 状态映射 ============
 const statusMap = {
@@ -358,11 +432,15 @@ const syncAllAccounts = async () => {
 }
 
 // ==========================================
-// 群组操作
+// 群组详情（弹窗）
 // ==========================================
 
-// 查看群组详情
 const viewGroupDetail = async (row) => {
+  currentGroupRow.value = row
+  showGroupDetailDialog.value = true
+  groupDetailLoading.value = true
+  groupDetail.value = null
+
   try {
     const res = await api.post('/groups/detail', {
       account: selectedAccount.value,
@@ -370,16 +448,71 @@ const viewGroupDetail = async (row) => {
     })
     if (res.code === 0) {
       const data = res.data
-      ElMessage.info({
-        message: `群组: ${data.subject || row.subject}\n群主: ${data.owner || row.owner}\n成员数: ${data.size || row.size}`,
-        duration: 0,
-        showClose: true
-      })
+      groupDetail.value = {
+        groupId: row.groupId,
+        subject: data.subject || row.subject,
+        owner: data.owner || row.owner,
+        size: data.size || row.size,
+        participants: data.participants || [],
+        creation: data.creation || 0,
+        isCommunity: data.isCommunity || false,
+        announce: data.announce || false,
+        restrict: data.restrict || false
+      }
+
+      // 更新本地群组信息
+      const groupIndex = groupList.value.findIndex(g => g.groupId === row.groupId)
+      if (groupIndex !== -1) {
+        groupList.value[groupIndex] = {
+          ...groupList.value[groupIndex],
+          participants: data.size || data.participants?.length || row.participants,
+          size: data.size || row.size,
+          owner: data.owner || row.owner
+        }
+        groupCache.value[selectedAccount.value] = groupList.value
+      }
     }
   } catch (error) {
     ElMessage.error('获取群组详情失败')
+  } finally {
+    groupDetailLoading.value = false
   }
 }
+
+const syncSingleGroup = async () => {
+  if (!currentGroupRow.value) return
+  syncing.value = true
+  try {
+    const res = await api.post('/groups/detail', {
+      account: selectedAccount.value,
+      groupId: currentGroupRow.value.groupId
+    })
+    if (res.code === 0) {
+      const data = res.data
+      groupDetail.value = {
+        ...groupDetail.value,
+        subject: data.subject || groupDetail.value.subject,
+        owner: data.owner || groupDetail.value.owner,
+        size: data.size || groupDetail.value.size,
+        participants: data.participants || [],
+        creation: data.creation || 0,
+        isCommunity: data.isCommunity || false,
+        announce: data.announce || false,
+        restrict: data.restrict || false
+      }
+      ElMessage.success('同步成功')
+      fetchGroups(selectedAccount.value)
+    }
+  } catch (error) {
+    ElMessage.error('同步失败')
+  } finally {
+    syncing.value = false
+  }
+}
+
+// ==========================================
+// 群组操作
+// ==========================================
 
 // 退出群组
 const leaveGroup = async (row) => {
@@ -433,27 +566,6 @@ const getInviteLink = async (row) => {
     }
   } catch (error) {
     ElMessage.error('获取邀请链接失败')
-  }
-}
-
-// 删除群组记录
-const deleteGroup = async (row) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除群组 "${row.subject || row.groupId}" 的记录吗？`,
-      '提示',
-      { type: 'warning' }
-    )
-    const res = await api.delete(`/groups/${row.id}/delete`)
-    if (res.code === 0) {
-      ElMessage.success('删除成功')
-      fetchGroups(selectedAccount.value)
-      fetchAccounts()
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-    }
   }
 }
 
