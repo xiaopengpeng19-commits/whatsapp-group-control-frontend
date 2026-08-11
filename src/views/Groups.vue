@@ -50,7 +50,7 @@
             </el-table-column>
             <el-table-column label="群组数" width="80" align="center">
                 <template #default="{ row }">
-                    <el-tag type="info" size="small">{{ getGroupCount(row.account) }}</el-tag>
+                    <el-tag type="info" size="small">{{ row.groupCount || 0 }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="nickname" label="昵称" min-width="100" />
@@ -160,7 +160,7 @@
                     <el-descriptions-item label="群名称">{{ groupDetail.subject || '未命名' }}</el-descriptions-item>
                     <el-descriptions-item label="群主">{{ groupDetail.owner || '-' }}</el-descriptions-item>
                     <el-descriptions-item label="成员数">{{ groupDetail.size || groupDetail.participants?.length || 0
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="创建时间">
                         {{ groupDetail.creation ? formatTime(groupDetail.creation * 1000) : '-' }}
                     </el-descriptions-item>
