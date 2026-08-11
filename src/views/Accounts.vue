@@ -125,7 +125,7 @@
       </el-table-column>
 
       <!-- 操作列 -->
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
