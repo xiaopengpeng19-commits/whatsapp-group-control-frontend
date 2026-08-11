@@ -28,6 +28,12 @@
             <Download />
           </el-icon> 批量导出 ({{ selectedAccounts.length }})
         </el-button>
+        <el-button type="primary" plain @click="handleBatchOnline" :disabled="selectedAccounts.length === 0"
+          :loading="batchOnlineLoading">
+          <el-icon>
+            <Promotion />
+          </el-icon> 批量上线 ({{ selectedAccounts.length }})
+        </el-button>
         <el-button type="primary" plain @click="showGroupOnlineDialog = true">
           <el-icon>
             <Promotion />
@@ -71,6 +77,7 @@
     <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
+      <el-table-column prop="nickname" label="昵称" width="100" />
       <el-table-column prop="group" label="账号分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
@@ -164,6 +171,9 @@
       <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号" required>
           <el-input v-model="addForm.account" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="addForm.nickname" placeholder="请输入昵称（可选）" />
         </el-form-item>
         <el-form-item label="账号分组">
           <el-input v-model="addForm.group" placeholder="请输入分组名称（可选）" />
@@ -397,6 +407,9 @@ const groupOfflineLoading = ref(false)
 // ============ 批量改代理 ============
 const batchProxyGroup = ref('')
 const batchProxyLoading = ref(false)
+
+// ============ 批量上线 ============
+const batchOnlineLoading = ref(false)
 
 // ============ 表单 ============
 const addForm = reactive({
@@ -704,6 +717,56 @@ const handleBatchExport = async () => {
     selectedAccounts.value = []
   } catch (error) {
     ElMessage.error('批量导出失败: ' + (error.message || ''))
+  }
+}
+
+// ============ 批量上线 ============
+const handleBatchOnline = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+
+  // 过滤出离线账号
+  const offlineAccounts = selectedAccounts.value.filter(account => {
+    const acc = accounts.value.find(a => a.account === account)
+    return acc && (acc.status === 'offline' || acc.status === 'expired')
+  })
+
+  if (offlineAccounts.length === 0) {
+    ElMessage.warning('选中的账号中没有离线账号')
+    return
+  }
+
+  if (offlineAccounts.length < selectedAccounts.value.length) {
+    const onlineCount = selectedAccounts.value.length - offlineAccounts.length
+    ElMessage.warning(`已过滤 ${onlineCount} 个在线账号，将上线 ${offlineAccounts.length} 个离线账号`)
+  }
+
+  batchOnlineLoading.value = true
+  try {
+    let successCount = 0
+    let failCount = 0
+    for (const account of offlineAccounts) {
+      try {
+        const res = await whatsapp.online(account)
+        if (res.code === 0) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch {
+        failCount++
+      }
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
+    ElMessage.success(`批量上线完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+    selectedAccounts.value = []
+    fetchAccounts()
+  } catch (error) {
+    ElMessage.error('批量上线失败: ' + (error.message || ''))
+  } finally {
+    batchOnlineLoading.value = false
   }
 }
 
