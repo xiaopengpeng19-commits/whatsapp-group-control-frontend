@@ -720,6 +720,7 @@ const handleBatchExport = async () => {
   }
 }
 
+
 // ============ 批量上线 ============
 const handleBatchOnline = async () => {
   if (selectedAccounts.value.length === 0) {
@@ -727,42 +728,19 @@ const handleBatchOnline = async () => {
     return
   }
 
-  // 过滤出离线账号
-  const offlineAccounts = selectedAccounts.value.filter(account => {
-    const acc = accounts.value.find(a => a.account === account)
-    return acc && (acc.status === 'offline' || acc.status === 'expired')
-  })
-
-  if (offlineAccounts.length === 0) {
-    ElMessage.warning('选中的账号中没有离线账号')
-    return
-  }
-
-  if (offlineAccounts.length < selectedAccounts.value.length) {
-    const onlineCount = selectedAccounts.value.length - offlineAccounts.length
-    ElMessage.warning(`已过滤 ${onlineCount} 个在线账号，将上线 ${offlineAccounts.length} 个离线账号`)
-  }
-
   batchOnlineLoading.value = true
   try {
-    let successCount = 0
-    let failCount = 0
-    for (const account of offlineAccounts) {
-      try {
-        const res = await whatsapp.online(account)
-        if (res.code === 0) {
-          successCount++
-        } else {
-          failCount++
-        }
-      } catch {
-        failCount++
-      }
-      await new Promise(resolve => setTimeout(resolve, 200))
+    const res = await api.post('/whatsapp/accounts/batch/online', {
+      accounts: selectedAccounts.value
+    })
+    if (res.code === 0) {
+      ElMessage.success(`已提交 ${res.data.total} 个账号的批量上线任务，请稍后刷新查看状态`)
+      selectedAccounts.value = []
+      // 延迟刷新，给重连处理器一点时间
+      setTimeout(() => fetchAccounts(), 5000)
+    } else {
+      ElMessage.error(res.message || '批量上线失败')
     }
-    ElMessage.success(`批量上线完成：成功 ${successCount} 个，失败 ${failCount} 个`)
-    selectedAccounts.value = []
-    fetchAccounts()
   } catch (error) {
     ElMessage.error('批量上线失败: ' + (error.message || ''))
   } finally {
