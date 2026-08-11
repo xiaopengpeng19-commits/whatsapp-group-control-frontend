@@ -71,7 +71,6 @@
     <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
-      <el-table-column prop="nickname" label="昵称" width="100" />
       <el-table-column prop="group" label="账号分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
@@ -165,9 +164,6 @@
       <el-form :model="addForm" label-width="100px">
         <el-form-item label="手机号" required>
           <el-input v-model="addForm.account" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="昵称">
-          <el-input v-model="addForm.nickname" placeholder="请输入昵称（可选）" />
         </el-form-item>
         <el-form-item label="账号分组">
           <el-input v-model="addForm.group" placeholder="请输入分组名称（可选）" />
