@@ -15,10 +15,11 @@
                         :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
                 </el-select>
 
-                <el-button type="primary" @click="syncAllAccounts">
+                <el-button type="primary" @click="syncSelectedAccounts" :disabled="selectedAccounts.length === 0"
+                    :loading="syncing">
                     <el-icon>
                         <Refresh />
-                    </el-icon> 同步全部
+                    </el-icon> 同步勾选 ({{ selectedAccounts.length }})
                 </el-button>
                 <el-button @click="fetchAccounts">
                     <el-icon>
@@ -29,7 +30,8 @@
         </div>
 
         <!-- 账号列表 -->
-        <el-table :data="filteredAccounts" v-loading="loading" border stripe @selection-change="handleSelectionChange">
+        <el-table :data="filteredAccounts" v-loading="loading" border stripe @selection-change="handleSelectionChange"
+            row-key="account">
             <el-table-column type="selection" width="40" />
             <el-table-column prop="account" label="账号" width="150" />
             <el-table-column prop="group" label="分组" width="120">
@@ -52,19 +54,17 @@
                 </template>
             </el-table-column>
             <el-table-column prop="nickname" label="昵称" min-width="100" />
-            <el-table-column label="操作" width="220">
+            <el-table-column label="操作" width="200" fixed="right">
                 <template #default="{ row }">
-                    <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                        <el-button size="small" type="primary" @click="viewGroups(row.account)">
-                            群组
-                        </el-button>
-                        <el-button size="small" type="success" plain @click="syncAccount(row.account)">
-                            同步
-                        </el-button>
-                        <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
-                            创建群
-                        </el-button>
-                    </div>
+                    <el-button size="small" type="primary" @click="viewGroups(row.account)">
+                        群组
+                    </el-button>
+                    <el-button size="small" type="success" plain @click="syncAccount(row.account)">
+                        同步
+                    </el-button>
+                    <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
+                        创建群
+                    </el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -146,35 +146,7 @@
                 </el-table-column>
             </el-table>
         </el-dialog>
-        <!-- ========================================== -->
-        <!-- 创建群组对话框 -->
-        <!-- ========================================== -->
-        <el-dialog v-model="showCreateGroupDialogVisible" title="创建群组" width="550px" :close-on-click-modal="false">
-            <el-form :model="createGroupForm" label-width="100px">
-                <el-form-item label="所属账号">
-                    <span>{{ createGroupForm.account }}</span>
-                </el-form-item>
-                <el-form-item label="群名称" required>
-                    <el-input v-model="createGroupForm.subject" placeholder="请输入群名称" />
-                </el-form-item>
-                <el-form-item label="邀请成员">
-                    <el-select v-model="createGroupForm.participants" multiple placeholder="选择要邀请的账号"
-                        style="width:100%">
-                        <el-option v-for="item in availableAccounts" :key="item.account" :label="item.account"
-                            :value="item.account" />
-                    </el-select>
-                    <div style="font-size:12px;color:#999;margin-top:4px;">
-                        至少选择1个成员（群主自动加入）
-                    </div>
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="showCreateGroupDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleCreateGroup" :loading="creatingGroup">
-                    创建
-                </el-button>
-            </template>
-        </el-dialog>
+
         <!-- ========================================== -->
         <!-- 群组详情弹窗 -->
         <!-- ========================================== -->
@@ -246,6 +218,36 @@
                 </el-button>
             </template>
         </el-dialog>
+
+        <!-- ========================================== -->
+        <!-- 创建群组对话框 -->
+        <!-- ========================================== -->
+        <el-dialog v-model="showCreateGroupDialogVisible" title="创建群组" width="550px" :close-on-click-modal="false">
+            <el-form :model="createGroupForm" label-width="100px">
+                <el-form-item label="所属账号">
+                    <span>{{ createGroupForm.account }}</span>
+                </el-form-item>
+                <el-form-item label="群名称" required>
+                    <el-input v-model="createGroupForm.subject" placeholder="请输入群名称" />
+                </el-form-item>
+                <el-form-item label="邀请成员">
+                    <el-select v-model="createGroupForm.participants" multiple placeholder="选择要邀请的账号"
+                        style="width:100%">
+                        <el-option v-for="item in availableAccounts" :key="item.account" :label="item.account"
+                            :value="item.account" />
+                    </el-select>
+                    <div style="font-size:12px;color:#999;margin-top:4px;">
+                        至少选择1个成员（群主自动加入）
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showCreateGroupDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="handleCreateGroup" :loading="creatingGroup">
+                    创建
+                </el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -281,6 +283,18 @@ const groupDetail = ref(null)
 const groupDetailLoading = ref(false)
 const currentGroupRow = ref(null)
 
+// ============ 创建群组 ============
+const showCreateGroupDialogVisible = ref(false)
+const creatingGroup = ref(false)
+const createGroupForm = reactive({
+    account: '',
+    subject: '',
+    participants: []
+})
+
+// ============ 选中账号 ============
+const selectedAccounts = ref([])
+
 // ============ 状态映射 ============
 const statusMap = {
     'online': '在线',
@@ -312,6 +326,11 @@ const formatTime = (time) => {
 const getGroupCount = (account) => {
     return groupCache.value[account]?.length || 0
 }
+
+// ============ 可用账号（创建群时排除当前账号） ============
+const availableAccounts = computed(() => {
+    return accounts.value.filter(a => a.account !== createGroupForm.account)
+})
 
 // ============ 数据获取 ============
 const fetchAccountGroups = async () => {
@@ -364,6 +383,55 @@ const handleSearch = () => {
     total.value = filteredAccounts.value.length
 }
 
+// ============ 选中账号 ============
+const handleSelectionChange = (selection) => {
+    selectedAccounts.value = selection.map(item => item.account)
+}
+
+// ============ 同步勾选账号 ============
+const syncSelectedAccounts = async () => {
+    if (selectedAccounts.value.length === 0) {
+        ElMessage.warning('请先勾选要同步的账号')
+        return
+    }
+
+    // 过滤出在线账号（只同步在线的）
+    const onlineAccounts = selectedAccounts.value.filter(account => {
+        const acc = accounts.value.find(a => a.account === account)
+        return acc && (acc.status === 'online' || acc.status === 'normal')
+    })
+
+    if (onlineAccounts.length === 0) {
+        ElMessage.warning('勾选的账号中没有在线账号，请先上线')
+        return
+    }
+
+    if (onlineAccounts.length < selectedAccounts.value.length) {
+        const offlineCount = selectedAccounts.value.length - onlineAccounts.length
+        ElMessage.warning(`已过滤 ${offlineCount} 个非在线账号，将同步 ${onlineAccounts.length} 个在线账号`)
+    }
+
+    syncing.value = true
+    try {
+        let successCount = 0
+        for (const acc of onlineAccounts) {
+            const res = await api.post('/groups/sync', null, { params: { account: acc } })
+            if (res.code === 0) successCount++
+            await new Promise(resolve => setTimeout(resolve, 300))
+        }
+        ElMessage.success(`同步完成: ${successCount}/${onlineAccounts.length} 个账号`)
+        fetchAccounts()
+        if (selectedAccount.value) {
+            fetchGroups(selectedAccount.value)
+        }
+        selectedAccounts.value = []
+    } catch (error) {
+        ElMessage.error('同步失败: ' + (error.message || ''))
+    } finally {
+        syncing.value = false
+    }
+}
+
 // ============ 群组操作 ============
 const fetchGroups = async (account) => {
     groupLoading.value = true
@@ -399,6 +467,11 @@ const closeGroups = () => {
 }
 
 const syncAccount = async (account) => {
+    const acc = accounts.value.find(a => a.account === account)
+    if (!acc || (acc.status !== 'online' && acc.status !== 'normal')) {
+        ElMessage.warning('账号不在线，无法同步群组')
+        return
+    }
     syncing.value = true
     try {
         const res = await api.post('/groups/sync', null, {
@@ -408,27 +481,6 @@ const syncAccount = async (account) => {
             ElMessage.success(`账号 ${account} 同步成功`)
             await fetchGroups(account)
             fetchAccounts()
-        }
-    } catch (error) {
-        ElMessage.error('同步失败: ' + (error.message || ''))
-    } finally {
-        syncing.value = false
-    }
-}
-
-const syncAllAccounts = async () => {
-    syncing.value = true
-    try {
-        const accountsToSync = filteredAccounts.value.map(a => a.account)
-        let successCount = 0
-        for (const acc of accountsToSync) {
-            const res = await api.post('/groups/sync', null, { params: { account: acc } })
-            if (res.code === 0) successCount++
-        }
-        ElMessage.success(`同步完成: ${successCount}/${accountsToSync.length} 个账号`)
-        fetchAccounts()
-        if (selectedAccount.value) {
-            fetchGroups(selectedAccount.value)
         }
     } catch (error) {
         ElMessage.error('同步失败: ' + (error.message || ''))
@@ -520,6 +572,44 @@ const syncSingleGroup = async () => {
 // 群组操作
 // ==========================================
 
+// 创建群组
+const showCreateGroupDialog = (account) => {
+    createGroupForm.account = account
+    createGroupForm.subject = ''
+    createGroupForm.participants = []
+    showCreateGroupDialogVisible.value = true
+}
+
+const handleCreateGroup = async () => {
+    if (!createGroupForm.subject) {
+        ElMessage.warning('请输入群名称')
+        return
+    }
+    if (createGroupForm.participants.length === 0) {
+        ElMessage.warning('请至少选择1个成员')
+        return
+    }
+
+    creatingGroup.value = true
+    try {
+        const res = await api.post('/groups/create', {
+            account: createGroupForm.account,
+            subject: createGroupForm.subject,
+            participants: createGroupForm.participants
+        })
+        if (res.code === 0) {
+            ElMessage.success(`群组 "${createGroupForm.subject}" 创建成功`)
+            showCreateGroupDialogVisible.value = false
+            fetchGroups(createGroupForm.account)
+            fetchAccounts()
+        }
+    } catch (error) {
+        ElMessage.error('创建群组失败: ' + (error.message || ''))
+    } finally {
+        creatingGroup.value = false
+    }
+}
+
 // 退出群组
 const leaveGroup = async (row) => {
     try {
@@ -575,69 +665,11 @@ const getInviteLink = async (row) => {
     }
 }
 
-// ============ 选中 ============
-const handleSelectionChange = (selection) => {
-    // 预留批量操作
-}
-
 // ============ 生命周期 ============
 onMounted(() => {
     fetchAccountGroups()
     fetchAccounts()
 })
-
-// ============ 创建群组 ============
-const showCreateGroupDialogVisible = ref(false)
-const creatingGroup = ref(false)
-const createGroupForm = reactive({
-    account: '',
-    subject: '',
-    participants: []
-})
-
-const availableAccounts = computed(() => {
-    // 排除当前账号
-    return accounts.value.filter(a => a.account !== createGroupForm.account)
-})
-
-const showCreateGroupDialog = (account) => {
-    createGroupForm.account = account
-    createGroupForm.subject = ''
-    createGroupForm.participants = []
-    showCreateGroupDialogVisible.value = true
-}
-
-const handleCreateGroup = async () => {
-    if (!createGroupForm.subject) {
-        ElMessage.warning('请输入群名称')
-        return
-    }
-    if (createGroupForm.participants.length === 0) {
-        ElMessage.warning('请至少选择1个成员')
-        return
-    }
-
-    creatingGroup.value = true
-    try {
-        const res = await api.post('/groups/create', {
-            account: createGroupForm.account,
-            subject: createGroupForm.subject,
-            participants: createGroupForm.participants
-        })
-        if (res.code === 0) {
-            ElMessage.success(`群组 "${createGroupForm.subject}" 创建成功`)
-            showCreateGroupDialogVisible.value = false
-            // 刷新群组列表
-            fetchGroups(createGroupForm.account)
-            fetchAccounts()
-        }
-    } catch (error) {
-        ElMessage.error('创建群组失败: ' + (error.message || ''))
-    } finally {
-        creatingGroup.value = false
-    }
-}
-
 </script>
 
 <style scoped>
