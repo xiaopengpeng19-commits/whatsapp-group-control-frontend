@@ -97,14 +97,6 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="pairingCode" label="配对码" width="130">
-        <template #default="{ row }">
-          <span v-if="row.pairingCode" style="font-weight:bold;color:#409eff;font-size:18px;letter-spacing:3px;">
-            {{ row.pairingCode }}
-          </span>
-          <span v-else style="color:#999;font-size:12px;">-</span>
-        </template>
-      </el-table-column>
       <el-table-column prop="isLogin" label="登录" width="80">
         <template #default="{ row }">
           <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small">
@@ -122,34 +114,49 @@
           {{ formatTime(row.statusAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="420" fixed="right">
+
+      <!-- 精简操作列 -->
+      <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
-            type="primary" @click="handleOnline(row.account)">
-            上线
-          </el-button>
-          <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
-            @click="handleOffline(row.account)">
-            下线
-          </el-button>
-          <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
-            登录中...
-          </el-button>
-          <el-button size="small" type="info" @click="showQRCode(row)">
-            二维码
-          </el-button>
-          <el-button size="small" type="primary" plain @click="showEditGroup(row)">
-            改分组
-          </el-button>
-          <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
-            改代理
-          </el-button>
-          <el-button size="small" type="warning" plain @click="handleExport(row.account)">
-            导出凭证
-          </el-button>
-          <el-button size="small" type="danger" @click="handleDelete(row.account)">
-            删除
-          </el-button>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <!-- 上线/下线 -->
+            <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
+              size="small" type="primary" @click="handleOnline(row.account)">
+              上线
+            </el-button>
+            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
+              @click="handleOffline(row.account)">
+              下线
+            </el-button>
+            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
+              登录中...
+            </el-button>
+
+            <!-- 二维码 -->
+            <el-button size="small" type="info" @click="showQRCode(row)">
+              二维码
+            </el-button>
+
+            <!-- 改分组 -->
+            <el-button size="small" type="primary" plain @click="showEditGroup(row)">
+              分组
+            </el-button>
+
+            <!-- 改代理 -->
+            <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
+              代理
+            </el-button>
+
+            <!-- 导出凭证 -->
+            <el-button size="small" type="warning" plain @click="handleExport(row.account)">
+              导出
+            </el-button>
+
+            <!-- 删除 -->
+            <el-button size="small" type="danger" @click="handleDelete(row.account)">
+              删除
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -511,9 +518,7 @@ const fetchAccounts = async () => {
     if (filterGroup.value) {
       params.group = filterGroup.value
     }
-    console.log('📊 请求参数:', params)
     const res = await api.get('/whatsapp/accounts/list', { params })
-    console.log('📊 响应数据:', res.data)
     if (res.code === 0) {
       const result = res.data
       if (Array.isArray(result)) {
@@ -666,11 +671,10 @@ const handleGroupOnline = async () => {
       group: onlineGroup.value
     })
     if (res.code === 0) {
-      const { success, failed, total } = res.data
-      ElMessage.success(`分组上线完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
+      ElMessage.success(`分组上线任务已提交，请稍后刷新查看结果`)
       showGroupOnlineDialog.value = false
       onlineGroup.value = ''
-      fetchAccounts()
+      setTimeout(() => fetchAccounts(), 3000)
     }
   } catch (error) {
     ElMessage.error('分组上线失败: ' + (error.message || ''))
@@ -692,11 +696,10 @@ const handleGroupOffline = async () => {
       group: offlineGroup.value
     })
     if (res.code === 0) {
-      const { success, failed, total } = res.data
-      ElMessage.success(`分组下线完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
+      ElMessage.success(`分组下线任务已提交，请稍后刷新查看结果`)
       showGroupOfflineDialog.value = false
       offlineGroup.value = ''
-      fetchAccounts()
+      setTimeout(() => fetchAccounts(), 3000)
     }
   } catch (error) {
     ElMessage.error('分组下线失败: ' + (error.message || ''))

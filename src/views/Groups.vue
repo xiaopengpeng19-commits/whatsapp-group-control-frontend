@@ -63,7 +63,7 @@
                         同步
                     </el-button>
                     <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
-                        创建群
+                        创建
                     </el-button>
                 </template>
             </el-table-column>
