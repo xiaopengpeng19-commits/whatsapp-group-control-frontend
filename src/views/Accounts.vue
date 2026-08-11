@@ -13,10 +13,20 @@
             <Upload />
           </el-icon> 批量导入
         </el-button>
-        <el-button type="warning" plain @click="showBatchGroupDialog = true">
+        <el-button type="warning" plain @click="showBatchGroupDialog = true" :disabled="selectedAccounts.length === 0">
           <el-icon>
             <Folder />
-          </el-icon> 批量修改分组
+          </el-icon> 批量改分组 ({{ selectedAccounts.length }})
+        </el-button>
+        <el-button type="success" plain @click="showBatchProxyDialog = true" :disabled="selectedAccounts.length === 0">
+          <el-icon>
+            <Connection />
+          </el-icon> 批量改代理 ({{ selectedAccounts.length }})
+        </el-button>
+        <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0">
+          <el-icon>
+            <Download />
+          </el-icon> 批量导出 ({{ selectedAccounts.length }})
         </el-button>
         <el-button type="primary" plain @click="showGroupOnlineDialog = true">
           <el-icon>
@@ -115,11 +125,10 @@
         </template>
       </el-table-column>
 
-      <!-- 精简操作列 -->
-      <el-table-column label="操作" width="320" fixed="right">
+      <!-- 操作列 -->
+      <el-table-column label="操作" width="200" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <!-- 上线/下线 -->
             <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
               size="small" type="primary" @click="handleOnline(row.account)">
               上线
@@ -131,28 +140,9 @@
             <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
               登录中...
             </el-button>
-
-            <!-- 二维码 -->
             <el-button size="small" type="info" @click="showQRCode(row)">
               二维码
             </el-button>
-
-            <!-- 改分组 -->
-            <el-button size="small" type="primary" plain @click="showEditGroup(row)">
-              分组
-            </el-button>
-
-            <!-- 改代理 -->
-            <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
-              代理
-            </el-button>
-
-            <!-- 导出凭证 -->
-            <el-button size="small" type="warning" plain @click="handleExport(row.account)">
-              导出
-            </el-button>
-
-            <!-- 删除 -->
             <el-button size="small" type="danger" @click="handleDelete(row.account)">
               删除
             </el-button>
@@ -250,6 +240,50 @@
     </el-dialog>
 
     <!-- ========================================== -->
+    <!-- 批量改代理对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showBatchProxyDialog" title="批量改代理" width="450px">
+      <el-form label-width="100px">
+        <el-form-item label="选中数量">
+          <span>{{ selectedAccounts.length }} 个账号</span>
+        </el-form-item>
+        <el-form-item label="代理分组" required>
+          <el-select v-model="batchProxyGroup" placeholder="请选择代理分组" style="width:100%">
+            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            切换后自动分配该分组中使用最少的代理IP
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchProxyDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchProxy" :loading="batchProxyLoading">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
+    <!-- 批量改分组对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showBatchGroupDialog" title="批量改分组" width="400px">
+      <el-form label-width="80px">
+        <el-form-item label="选中数量">
+          <span>{{ selectedAccounts.length }} 个账号</span>
+        </el-form-item>
+        <el-form-item label="新分组">
+          <el-input v-model="batchGroupForm.group" placeholder="请输入分组名称" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchGroupDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchGroup">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
     <!-- 分组上线对话框 -->
     <!-- ========================================== -->
     <el-dialog v-model="showGroupOnlineDialog" title="分组上线" width="450px">
@@ -304,66 +338,6 @@
     </el-dialog>
 
     <!-- ========================================== -->
-    <!-- 修改分组对话框 -->
-    <!-- ========================================== -->
-    <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
-      <el-form :model="editGroupForm" label-width="80px">
-        <el-form-item label="账号">
-          <span>{{ editGroupForm.account }}</span>
-        </el-form-item>
-        <el-form-item label="分组">
-          <el-input v-model="editGroupForm.group" placeholder="请输入新分组名称" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showEditGroupDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleEditGroup">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ========================================== -->
-    <!-- 修改代理分组对话框 -->
-    <!-- ========================================== -->
-    <el-dialog v-model="showEditProxyGroupDialog" title="修改代理分组" width="400px">
-      <el-form :model="editProxyGroupForm" label-width="100px">
-        <el-form-item label="账号">
-          <span>{{ editProxyGroupForm.account }}</span>
-        </el-form-item>
-        <el-form-item label="代理分组" required>
-          <el-select v-model="editProxyGroupForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
-            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
-              :value="item.name" />
-          </el-select>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            切换后自动分配该分组中使用最少的代理IP
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showEditProxyGroupDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleEditProxyGroup">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ========================================== -->
-    <!-- 批量修改分组对话框 -->
-    <!-- ========================================== -->
-    <el-dialog v-model="showBatchGroupDialog" title="批量修改分组" width="400px">
-      <el-form :model="batchGroupForm" label-width="80px">
-        <el-form-item label="选中数量">
-          <span>{{ selectedAccounts.length }} 个账号</span>
-        </el-form-item>
-        <el-form-item label="新分组">
-          <el-input v-model="batchGroupForm.group" placeholder="请输入分组名称" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showBatchGroupDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchGroup">确定</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ========================================== -->
     <!-- 二维码对话框 -->
     <!-- ========================================== -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
@@ -387,7 +361,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
@@ -405,9 +379,8 @@ const pageSize = ref(20)
 
 const showAddDialog = ref(false)
 const showImportDialog = ref(false)
-const showEditGroupDialog = ref(false)
-const showEditProxyGroupDialog = ref(false)
 const showBatchGroupDialog = ref(false)
+const showBatchProxyDialog = ref(false)
 const showQRDialog = ref(false)
 const importing = ref(false)
 const uploadRef = ref(null)
@@ -425,6 +398,10 @@ const showGroupOfflineDialog = ref(false)
 const offlineGroup = ref('')
 const groupOfflineLoading = ref(false)
 
+// ============ 批量改代理 ============
+const batchProxyGroup = ref('')
+const batchProxyLoading = ref(false)
+
 // ============ 表单 ============
 const addForm = reactive({
   account: '',
@@ -436,16 +413,6 @@ const addForm = reactive({
 const importForm = reactive({
   proxyGroup: '',
   accountGroup: ''
-})
-
-const editGroupForm = reactive({
-  account: '',
-  group: ''
-})
-
-const editProxyGroupForm = reactive({
-  account: '',
-  proxyGroup: ''
 })
 
 const batchGroupForm = reactive({
@@ -534,6 +501,11 @@ const fetchAccounts = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// ============ 选中账号 ============
+const handleSelectionChange = (selection) => {
+  selectedAccounts.value = selection.map(item => item.account)
 }
 
 // ============ 添加账号 ============
@@ -658,6 +630,87 @@ const handleBatchImport = async () => {
   }
 }
 
+// ============ 批量改分组 ============
+const handleBatchGroup = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  if (!batchGroupForm.group) {
+    ElMessage.warning('请输入分组名称')
+    return
+  }
+  try {
+    let successCount = 0
+    for (const account of selectedAccounts.value) {
+      const res = await api.put(`/whatsapp/accounts/${account}/group`, {
+        group: batchGroupForm.group
+      })
+      if (res.code === 0) successCount++
+    }
+    ElMessage.success(`成功更新 ${successCount}/${selectedAccounts.value.length} 个账号的分组`)
+    showBatchGroupDialog.value = false
+    batchGroupForm.group = ''
+    selectedAccounts.value = []
+    fetchAccounts()
+    fetchAccountGroups()
+  } catch (error) {
+    ElMessage.error('批量改分组失败: ' + (error.message || ''))
+  }
+}
+
+// ============ 批量改代理 ============
+const handleBatchProxy = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  if (!batchProxyGroup.value) {
+    ElMessage.warning('请选择代理分组')
+    return
+  }
+
+  batchProxyLoading.value = true
+  try {
+    let successCount = 0
+    for (const account of selectedAccounts.value) {
+      const res = await api.put(`/whatsapp/accounts/${account}/proxygroup`, {
+        proxyGroup: batchProxyGroup.value
+      })
+      if (res.code === 0) successCount++
+    }
+    ElMessage.success(`成功更新 ${successCount}/${selectedAccounts.value.length} 个账号的代理分组`)
+    showBatchProxyDialog.value = false
+    batchProxyGroup.value = ''
+    selectedAccounts.value = []
+    fetchAccounts()
+    fetchProxyGroups()
+  } catch (error) {
+    ElMessage.error('批量改代理失败: ' + (error.message || ''))
+  } finally {
+    batchProxyLoading.value = false
+  }
+}
+
+// ============ 批量导出凭证 ============
+const handleBatchExport = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+
+  try {
+    for (const account of selectedAccounts.value) {
+      await handleExport(account)
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    ElMessage.success(`已导出 ${selectedAccounts.value.length} 个凭证`)
+    selectedAccounts.value = []
+  } catch (error) {
+    ElMessage.error('批量导出失败: ' + (error.message || ''))
+  }
+}
+
 // ============ 分组上线 ============
 const handleGroupOnline = async () => {
   if (!onlineGroup.value) {
@@ -771,89 +824,6 @@ const showQRCode = async (row) => {
     ElMessage.error('获取二维码失败: ' + (error.message || ''))
   } finally {
     qrLoading.value = false
-  }
-}
-
-// ============ 修改分组 ============
-const showEditGroup = (row) => {
-  editGroupForm.account = row.account
-  editGroupForm.group = row.group || ''
-  showEditGroupDialog.value = true
-}
-
-const handleEditGroup = async () => {
-  try {
-    const res = await api.put('/whatsapp/accounts/' + editGroupForm.account + '/group', {
-      group: editGroupForm.group
-    })
-    if (res.code === 0) {
-      ElMessage.success('分组更新成功')
-      showEditGroupDialog.value = false
-      fetchAccounts()
-      fetchAccountGroups()
-    }
-  } catch (error) {
-    ElMessage.error('更新失败: ' + (error.message || ''))
-  }
-}
-
-// ============ 修改代理分组 ============
-const showEditProxyGroup = (row) => {
-  editProxyGroupForm.account = row.account
-  editProxyGroupForm.proxyGroup = row.proxyGroup || ''
-  showEditProxyGroupDialog.value = true
-}
-
-const handleEditProxyGroup = async () => {
-  if (!editProxyGroupForm.proxyGroup) {
-    ElMessage.warning('请选择代理分组')
-    return
-  }
-  try {
-    const res = await api.put('/whatsapp/accounts/' + editProxyGroupForm.account + '/proxygroup', {
-      proxyGroup: editProxyGroupForm.proxyGroup
-    })
-    if (res.code === 0) {
-      const msg = res.data.proxy ? '已分配代理: ' + res.data.proxy : '未分配代理'
-      ElMessage.success('代理分组更新成功，' + msg)
-      showEditProxyGroupDialog.value = false
-      fetchAccounts()
-      fetchProxyGroups()
-    }
-  } catch (error) {
-    ElMessage.error('更新失败: ' + (error.message || ''))
-  }
-}
-
-// ============ 批量操作 ============
-const handleSelectionChange = (selection) => {
-  selectedAccounts.value = selection.map(item => item.account)
-}
-
-const handleBatchGroup = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-  if (!batchGroupForm.group) {
-    ElMessage.warning('请输入分组名称')
-    return
-  }
-  try {
-    const res = await api.post('/whatsapp/accounts/batch/group', {
-      accounts: selectedAccounts.value,
-      group: batchGroupForm.group
-    })
-    if (res.code === 0) {
-      ElMessage.success('成功更新 ' + res.data.success_count + ' 个账号的分组')
-      showBatchGroupDialog.value = false
-      batchGroupForm.group = ''
-      selectedAccounts.value = []
-      fetchAccounts()
-      fetchAccountGroups()
-    }
-  } catch (error) {
-    ElMessage.error('更新失败: ' + (error.message || ''))
   }
 }
 
