@@ -215,9 +215,20 @@
         <div style="margin-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">成员列表</span>
-            <span style="color:#999;font-size:13px;">
-              共 {{ groupDetail.participants?.length || 0 }} 人
-            </span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="color:#999;font-size:13px;">
+                共 {{ groupDetail.participants?.length || 0 }} 人
+              </span>
+              <!-- 只有群主或管理员才能添加成员 -->
+              <el-button
+                v-if="isGroupAdmin"
+                size="small"
+                type="primary"
+                @click="showAddMemberDialog = true"
+              >
+                <el-icon><Plus /></el-icon> 添加成员
+              </el-button>
+            </div>
           </div>
           <el-table :data="groupDetail.participants || []" border size="small" max-height="300">
             <el-table-column type="index" label="#" width="50" />
@@ -287,6 +298,38 @@
     </el-dialog>
 
     <!-- ========================================== -->
+    <!-- 添加成员对话框 -->
+    <!-- ========================================== -->
+    <el-dialog
+      v-model="showAddMemberDialog"
+      title="添加群成员"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form label-width="80px">
+        <el-form-item label="手机号">
+          <el-input
+            v-model="memberPhoneInput"
+            type="textarea"
+            :rows="6"
+            placeholder="每行输入一个手机号，不带 @s.whatsapp.net 后缀"
+          />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            示例：<br>
+            8613298371785<br>
+            8618939797045
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddMemberDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleAddMembers" :loading="addingMembers">
+          添加
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
     <!-- 创建群组对话框 -->
     <!-- ========================================== -->
     <el-dialog
@@ -334,7 +377,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Plus } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
@@ -362,6 +405,11 @@ const showGroupDetailDialog = ref(false)
 const groupDetail = ref(null)
 const groupDetailLoading = ref(false)
 const currentGroupRow = ref(null)
+
+// ============ 添加成员 ============
+const showAddMemberDialog = ref(false)
+const memberPhoneInput = ref('')
+const addingMembers = ref(false)
 
 // ============ 创建群组 ============
 const showCreateGroupDialogVisible = ref(false)
@@ -411,6 +459,15 @@ const getPurePhone = (phone) => {
 // ============ 可用账号（创建群时排除当前账号） ============
 const availableAccounts = computed(() => {
   return accounts.value.filter(a => a.account !== createGroupForm.account)
+})
+
+// ============ 判断当前账号是否是群主或管理员 ============
+const isGroupAdmin = computed(() => {
+  if (!groupDetail.value || !groupDetail.value.participants) return false
+  const me = groupDetail.value.participants.find(
+    p => getPurePhone(p.phoneNumber) === selectedAccount.value
+  )
+  return me && (me.admin === 'superadmin' || me.admin === 'admin')
 })
 
 // ============ 数据获取 ============
@@ -707,6 +764,50 @@ const handleRemove = async (member) => {
     if (error !== 'cancel') {
       ElMessage.error('操作失败')
     }
+  }
+}
+
+// ==========================================
+// 添加成员
+// ==========================================
+
+const handleAddMembers = async () => {
+  const phones = memberPhoneInput.value
+    .split('\n')
+    .map(p => p.trim())
+    .filter(p => p !== '')
+
+  if (phones.length === 0) {
+    ElMessage.warning('请输入至少一个手机号')
+    return
+  }
+
+  // 添加 @s.whatsapp.net 后缀
+  const participants = phones.map(p => {
+    if (p.includes('@')) {
+      return p
+    }
+    return p + '@s.whatsapp.net'
+  })
+
+  addingMembers.value = true
+  try {
+    const res = await api.post('/groups/participants', {
+      account: selectedAccount.value,
+      groupId: currentGroupRow.value.groupId,
+      participants: participants,
+      action: 'add'
+    })
+    if (res.code === 0) {
+      ElMessage.success(`成功添加 ${participants.length} 个成员`)
+      showAddMemberDialog.value = false
+      memberPhoneInput.value = ''
+      viewGroupDetail(currentGroupRow.value)
+    }
+  } catch (error) {
+    ElMessage.error('添加成员失败: ' + (error.message || ''))
+  } finally {
+    addingMembers.value = false
   }
 }
 
