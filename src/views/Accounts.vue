@@ -18,6 +18,16 @@
             <Folder />
           </el-icon> 批量修改分组
         </el-button>
+        <el-button type="primary" plain @click="showGroupOnlineDialog = true">
+          <el-icon>
+            <Promotion />
+          </el-icon> 分组上线
+        </el-button>
+        <el-button type="danger" plain @click="showGroupOfflineDialog = true">
+          <el-icon>
+            <SwitchButton />
+          </el-icon> 分组下线
+        </el-button>
         <el-button @click="fetchAccounts">
           <el-icon>
             <Refresh />
@@ -76,9 +86,23 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag :type="getStatusType(row.status)" size="small">
+          <el-tag v-if="row.status === 'requesting_pair_code'" type="warning" size="small">
+            请求中...
+          </el-tag>
+          <el-tag v-else-if="row.status === 'waiting_pair_code'" type="warning" size="small">
+            等待配对码
+          </el-tag>
+          <el-tag v-else :type="getStatusType(row.status)" size="small">
             {{ getStatusText(row.status) }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="pairingCode" label="配对码" width="130">
+        <template #default="{ row }">
+          <span v-if="row.pairingCode" style="font-weight:bold;color:#409eff;font-size:18px;letter-spacing:3px;">
+            {{ row.pairingCode }}
+          </span>
+          <span v-else style="color:#999;font-size:12px;">-</span>
         </template>
       </el-table-column>
       <el-table-column prop="isLogin" label="登录" width="80">
@@ -98,64 +122,34 @@
           {{ formatTime(row.statusAt) }}
         </template>
       </el-table-column>
-
-      <!-- ========================================== -->
-      <!-- 操作列 - 下拉菜单 -->
-      <!-- ========================================== -->
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <!-- 主按钮：上线/下线 -->
-            <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
-              size="small" type="primary" @click="handleOnline(row.account)">
-              上线
-            </el-button>
-            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
-              @click="handleOffline(row.account)">
-              下线
-            </el-button>
-            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
-              登录中...
-            </el-button>
-
-            <!-- 更多操作下拉菜单 -->
-            <el-dropdown @command="(cmd) => handleDropdown(cmd, row)">
-              <el-button size="small">
-                更多 <el-icon>
-                  <ArrowDown />
-                </el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="qr">
-                    <el-icon>
-                      <Picture />
-                    </el-icon> 二维码
-                  </el-dropdown-item>
-                  <el-dropdown-item command="group">
-                    <el-icon>
-                      <Folder />
-                    </el-icon> 改分组
-                  </el-dropdown-item>
-                  <el-dropdown-item command="proxy">
-                    <el-icon>
-                      <Connection />
-                    </el-icon> 改代理
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export">
-                    <el-icon>
-                      <Download />
-                    </el-icon> 导出凭证
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="delete" style="color:#f56c6c;">
-                    <el-icon>
-                      <Delete />
-                    </el-icon> 删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
+          <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'" size="small"
+            type="primary" @click="handleOnline(row.account)">
+            上线
+          </el-button>
+          <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
+            @click="handleOffline(row.account)">
+            下线
+          </el-button>
+          <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
+            登录中...
+          </el-button>
+          <el-button size="small" type="info" @click="showQRCode(row)">
+            二维码
+          </el-button>
+          <el-button size="small" type="primary" plain @click="showEditGroup(row)">
+            改分组
+          </el-button>
+          <el-button size="small" type="success" plain @click="showEditProxyGroup(row)">
+            改代理
+          </el-button>
+          <el-button size="small" type="warning" plain @click="handleExport(row.account)">
+            导出凭证
+          </el-button>
+          <el-button size="small" type="danger" @click="handleDelete(row.account)">
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -249,6 +243,60 @@
     </el-dialog>
 
     <!-- ========================================== -->
+    <!-- 分组上线对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showGroupOnlineDialog" title="分组上线" width="450px">
+      <el-form label-width="100px">
+        <el-form-item label="选择分组" required>
+          <el-select v-model="onlineGroup" placeholder="请选择要上线的分组" style="width:100%">
+            <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-alert type="info" :closable="false" show-icon>
+            <template #title>
+              将对该分组下所有离线账号执行上线操作
+            </template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showGroupOnlineDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleGroupOnline" :loading="groupOnlineLoading">
+          确定上线
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
+    <!-- 分组下线对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showGroupOfflineDialog" title="分组下线" width="450px">
+      <el-form label-width="100px">
+        <el-form-item label="选择分组" required>
+          <el-select v-model="offlineGroup" placeholder="请选择要下线的分组" style="width:100%">
+            <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-alert type="warning" :closable="false" show-icon>
+            <template #title>
+              将对该分组下所有在线账号执行下线操作
+            </template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showGroupOfflineDialog = false">取消</el-button>
+        <el-button type="danger" @click="handleGroupOffline" :loading="groupOfflineLoading">
+          确定下线
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ========================================== -->
     <!-- 修改分组对话框 -->
     <!-- ========================================== -->
     <el-dialog v-model="showEditGroupDialog" title="修改分组" width="400px">
@@ -332,7 +380,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, ArrowDown, Connection, Download, Delete } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
@@ -360,6 +408,15 @@ const importFiles = ref([])
 
 const filterGroup = ref('')
 const qrCode = ref('')
+
+// ============ 分组上线/下线 ============
+const showGroupOnlineDialog = ref(false)
+const onlineGroup = ref('')
+const groupOnlineLoading = ref(false)
+
+const showGroupOfflineDialog = ref(false)
+const offlineGroup = ref('')
+const groupOfflineLoading = ref(false)
 
 // ============ 表单 ============
 const addForm = reactive({
@@ -395,7 +452,9 @@ const statusMap = {
   'logging': '登录中',
   'offline': '离线',
   'banned': '封禁',
-  'expired': '过期'
+  'expired': '过期',
+  'requesting_pair_code': '请求配对码中',
+  'waiting_pair_code': '等待配对码'
 }
 
 const statusTypeMap = {
@@ -404,7 +463,9 @@ const statusTypeMap = {
   'logging': 'warning',
   'offline': 'info',
   'banned': 'danger',
-  'expired': 'danger'
+  'expired': 'danger',
+  'requesting_pair_code': 'warning',
+  'waiting_pair_code': 'warning'
 }
 
 const getStatusText = (status) => {
@@ -418,27 +479,6 @@ const getStatusType = (status) => {
 const formatTime = (time) => {
   if (!time) return '-'
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
-}
-
-// ============ 下拉菜单处理 ============
-const handleDropdown = (cmd, row) => {
-  switch (cmd) {
-    case 'qr':
-      showQRCode(row)
-      break
-    case 'group':
-      showEditGroup(row)
-      break
-    case 'proxy':
-      showEditProxyGroup(row)
-      break
-    case 'export':
-      handleExport(row.account)
-      break
-    case 'delete':
-      handleDelete(row.account)
-      break
-  }
 }
 
 // ============ 数据获取 ============
@@ -471,7 +511,9 @@ const fetchAccounts = async () => {
     if (filterGroup.value) {
       params.group = filterGroup.value
     }
+    console.log('📊 请求参数:', params)
     const res = await api.get('/whatsapp/accounts/list', { params })
+    console.log('📊 响应数据:', res.data)
     if (res.code === 0) {
       const result = res.data
       if (Array.isArray(result)) {
@@ -608,6 +650,58 @@ const handleBatchImport = async () => {
     ElMessage.error('批量导入失败: ' + (error.message || ''))
   } finally {
     importing.value = false
+  }
+}
+
+// ============ 分组上线 ============
+const handleGroupOnline = async () => {
+  if (!onlineGroup.value) {
+    ElMessage.warning('请选择分组')
+    return
+  }
+
+  groupOnlineLoading.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/group-online', {
+      group: onlineGroup.value
+    })
+    if (res.code === 0) {
+      const { success, failed, total } = res.data
+      ElMessage.success(`分组上线完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
+      showGroupOnlineDialog.value = false
+      onlineGroup.value = ''
+      fetchAccounts()
+    }
+  } catch (error) {
+    ElMessage.error('分组上线失败: ' + (error.message || ''))
+  } finally {
+    groupOnlineLoading.value = false
+  }
+}
+
+// ============ 分组下线 ============
+const handleGroupOffline = async () => {
+  if (!offlineGroup.value) {
+    ElMessage.warning('请选择分组')
+    return
+  }
+
+  groupOfflineLoading.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/group-offline', {
+      group: offlineGroup.value
+    })
+    if (res.code === 0) {
+      const { success, failed, total } = res.data
+      ElMessage.success(`分组下线完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
+      showGroupOfflineDialog.value = false
+      offlineGroup.value = ''
+      fetchAccounts()
+    }
+  } catch (error) {
+    ElMessage.error('分组下线失败: ' + (error.message || ''))
+  } finally {
+    groupOfflineLoading.value = false
   }
 }
 
@@ -765,7 +859,13 @@ const handleExport = async (account) => {
   try {
     const res = await whatsapp.exportCreds(account)
     if (res.code === 0) {
-      const credsData = res.data?.creds || res.data
+      let credsData = res.data
+      if (res.data && typeof res.data === 'object') {
+        if (res.data.creds) {
+          credsData = res.data.creds
+        }
+      }
+
       const filename = `${account}_${Date.now()}.json`
       const blob = new Blob([JSON.stringify(credsData, null, 2)], {
         type: 'application/json'
@@ -778,12 +878,12 @@ const handleExport = async (account) => {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
+
       ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
       ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
-    console.error('导出错误:', error)
     ElMessage.error('导出失败: ' + (error.message || ''))
   }
 }
