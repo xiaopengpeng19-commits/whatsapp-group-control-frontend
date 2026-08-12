@@ -34,6 +34,12 @@
             <Promotion />
           </el-icon> 批量上线 ({{ selectedAccounts.length }})
         </el-button>
+        <el-button type="danger" plain @click="handleBatchOffline" :disabled="selectedAccounts.length === 0"
+          :loading="batchOfflineLoading">
+          <el-icon>
+            <SwitchButton />
+          </el-icon> 批量下线 ({{ selectedAccounts.length }})
+        </el-button>
         <el-button type="primary" plain @click="showGroupOnlineDialog = true">
           <el-icon>
             <Promotion />
@@ -408,8 +414,9 @@ const groupOfflineLoading = ref(false)
 const batchProxyGroup = ref('')
 const batchProxyLoading = ref(false)
 
-// ============ 批量上线 ============
+// ============ 批量上线/下线 ============
 const batchOnlineLoading = ref(false)
+const batchOfflineLoading = ref(false)
 
 // ============ 表单 ============
 const addForm = reactive({
@@ -720,7 +727,6 @@ const handleBatchExport = async () => {
   }
 }
 
-
 // ============ 批量上线 ============
 const handleBatchOnline = async () => {
   if (selectedAccounts.value.length === 0) {
@@ -728,15 +734,30 @@ const handleBatchOnline = async () => {
     return
   }
 
+  // 过滤出离线账号
+  const offlineAccounts = selectedAccounts.value.filter(account => {
+    const acc = accounts.value.find(a => a.account === account)
+    return acc && (acc.status === 'offline' || acc.status === 'expired')
+  })
+
+  if (offlineAccounts.length === 0) {
+    ElMessage.warning('选中的账号中没有离线账号')
+    return
+  }
+
+  if (offlineAccounts.length < selectedAccounts.value.length) {
+    const onlineCount = selectedAccounts.value.length - offlineAccounts.length
+    ElMessage.warning(`已过滤 ${onlineCount} 个在线账号，将上线 ${offlineAccounts.length} 个离线账号`)
+  }
+
   batchOnlineLoading.value = true
   try {
     const res = await api.post('/whatsapp/accounts/batch/online', {
-      accounts: selectedAccounts.value
+      accounts: offlineAccounts
     })
     if (res.code === 0) {
       ElMessage.success(`已提交 ${res.data.total} 个账号的批量上线任务，请稍后刷新查看状态`)
       selectedAccounts.value = []
-      // 延迟刷新，给重连处理器一点时间
       setTimeout(() => fetchAccounts(), 5000)
     } else {
       ElMessage.error(res.message || '批量上线失败')
@@ -745,6 +766,48 @@ const handleBatchOnline = async () => {
     ElMessage.error('批量上线失败: ' + (error.message || ''))
   } finally {
     batchOnlineLoading.value = false
+  }
+}
+
+// ============ 批量下线 ============
+const handleBatchOffline = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+
+  // 过滤出在线账号
+  const onlineAccounts = selectedAccounts.value.filter(account => {
+    const acc = accounts.value.find(a => a.account === account)
+    return acc && (acc.status === 'online' || acc.status === 'normal')
+  })
+
+  if (onlineAccounts.length === 0) {
+    ElMessage.warning('选中的账号中没有在线账号')
+    return
+  }
+
+  if (onlineAccounts.length < selectedAccounts.value.length) {
+    const offlineCount = selectedAccounts.value.length - onlineAccounts.length
+    ElMessage.warning(`已过滤 ${offlineCount} 个离线账号，将下线 ${onlineAccounts.length} 个在线账号`)
+  }
+
+  batchOfflineLoading.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/batch/offline', {
+      accounts: onlineAccounts
+    })
+    if (res.code === 0) {
+      ElMessage.success(`已提交 ${res.data.total} 个账号的批量下线任务，请稍后刷新查看状态`)
+      selectedAccounts.value = []
+      setTimeout(() => fetchAccounts(), 3000)
+    } else {
+      ElMessage.error(res.message || '批量下线失败')
+    }
+  } catch (error) {
+    ElMessage.error('批量下线失败: ' + (error.message || ''))
+  } finally {
+    batchOfflineLoading.value = false
   }
 }
 
@@ -764,7 +827,7 @@ const handleGroupOnline = async () => {
       ElMessage.success(`分组上线任务已提交，请稍后刷新查看结果`)
       showGroupOnlineDialog.value = false
       onlineGroup.value = ''
-      setTimeout(() => fetchAccounts(), 3000)
+      setTimeout(() => fetchAccounts(), 5000)
     }
   } catch (error) {
     ElMessage.error('分组上线失败: ' + (error.message || ''))
