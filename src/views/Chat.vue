@@ -236,15 +236,15 @@
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
           <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45
-            }}分钟</el-descriptions-item>
+          }}分钟</el-descriptions-item>
           <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
           <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
           <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.startedAt" label="启动时间">{{ formatTime(detailTask.startedAt)
-            }}</el-descriptions-item>
+          }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.completedAt" label="完成时间">{{ formatTime(detailTask.completedAt)
-            }}</el-descriptions-item>
+          }}</el-descriptions-item>
           <el-descriptions-item v-if="detailTask.stopReason" label="停止原因" :span="4">
             <span style="color:#f56c6c;">{{ detailTask.stopReason }}</span>
           </el-descriptions-item>
@@ -287,7 +287,7 @@
             <el-tag v-for="session in displaySessions" :key="session.id" type="success" size="large">
               {{ session.accountA }} ↔ {{ session.accountB }}
               <span style="margin-left:8px;font-size:12px;color:#999;">
-                {{ session.rounds }}/{{ session.maxRounds }}轮 🟢
+                {{ getCurrentRound(session) }}/{{ getMaxRounds(session) }}轮 🟢
               </span>
             </el-tag>
           </div>
@@ -839,6 +839,19 @@ const closeDetail = () => {
     clearInterval(detailTimer.value)
     detailTimer.value = null
   }
+}
+
+// ==========================================
+// ✅ 计算轮次
+// ==========================================
+
+const getCurrentRound = (session) => {
+  if (!session || session.chatCount === undefined || session.chatCount === 0) return 0
+  return Math.ceil(session.chatCount / 2)
+}
+
+const getMaxRounds = (session) => {
+  return session.maxRounds || 0
 }
 
 // ============ 生命周期 ============
