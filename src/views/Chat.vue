@@ -411,16 +411,16 @@ const showAllSessions = ref(false)
 const createForm = reactive({
   name: '',
   accountGroup: '',
-  language: 'zh',
+  language: 'pt',         // ✅ 改为葡萄牙语
   initiateRate: 60,
   minDelay: 3,
-  maxDelay: 15,
-  minRounds: 2,
+  maxDelay: 60,           // ✅ 改为60
+  minRounds: 4,           // ✅ 改为4
   maxRounds: 6,
   replyRate: 80,
   maxConcurrent: 2,
   pairIntervalMin: 30,
-  pairIntervalMax: 45
+  pairIntervalMax: 99     // ✅ 改为99
 })
 
 // ============ 计算属性 ============
