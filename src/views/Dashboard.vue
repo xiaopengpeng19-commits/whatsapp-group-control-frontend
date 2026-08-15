@@ -78,14 +78,14 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import dayjs from 'dayjs'
-import { DataLine, ChatDotRound, User, Iphone } from '@element-plus/icons-vue'
+import { DataLine, User, Iphone, Warning, SwitchButton } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 
 const stats = ref([
   { title: '总账号', value: 0, icon: Iphone, color: '#409eff' },
   { title: '在线账号', value: 0, icon: DataLine, color: '#67c23a' },
-  { title: '今日消息', value: 0, icon: ChatDotRound, color: '#e6a23c' },
-  { title: '总用户', value: 0, icon: User, color: '#909399' }
+  { title: '离线账号', value: 0, icon: SwitchButton, color: '#909399' },
+  { title: '封禁账号', value: 0, icon: Warning, color: '#f56c6c' }
 ])
 
 const recentMessages = ref([])
@@ -158,9 +158,12 @@ const fetchData = async () => {
       }))
 
       stats.value[0].value = accounts.length
-      stats.value[1].value = accounts.filter(a =>
-        a.status === 'online' || a.status === 'normal'
-      ).length
+      // 在线：is_login == true
+      stats.value[1].value = accounts.filter(a => a.isLogin === true).length
+      // 离线：is_login == false（排除封禁）
+      stats.value[2].value = accounts.filter(a => a.isLogin === false && a.status !== 'banned').length
+      // 封禁：status == banned
+      stats.value[3].value = accounts.filter(a => a.status === 'banned').length
     }
 
     // 获取消息列表
@@ -183,9 +186,6 @@ onMounted(() => {
   intervalId = setInterval(fetchData, 30000)
 })
 
-// ==========================================
-// 组件销毁时清除定时器
-// ==========================================
 onBeforeUnmount(() => {
   if (intervalId) {
     clearInterval(intervalId)
