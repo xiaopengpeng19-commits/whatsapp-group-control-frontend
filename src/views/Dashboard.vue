@@ -142,7 +142,6 @@ const getStatusLabel = (status) => {
 
 const fetchData = async () => {
   try {
-    // 获取账号列表
     const res = await whatsapp.getAccounts()
     if (res.code === 0) {
       let data = res.data
@@ -158,15 +157,20 @@ const fetchData = async () => {
       }))
 
       stats.value[0].value = accounts.length
-      // 在线：is_login == true
-      stats.value[1].value = accounts.filter(a => a.isLogin === true).length
-      // 离线：is_login == false（排除封禁）
-      stats.value[2].value = accounts.filter(a => a.isLogin === false && a.status !== 'banned').length
-      // 封禁：status == banned
-      stats.value[3].value = accounts.filter(a => a.status === 'banned').length
+      // 在线：status == online/normal
+      stats.value[1].value = accounts.filter(a =>
+        a.status === 'online' || a.status === 'normal'
+      ).length
+      // 离线：status == offline/expired
+      stats.value[2].value = accounts.filter(a =>
+        a.status === 'offline' || a.status === 'expired'
+      ).length
+      // ✅ 封禁：is_login == false
+      stats.value[3].value = accounts.filter(a =>
+        a.isLogin === false
+      ).length
     }
 
-    // 获取消息列表
     const msgRes = await whatsapp.getMessages({ page: 1, page_size: 10 })
     if (msgRes.code === 0) {
       let msgs = msgRes.data
