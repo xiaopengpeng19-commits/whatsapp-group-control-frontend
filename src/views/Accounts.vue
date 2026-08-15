@@ -207,7 +207,7 @@
       <el-form :model="importForm" label-width="100px">
         <el-form-item label="凭证文件" required>
           <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json" :on-change="handleFileChange"
-            :on-remove="handleFileRemove" :on-exceed="handleExceed" :limit="20">
+            :on-remove="handleFileRemove" :on-exceed="handleExceed" :limit="200">
             <el-button type="primary" plain>
               <el-icon>
                 <FolderOpened />
@@ -574,7 +574,7 @@ const removeFile = (index) => {
 }
 
 const handleExceed = () => {
-  ElMessage.warning('最多只能选择20个文件')
+  ElMessage.warning('最多只能选择200个文件')
 }
 
 const handleBatchImport = async () => {
@@ -593,12 +593,8 @@ const handleBatchImport = async () => {
         reader.onerror = reject
         reader.readAsText(file.raw)
       })
-      try {
-        JSON.parse(content)
-        credsContents.push(content)
-      } catch {
-        ElMessage.warning(`文件 ${file.name} 格式错误，已跳过`)
-      }
+      // ✅ 不再校验，直接传给后端
+      credsContents.push(content)
     }
 
     if (credsContents.length === 0) {
