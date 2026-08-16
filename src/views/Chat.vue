@@ -840,45 +840,15 @@ const showTaskDetail = async (row) => {
       }
       const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
       if (res.code === 0) {
-        const newMessages = res.data.messages || []
-        const oldMessages = detailMessages.value
-
-        console.log('📊 定时器轮询:', {
-          newCount: newMessages.length,
-          oldCount: oldMessages.length,
-          newFirstId: newMessages[0]?.id,
-          oldFirstId: oldMessages[0]?.id
-        })
-
-        let needUpdate = false
-        if (newMessages.length !== oldMessages.length) {
-          console.log('✅ 消息数量变化，触发更新')
-          needUpdate = true
-        } else if (newMessages.length > 0 && oldMessages.length > 0) {
-          const lastNew = newMessages[0]
-          const lastOld = oldMessages[0]
-          if (lastNew.status !== lastOld.status || lastNew.messageId !== lastOld.messageId) {
-            console.log('✅ 消息状态变化，触发更新')
-            needUpdate = true
-          }
-        }
-
-        if (needUpdate) {
-          console.log('🔄 开始更新数据...')
-          detailMessages.value = newMessages
-          messageTotal.value = res.data.total || 0
-          sessions.value = res.data.sessions || []
-          detailTask.value = res.data.task
-          accountPairs.value = res.data.account_pairs || {}
-          await refreshAccountsStatus()
-          await nextTick()
-          console.log('✅ 数据更新完成')
-        } else {
-          console.log('⏭️ 无变化，跳过更新')
-        }
+        detailMessages.value = res.data.messages || []
+        messageTotal.value = res.data.total || 0
+        sessions.value = res.data.sessions || []
+        detailTask.value = res.data.task
+        accountPairs.value = res.data.account_pairs || {}
+        await refreshAccountsStatus()
       }
     } catch (error) {
-      console.error('❌ 定时器错误:', error)
+      // ignore
     }
   }, 5000)
 }
