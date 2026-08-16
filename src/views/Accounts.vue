@@ -429,7 +429,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, QRCode, Search } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, QrCode, Search } from '@element-plus/icons-vue'
 // ============ 状态 ============
 const accounts = ref([])
 const accountGroups = ref([])
