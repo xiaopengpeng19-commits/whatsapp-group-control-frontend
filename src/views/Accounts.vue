@@ -158,6 +158,13 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column prop="chatPairs" label="配对次数" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">
+            {{ row.chatPairs || 0 }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="loginAt" label="登录时间" width="160">
         <template #default="{ row }">
           {{ formatTime(row.loginAt) }}
