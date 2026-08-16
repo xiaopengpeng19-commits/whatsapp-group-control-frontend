@@ -2,66 +2,98 @@
   <div class="accounts">
     <!-- 工具栏 -->
     <div class="toolbar">
-      <div>
-        <el-button type="primary" @click="showAddDialog = true">
-          <el-icon>
-            <Plus />
-          </el-icon> 添加账号
-        </el-button>
-        <el-button type="success" @click="showImportDialog = true">
-          <el-icon>
-            <Upload />
-          </el-icon> 批量导入
-        </el-button>
-        <el-button type="warning" plain @click="showBatchGroupDialog = true" :disabled="selectedAccounts.length === 0">
-          <el-icon>
-            <Folder />
-          </el-icon> 批量改分组 ({{ selectedAccounts.length }})
-        </el-button>
-        <el-button type="success" plain @click="showBatchProxyDialog = true" :disabled="selectedAccounts.length === 0">
-          <el-icon>
-            <Connection />
-          </el-icon> 批量改代理 ({{ selectedAccounts.length }})
-        </el-button>
-        <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0">
-          <el-icon>
-            <Download />
-          </el-icon> 批量导出 ({{ selectedAccounts.length }})
-        </el-button>
-        <el-button type="primary" plain @click="handleBatchOnline" :disabled="selectedAccounts.length === 0"
-          :loading="batchOnlineLoading">
-          <el-icon>
-            <Promotion />
-          </el-icon> 批量上线 ({{ selectedAccounts.length }})
-        </el-button>
-        <el-button type="danger" plain @click="handleBatchOffline" :disabled="selectedAccounts.length === 0"
-          :loading="batchOfflineLoading">
-          <el-icon>
-            <SwitchButton />
-          </el-icon> 批量下线 ({{ selectedAccounts.length }})
-        </el-button>
-        <el-button type="primary" plain @click="showGroupOnlineDialog = true">
-          <el-icon>
-            <Promotion />
-          </el-icon> 分组上线
-        </el-button>
-        <el-button type="danger" plain @click="showGroupOfflineDialog = true">
-          <el-icon>
-            <SwitchButton />
-          </el-icon> 分组下线
-        </el-button>
-        <el-button @click="fetchAccounts">
-          <el-icon>
-            <Refresh />
-          </el-icon> 刷新
-        </el-button>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:160px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
+        <!-- 搜索框 -->
+        <el-input v-model="searchKeyword" placeholder="搜索账号" clearable prefix-icon="Search" style="width:200px"
+          @input="fetchAccounts" />
+
+        <!-- 状态筛选 -->
+        <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchAccounts" style="width:120px">
+          <el-option label="全部状态" value="" />
+          <el-option label="在线" value="online" />
+          <el-option label="正常" value="normal" />
+          <el-option label="离线" value="offline" />
+          <el-option label="封禁" value="banned" />
+          <el-option label="过期" value="expired" />
+          <el-option label="登录中" value="logging" />
+          <el-option label="请求配对码" value="requesting_pair_code" />
+          <el-option label="等待配对码" value="waiting_pair_code" />
+        </el-select>
+
+        <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:140px">
           <el-option label="全部分组" value="" />
           <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
             :value="item.name" />
         </el-select>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <!-- ========================================== -->
+          <!-- 上线类（绿色）放最左边 -->
+          <!-- ========================================== -->
+          <el-button type="success" plain @click="handleBatchOnline" :disabled="selectedAccounts.length === 0"
+            :loading="batchOnlineLoading" size="default">
+            <el-icon>
+              <Promotion />
+            </el-icon> 批量上线
+          </el-button>
+          <el-button type="success" plain @click="showGroupOnlineDialog = true" size="default">
+            <el-icon>
+              <Promotion />
+            </el-icon> 分组上线
+          </el-button>
+
+          <!-- ========================================== -->
+          <!-- 下线类（红色） -->
+          <!-- ========================================== -->
+          <el-button type="danger" plain @click="handleBatchOffline" :disabled="selectedAccounts.length === 0"
+            :loading="batchOfflineLoading" size="default">
+            <el-icon>
+              <SwitchButton />
+            </el-icon> 批量下线
+          </el-button>
+          <el-button type="danger" plain @click="showGroupOfflineDialog = true" size="default">
+            <el-icon>
+              <SwitchButton />
+            </el-icon> 分组下线
+          </el-button>
+
+          <!-- ========================================== -->
+          <!-- 其他操作 -->
+          <!-- ========================================== -->
+          <el-button type="primary" @click="showAddDialog = true" size="default">
+            <el-icon>
+              <Plus />
+            </el-icon> 添加账号
+          </el-button>
+          <el-button type="success" @click="showImportDialog = true" size="default">
+            <el-icon>
+              <Upload />
+            </el-icon> 批量导入
+          </el-button>
+          <el-button type="warning" plain @click="showBatchGroupDialog = true" :disabled="selectedAccounts.length === 0"
+            size="default">
+            <el-icon>
+              <Folder />
+            </el-icon> 改分组
+          </el-button>
+          <el-button type="info" plain @click="showBatchProxyDialog = true" :disabled="selectedAccounts.length === 0"
+            size="default">
+            <el-icon>
+              <Connection />
+            </el-icon> 改代理
+          </el-button>
+          <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0"
+            size="default">
+            <el-icon>
+              <Download />
+            </el-icon> 导出
+          </el-button>
+          <el-button @click="fetchAccounts" size="default">
+            <el-icon>
+              <Refresh />
+            </el-icon> 刷新
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -138,25 +170,39 @@
       </el-table-column>
 
       <!-- 操作列 -->
-      <el-table-column label="操作" width="260" fixed="right">
+      <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <el-button v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging'"
-              size="small" type="primary" @click="handleOnline(row.account)">
-              上线
+            <!-- 上线按钮（绿色）放最左边 -->
+            <el-button
+              v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
+              size="small" type="success" @click="handleOnline(row.account)">
+              <el-icon>
+                <Promotion />
+              </el-icon> 上线
             </el-button>
             <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
               @click="handleOffline(row.account)">
-              下线
+              <el-icon>
+                <SwitchButton />
+              </el-icon> 下线
             </el-button>
             <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
               登录中...
             </el-button>
+            <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>
+              已封禁
+            </el-button>
+
             <el-button size="small" type="info" @click="showQRCode(row)">
-              二维码
+              <el-icon>
+                <Qrcode />
+              </el-icon> 二维码
             </el-button>
             <el-button size="small" type="danger" @click="handleDelete(row.account)">
-              删除
+              <el-icon>
+                <Delete />
+              </el-icon> 删除
             </el-button>
           </div>
         </template>
@@ -206,8 +252,8 @@
     <el-dialog v-model="showImportDialog" title="批量导入账号" width="600px">
       <el-form :model="importForm" label-width="100px">
         <el-form-item label="凭证文件" required>
-          <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json" :on-change="handleFileChange"
-            :on-remove="handleFileRemove" :on-exceed="handleExceed" :limit="200">
+          <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json" :limit="200"
+            :on-change="handleFileChange" :on-remove="handleFileRemove" :on-exceed="handleExceed">
             <el-button type="primary" plain>
               <el-icon>
                 <FolderOpened />
@@ -215,7 +261,7 @@
             </el-button>
             <template #tip>
               <div style="font-size:12px;color:#999;margin-top:4px;">
-                支持 .json 格式的凭证文件，可一次选择多个文件批量导入
+                支持 .json 格式的凭证文件，最多200个，可一次选择多个文件批量导入
               </div>
             </template>
           </el-upload>
@@ -373,7 +419,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, Qrcode, Search } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
@@ -388,6 +434,8 @@ const selectedAccounts = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
+const searchKeyword = ref('')
+const filterStatus = ref('')
 
 const showAddDialog = ref(false)
 const showImportDialog = ref(false)
@@ -497,9 +545,18 @@ const fetchProxyGroups = async () => {
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    const params = { page: page.value, page_size: pageSize.value }
+    const params = {
+      page: page.value,
+      page_size: pageSize.value
+    }
     if (filterGroup.value) {
       params.group = filterGroup.value
+    }
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
     }
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
@@ -593,7 +650,6 @@ const handleBatchImport = async () => {
         reader.onerror = reject
         reader.readAsText(file.raw)
       })
-      // ✅ 不再校验，直接传给后端
       credsContents.push(content)
     }
 
