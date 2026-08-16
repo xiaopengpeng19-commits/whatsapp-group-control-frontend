@@ -271,7 +271,7 @@
                 {{ getAccountStatusText(acc) }}
               </span>
               <span style="margin-left:4px;font-size:12px;color:#999;">
-                配对 {{ getAccountChatPairs(acc)|| 0 }} 次
+                配对 {{ accountPairs[acc] }} 次
               </span>
             </el-tag>
           </div>
@@ -802,7 +802,7 @@ const showTaskDetail = async (row) => {
       sessions.value = res.data.sessions || []
       detailMessages.value = res.data.messages || []
       messageTotal.value = res.data.total || 0
-      accountPairs.value = res.data.account_pairs || {}  // ✅ 新增
+      accountPairs.value = res.data.account_pairs || {}  // ✅ 保存
       await nextTick()
     }
   } catch (error) {
@@ -826,6 +826,7 @@ const showTaskDetail = async (row) => {
           messageTotal.value = res.data.total || 0
           sessions.value = res.data.sessions || []
           detailTask.value = res.data.task
+          accountPairs.value = res.data.account_pairs || {}  // ✅ 定时器里也要更新
           await nextTick()
         }
       }
