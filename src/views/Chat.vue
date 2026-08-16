@@ -399,7 +399,7 @@ const sessions = ref([])
 const detailMessages = ref([])
 const messageListRef = ref(null)
 const detailTimer = ref(null)
-
+const accountPairs = ref({})  // ✅ 加上这一行
 // ============ 消息筛选 ============
 const messageFilterStatus = ref('')
 const messageTotal = ref(0)
