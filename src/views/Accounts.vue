@@ -202,9 +202,7 @@
             </el-button>
 
             <el-button size="small" type="info" @click="showQRCode(row)">
-              <el-icon>
-                <Qrcode />
-              </el-icon> 二维码
+              二维码
             </el-button>
             <el-button size="small" type="danger" @click="handleDelete(row.account)">
               <el-icon>
@@ -429,7 +427,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, QrCode, Search } from '@element-plus/icons-vue'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, Search } from '@element-plus/icons-vue'
 // ============ 状态 ============
 const accounts = ref([])
 const accountGroups = ref([])
