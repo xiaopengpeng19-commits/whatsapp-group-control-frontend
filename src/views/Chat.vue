@@ -35,8 +35,13 @@
       </el-table-column>
       <el-table-column label="参与账号" min-width="200">
         <template #default="{ row }">
-          <el-tag v-for="acc in row.accounts" :key="acc" size="small" style="margin:2px">
+          <!-- 只显示前5个 -->
+          <el-tag v-for="(acc, index) in row.accounts.slice(0, 5)" :key="acc" size="small" style="margin:2px">
             {{ acc }}
+          </el-tag>
+          <!-- 如果超过5个，显示 +N -->
+          <el-tag v-if="row.accounts.length > 5" size="small" type="info" style="margin:2px">
+            +{{ row.accounts.length - 5 }}
           </el-tag>
         </template>
       </el-table-column>
