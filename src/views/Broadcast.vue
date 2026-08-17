@@ -2,12 +2,17 @@
   <div class="broadcast">
     <div class="toolbar">
       <el-button type="primary" @click="showCreateDialog = true">
-        <el-icon><Plus /></el-icon> 创建群发任务
+        <el-icon>
+          <Plus />
+        </el-icon> 创建群发任务
       </el-button>
       <el-button @click="fetchTasks">
-        <el-icon><Refresh /></el-icon> 刷新
+        <el-icon>
+          <Refresh />
+        </el-icon> 刷新
       </el-button>
-      <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchTasks" style="width:120px;margin-left:10px">
+      <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchTasks"
+        style="width:120px;margin-left:10px">
         <el-option label="全部" value="" />
         <el-option label="待执行" value="pending" />
         <el-option label="执行中" value="running" />
@@ -29,41 +34,32 @@
         </template>
       </el-table-column>
       <el-table-column prop="totalTargets" label="总数" width="60" />
-      
+
       <!-- 发送进度：sent + delivered + read / total -->
       <el-table-column label="发送进度" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
-            <el-progress 
-              :percentage="getSendProgress(row)" 
-              color="#409eff"
-              :stroke-width="6"
-              style="flex:1"
-            />
+            <el-progress :percentage="getSendProgress(row)" color="#409eff" :stroke-width="6" style="flex:1" />
             <span style="font-size:11px;color:#999;white-space:nowrap;">
               {{ getSentCount(row) }}/{{ row.totalTargets }}
             </span>
           </div>
         </template>
       </el-table-column>
-      
+
       <!-- 完成进度：(delivered + read) / total -->
       <el-table-column label="完成进度" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
-            <el-progress 
-              :percentage="getCompleteProgress(row)" 
-              :color="getCompleteColor(row)"
-              :stroke-width="6"
-              style="flex:1"
-            />
+            <el-progress :percentage="getCompleteProgress(row)" :color="getCompleteColor(row)" :stroke-width="6"
+              style="flex:1" />
             <span style="font-size:11px;color:#999;white-space:nowrap;">
               {{ getCompletedCount(row) }}/{{ row.totalTargets }}
             </span>
           </div>
         </template>
       </el-table-column>
-      
+
       <el-table-column label="状态" width="80">
         <template #default="{ row }">
           <el-tag :type="getStatusType(row.status)" size="small">
@@ -81,20 +77,11 @@
           <el-button size="small" type="primary" @click="showTaskDetail(row)">
             详情
           </el-button>
-          <el-button 
-            v-if="row.status === 'pending' || row.status === 'paused'"
-            size="small" 
-            type="success" 
-            @click="handleStart(row)"
-          >
+          <el-button v-if="row.status === 'pending' || row.status === 'paused'" size="small" type="success"
+            @click="handleStart(row)">
             执行
           </el-button>
-          <el-button 
-            v-if="row.status === 'running'"
-            size="small" 
-            type="warning" 
-            @click="handlePause(row)"
-          >
+          <el-button v-if="row.status === 'running'" size="small" type="warning" @click="handlePause(row)">
             暂停
           </el-button>
           <el-button size="small" type="danger" @click="handleDelete(row)">
@@ -105,15 +92,8 @@
     </el-table>
 
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50]"
-        :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchTasks"
-        @current-change="fetchTasks"
-      />
+      <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50]" :total="total"
+        layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks" @current-change="fetchTasks" />
     </div>
 
     <!-- 创建任务对话框 -->
@@ -124,26 +104,18 @@
         </el-form-item>
         <el-form-item label="账号分组" required>
           <el-select v-model="createForm.accountGroup" placeholder="选择账号分组" style="width:100%">
-            <el-option
-              v-for="item in accountGroups"
-              :key="item.name"
-              :label="item.name + ' (' + item.count + '个)'"
-              :value="item.name"
-            />
+            <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
           </el-select>
         </el-form-item>
         <el-form-item label="目标分组" required>
           <el-select v-model="createForm.targetGroup" placeholder="选择目标分组" style="width:100%">
-            <el-option
-              v-for="item in targetGroups"
-              :key="item.name"
-              :label="item.name + ' (' + item.count + '个)'"
-              :value="item.name"
-            />
+            <el-option v-for="item in targetGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
           </el-select>
         </el-form-item>
         <el-form-item label="单账号发送数量">
-          <el-input-number v-model="createForm.perAccountLimit" :min="1" :max="100" style="width:100%" />
+          <el-input-number v-model="createForm.perAccountLimit" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="并发数量">
           <el-input-number v-model="createForm.concurrencyLimit" :min="1" :max="20" style="width:100%" />
@@ -155,12 +127,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="createForm.messageType === 'text'" label="消息内容" required>
-          <el-input
-            v-model="createForm.messageContent"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入消息内容"
-          />
+          <el-input v-model="createForm.messageContent" type="textarea" :rows="3" placeholder="请输入消息内容" />
         </el-form-item>
         <template v-if="createForm.messageType === 'link'">
           <el-form-item label="链接标题">
@@ -209,26 +176,19 @@
           <el-descriptions-item label="失败">{{ detailTask.failedCount }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
           <el-descriptions-item label="发送进度">
-            <el-progress 
-              :percentage="getSendProgress(detailTask)" 
-              :stroke-width="8"
-              style="width:120px"
-            />
+            <el-progress :percentage="getSendProgress(detailTask)" :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
           <el-descriptions-item label="完成进度">
-            <el-progress 
-              :percentage="getCompleteProgress(detailTask)" 
-              :color="getCompleteColor(detailTask)"
-              :stroke-width="8"
-              style="width:120px"
-            />
+            <el-progress :percentage="getCompleteProgress(detailTask)" :color="getCompleteColor(detailTask)"
+              :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
         </el-descriptions>
 
         <div style="margin-top:20px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <span style="font-weight:bold;">子任务列表</span>
-            <el-select v-model="subFilterStatus" placeholder="全部状态" clearable @change="fetchSubTasks" style="width:120px">
+            <el-select v-model="subFilterStatus" placeholder="全部状态" clearable @change="fetchSubTasks"
+              style="width:120px">
               <el-option label="全部" value="" />
               <el-option label="待执行" value="pending" />
               <el-option label="已发送" value="sent" />
@@ -256,16 +216,9 @@
             </el-table-column>
           </el-table>
           <div style="margin-top:10px;display:flex;justify-content:flex-end">
-            <el-pagination
-              v-model:current-page="subPage"
-              v-model:page-size="subPageSize"
-              :page-sizes="[10, 20, 50]"
-              :total="subTotal"
-              layout="total, sizes, prev, pager, next"
-              small
-              @size-change="fetchSubTasks"
-              @current-change="fetchSubTasks"
-            />
+            <el-pagination v-model:current-page="subPage" v-model:page-size="subPageSize" :page-sizes="[10, 20, 50]"
+              :total="subTotal" layout="total, sizes, prev, pager, next" small @size-change="fetchSubTasks"
+              @current-change="fetchSubTasks" />
           </div>
         </div>
       </div>
