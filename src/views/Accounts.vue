@@ -27,9 +27,7 @@
         </el-select>
 
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <!-- ========================================== -->
           <!-- 上线类（绿色）放最左边 -->
-          <!-- ========================================== -->
           <el-button type="success" plain @click="handleBatchOnline" :disabled="selectedAccounts.length === 0"
             :loading="batchOnlineLoading" size="default">
             <el-icon>
@@ -42,9 +40,7 @@
             </el-icon> 分组上线
           </el-button>
 
-          <!-- ========================================== -->
           <!-- 下线类（红色） -->
-          <!-- ========================================== -->
           <el-button type="danger" plain @click="handleBatchOffline" :disabled="selectedAccounts.length === 0"
             :loading="batchOfflineLoading" size="default">
             <el-icon>
@@ -57,9 +53,7 @@
             </el-icon> 分组下线
           </el-button>
 
-          <!-- ========================================== -->
           <!-- 其他操作 -->
-          <!-- ========================================== -->
           <el-button type="primary" @click="showAddDialog = true" size="default">
             <el-icon>
               <Plus />
@@ -92,6 +86,13 @@
             <el-icon>
               <Refresh />
             </el-icon> 刷新
+          </el-button>
+
+          <!-- ✅ 清空重连队列 -->
+          <el-button type="danger" plain @click="handleClearReconnectQueue" :loading="clearQueueLoading" size="default">
+            <el-icon>
+              <Delete />
+            </el-icon> 清空重连队列
           </el-button>
         </div>
       </div>
@@ -140,12 +141,8 @@
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
-          <el-tag v-if="row.status === 'requesting_pair_code'" type="warning" size="small">
-            请求中...
-          </el-tag>
-          <el-tag v-else-if="row.status === 'waiting_pair_code'" type="warning" size="small">
-            等待配对码
-          </el-tag>
+          <el-tag v-if="row.status === 'requesting_pair_code'" type="warning" size="small">请求中...</el-tag>
+          <el-tag v-else-if="row.status === 'waiting_pair_code'" type="warning" size="small">等待配对码</el-tag>
           <el-tag v-else :type="getStatusType(row.status)" size="small">
             {{ getStatusText(row.status) }}
           </el-tag>
@@ -180,7 +177,6 @@
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <!-- 上线按钮（绿色）放最左边 -->
             <el-button
               v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
               size="small" type="success" @click="handleOnline(row.account)">
@@ -194,12 +190,8 @@
                 <SwitchButton />
               </el-icon> 下线
             </el-button>
-            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>
-              登录中...
-            </el-button>
-            <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>
-              已封禁
-            </el-button>
+            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
+            <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
 
             <el-button size="small" type="info" @click="showQRCode(row)">
               二维码
@@ -322,9 +314,7 @@
       </el-form>
       <template #footer>
         <el-button @click="showBatchProxyDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchProxy" :loading="batchProxyLoading">
-          确定
-        </el-button>
+        <el-button type="primary" @click="handleBatchProxy" :loading="batchProxyLoading">确定</el-button>
       </template>
     </el-dialog>
 
@@ -359,17 +349,13 @@
         </el-form-item>
         <el-form-item>
           <el-alert type="info" :closable="false" show-icon>
-            <template #title>
-              将对该分组下所有离线账号执行上线操作
-            </template>
+            <template #title>将对该分组下所有离线账号执行上线操作</template>
           </el-alert>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showGroupOnlineDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleGroupOnline" :loading="groupOnlineLoading">
-          确定上线
-        </el-button>
+        <el-button type="primary" @click="handleGroupOnline" :loading="groupOnlineLoading">确定上线</el-button>
       </template>
     </el-dialog>
 
@@ -386,17 +372,13 @@
         </el-form-item>
         <el-form-item>
           <el-alert type="warning" :closable="false" show-icon>
-            <template #title>
-              将对该分组下所有在线账号执行下线操作
-            </template>
+            <template #title>将对该分组下所有在线账号执行下线操作</template>
           </el-alert>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showGroupOfflineDialog = false">取消</el-button>
-        <el-button type="danger" @click="handleGroupOffline" :loading="groupOfflineLoading">
-          确定下线
-        </el-button>
+        <el-button type="danger" @click="handleGroupOffline" :loading="groupOfflineLoading">确定下线</el-button>
       </template>
     </el-dialog>
 
@@ -424,10 +406,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
-import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete, Search } from '@element-plus/icons-vue'
+
 // ============ 状态 ============
 const accounts = ref([])
 const accountGroups = ref([])
@@ -440,6 +423,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
 const filterStatus = ref('')
+const clearQueueLoading = ref(false)
 
 const showAddDialog = ref(false)
 const showImportDialog = ref(false)
@@ -457,7 +441,6 @@ const qrCode = ref('')
 const showGroupOnlineDialog = ref(false)
 const onlineGroup = ref('')
 const groupOnlineLoading = ref(false)
-
 const showGroupOfflineDialog = ref(false)
 const offlineGroup = ref('')
 const groupOfflineLoading = ref(false)
@@ -510,58 +493,32 @@ const statusTypeMap = {
   'waiting_pair_code': 'warning'
 }
 
-const getStatusText = (status) => {
-  return statusMap[status] || status || '未知'
-}
-
-const getStatusType = (status) => {
-  return statusTypeMap[status] || 'info'
-}
-
-const formatTime = (time) => {
-  if (!time) return '-'
-  return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
-}
+const getStatusText = (status) => statusMap[status] || status || '未知'
+const getStatusType = (status) => statusTypeMap[status] || 'info'
+const formatTime = (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 
 // ============ 数据获取 ============
 const fetchAccountGroups = async () => {
   try {
     const res = await api.get('/whatsapp/accounts/groups')
-    if (res.code === 0) {
-      accountGroups.value = res.data || []
-    }
-  } catch (error) {
-    // ignore
-  }
+    if (res.code === 0) accountGroups.value = res.data || []
+  } catch (error) { }
 }
 
 const fetchProxyGroups = async () => {
   try {
     const res = await api.get('/proxies/groups')
-    if (res.code === 0) {
-      proxyGroups.value = res.data || []
-    }
-  } catch (error) {
-    // ignore
-  }
+    if (res.code === 0) proxyGroups.value = res.data || []
+  } catch (error) { }
 }
 
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    const params = {
-      page: page.value,
-      page_size: pageSize.value
-    }
-    if (filterGroup.value) {
-      params.group = filterGroup.value
-    }
-    if (filterStatus.value) {
-      params.status = filterStatus.value
-    }
-    if (searchKeyword.value) {
-      params.keyword = searchKeyword.value
-    }
+    const params = { page: page.value, page_size: pageSize.value }
+    if (filterGroup.value) params.group = filterGroup.value
+    if (filterStatus.value) params.status = filterStatus.value
+    if (searchKeyword.value) params.keyword = searchKeyword.value
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
       const result = res.data
@@ -587,14 +544,8 @@ const handleSelectionChange = (selection) => {
 
 // ============ 添加账号 ============
 const handleAdd = async () => {
-  if (!addForm.account) {
-    ElMessage.warning('请输入手机号')
-    return
-  }
-  if (!addForm.proxyGroup) {
-    ElMessage.warning('请选择代理分组')
-    return
-  }
+  if (!addForm.account) { ElMessage.warning('请输入手机号'); return }
+  if (!addForm.proxyGroup) { ElMessage.warning('请选择代理分组'); return }
   try {
     const res = await whatsapp.addAccount({
       account: addForm.account,
@@ -619,31 +570,16 @@ const handleAdd = async () => {
 }
 
 // ============ 批量导入 ============
-const handleFileChange = (file) => {
-  importFiles.value.push(file)
-}
-
+const handleFileChange = (file) => { importFiles.value.push(file) }
 const handleFileRemove = (file) => {
   const index = importFiles.value.findIndex(f => f.uid === file.uid)
-  if (index !== -1) {
-    importFiles.value.splice(index, 1)
-  }
+  if (index !== -1) importFiles.value.splice(index, 1)
 }
-
-const removeFile = (index) => {
-  importFiles.value.splice(index, 1)
-}
-
-const handleExceed = () => {
-  ElMessage.warning('最多只能选择200个文件')
-}
+const removeFile = (index) => { importFiles.value.splice(index, 1) }
+const handleExceed = () => { ElMessage.warning('最多只能选择200个文件') }
 
 const handleBatchImport = async () => {
-  if (importFiles.value.length === 0) {
-    ElMessage.warning('请选择凭证文件')
-    return
-  }
-
+  if (importFiles.value.length === 0) { ElMessage.warning('请选择凭证文件'); return }
   importing.value = true
   try {
     const credsContents = []
@@ -656,35 +592,19 @@ const handleBatchImport = async () => {
       })
       credsContents.push(content)
     }
-
-    if (credsContents.length === 0) {
-      ElMessage.warning('没有有效的凭证文件')
-      importing.value = false
-      return
-    }
-
+    if (credsContents.length === 0) { ElMessage.warning('没有有效的凭证文件'); importing.value = false; return }
     const res = await whatsapp.batchImportAccount({
       credsFiles: credsContents,
       proxyGroup: importForm.proxyGroup || '',
       accountGroup: importForm.accountGroup || ''
     })
-
     if (res.code === 0) {
       const { total, success, failed } = res.data
       ElMessage.success(`导入完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
-
       if (failed > 0) {
-        const failedList = res.data.results
-          .filter(r => !r.success)
-          .map(r => `${r.phone || '未知'}: ${r.message}`)
-          .join('\n')
-        ElMessage.warning({
-          message: `失败详情：\n${failedList}`,
-          duration: 0,
-          showClose: true
-        })
+        const failedList = res.data.results.filter(r => !r.success).map(r => `${r.phone || '未知'}: ${r.message}`).join('\n')
+        ElMessage.warning({ message: `失败详情：\n${failedList}`, duration: 0, showClose: true })
       }
-
       showImportDialog.value = false
       importFiles.value = []
       importForm.accountGroup = ''
@@ -704,20 +624,12 @@ const handleBatchImport = async () => {
 
 // ============ 批量改分组 ============
 const handleBatchGroup = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-  if (!batchGroupForm.group) {
-    ElMessage.warning('请输入分组名称')
-    return
-  }
+  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
+  if (!batchGroupForm.group) { ElMessage.warning('请输入分组名称'); return }
   try {
     let successCount = 0
     for (const account of selectedAccounts.value) {
-      const res = await api.put(`/whatsapp/accounts/${account}/group`, {
-        group: batchGroupForm.group
-      })
+      const res = await api.put(`/whatsapp/accounts/${account}/group`, { group: batchGroupForm.group })
       if (res.code === 0) successCount++
     }
     ElMessage.success(`成功更新 ${successCount}/${selectedAccounts.value.length} 个账号的分组`)
@@ -733,22 +645,13 @@ const handleBatchGroup = async () => {
 
 // ============ 批量改代理 ============
 const handleBatchProxy = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-  if (!batchProxyGroup.value) {
-    ElMessage.warning('请选择代理分组')
-    return
-  }
-
+  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
+  if (!batchProxyGroup.value) { ElMessage.warning('请选择代理分组'); return }
   batchProxyLoading.value = true
   try {
     let successCount = 0
     for (const account of selectedAccounts.value) {
-      const res = await api.put(`/whatsapp/accounts/${account}/proxygroup`, {
-        proxyGroup: batchProxyGroup.value
-      })
+      const res = await api.put(`/whatsapp/accounts/${account}/proxygroup`, { proxyGroup: batchProxyGroup.value })
       if (res.code === 0) successCount++
     }
     ElMessage.success(`成功更新 ${successCount}/${selectedAccounts.value.length} 个账号的代理分组`)
@@ -766,11 +669,7 @@ const handleBatchProxy = async () => {
 
 // ============ 批量导出凭证 ============
 const handleBatchExport = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-
+  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
   try {
     for (const account of selectedAccounts.value) {
       await handleExport(account)
@@ -785,32 +684,19 @@ const handleBatchExport = async () => {
 
 // ============ 批量上线 ============
 const handleBatchOnline = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-
-  // 过滤出离线账号
+  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
   const offlineAccounts = selectedAccounts.value.filter(account => {
     const acc = accounts.value.find(a => a.account === account)
     return acc && (acc.status === 'offline' || acc.status === 'expired')
   })
-
-  if (offlineAccounts.length === 0) {
-    ElMessage.warning('选中的账号中没有离线账号')
-    return
-  }
-
+  if (offlineAccounts.length === 0) { ElMessage.warning('选中的账号中没有离线账号'); return }
   if (offlineAccounts.length < selectedAccounts.value.length) {
     const onlineCount = selectedAccounts.value.length - offlineAccounts.length
     ElMessage.warning(`已过滤 ${onlineCount} 个在线账号，将上线 ${offlineAccounts.length} 个离线账号`)
   }
-
   batchOnlineLoading.value = true
   try {
-    const res = await api.post('/whatsapp/accounts/batch/online', {
-      accounts: offlineAccounts
-    })
+    const res = await api.post('/whatsapp/accounts/batch/online', { accounts: offlineAccounts })
     if (res.code === 0) {
       ElMessage.success(`已提交 ${res.data.total} 个账号的批量上线任务，请稍后刷新查看状态`)
       selectedAccounts.value = []
@@ -827,32 +713,19 @@ const handleBatchOnline = async () => {
 
 // ============ 批量下线 ============
 const handleBatchOffline = async () => {
-  if (selectedAccounts.value.length === 0) {
-    ElMessage.warning('请先选择账号')
-    return
-  }
-
-  // 过滤出在线账号
+  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
   const onlineAccounts = selectedAccounts.value.filter(account => {
     const acc = accounts.value.find(a => a.account === account)
     return acc && (acc.status === 'online' || acc.status === 'normal')
   })
-
-  if (onlineAccounts.length === 0) {
-    ElMessage.warning('选中的账号中没有在线账号')
-    return
-  }
-
+  if (onlineAccounts.length === 0) { ElMessage.warning('选中的账号中没有在线账号'); return }
   if (onlineAccounts.length < selectedAccounts.value.length) {
     const offlineCount = selectedAccounts.value.length - onlineAccounts.length
     ElMessage.warning(`已过滤 ${offlineCount} 个离线账号，将下线 ${onlineAccounts.length} 个在线账号`)
   }
-
   batchOfflineLoading.value = true
   try {
-    const res = await api.post('/whatsapp/accounts/batch/offline', {
-      accounts: onlineAccounts
-    })
+    const res = await api.post('/whatsapp/accounts/batch/offline', { accounts: onlineAccounts })
     if (res.code === 0) {
       ElMessage.success(`已提交 ${res.data.total} 个账号的批量下线任务，请稍后刷新查看状态`)
       selectedAccounts.value = []
@@ -869,16 +742,10 @@ const handleBatchOffline = async () => {
 
 // ============ 分组上线 ============
 const handleGroupOnline = async () => {
-  if (!onlineGroup.value) {
-    ElMessage.warning('请选择分组')
-    return
-  }
-
+  if (!onlineGroup.value) { ElMessage.warning('请选择分组'); return }
   groupOnlineLoading.value = true
   try {
-    const res = await api.post('/whatsapp/accounts/group-online', {
-      group: onlineGroup.value
-    })
+    const res = await api.post('/whatsapp/accounts/group-online', { group: onlineGroup.value })
     if (res.code === 0) {
       ElMessage.success(`分组上线任务已提交，请稍后刷新查看结果`)
       showGroupOnlineDialog.value = false
@@ -894,16 +761,10 @@ const handleGroupOnline = async () => {
 
 // ============ 分组下线 ============
 const handleGroupOffline = async () => {
-  if (!offlineGroup.value) {
-    ElMessage.warning('请选择分组')
-    return
-  }
-
+  if (!offlineGroup.value) { ElMessage.warning('请选择分组'); return }
   groupOfflineLoading.value = true
   try {
-    const res = await api.post('/whatsapp/accounts/group-offline', {
-      group: offlineGroup.value
-    })
+    const res = await api.post('/whatsapp/accounts/group-offline', { group: offlineGroup.value })
     if (res.code === 0) {
       ElMessage.success(`分组下线任务已提交，请稍后刷新查看结果`)
       showGroupOfflineDialog.value = false
@@ -920,28 +781,17 @@ const handleGroupOffline = async () => {
 // ============ 删除账号 ============
 const handleDelete = async (account) => {
   try {
-    await ElMessageBox.confirm(`确定要删除账号 ${account} 吗？`, '提示', {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(`确定要删除账号 ${account} 吗？`, '提示', { type: 'warning' })
     const res = await whatsapp.deleteAccount(account)
-    if (res.code === 0) {
-      ElMessage.success('删除成功')
-      fetchAccounts()
-      fetchAccountGroups()
-    }
-  } catch {
-    // cancelled
-  }
+    if (res.code === 0) { ElMessage.success('删除成功'); fetchAccounts(); fetchAccountGroups() }
+  } catch { }
 }
 
 // ============ 上线/下线 ============
 const handleOnline = async (account) => {
   try {
     const res = await whatsapp.online(account)
-    if (res.code === 0) {
-      ElMessage.success('上线成功')
-      fetchAccounts()
-    }
+    if (res.code === 0) { ElMessage.success('上线成功'); fetchAccounts() }
   } catch (error) {
     ElMessage.error(error.message || '上线失败')
   }
@@ -950,10 +800,7 @@ const handleOnline = async (account) => {
 const handleOffline = async (account) => {
   try {
     const res = await whatsapp.offline(account)
-    if (res.code === 0) {
-      ElMessage.success('下线成功')
-      fetchAccounts()
-    }
+    if (res.code === 0) { ElMessage.success('下线成功'); fetchAccounts() }
   } catch (error) {
     ElMessage.error('下线失败')
   }
@@ -964,13 +811,8 @@ const showQRCode = async (row) => {
   showQRDialog.value = true
   qrCode.value = ''
   qrLoading.value = true
-
   try {
-    const res = await whatsapp.getQRCodeLogin(row.account, {
-      proxy: row.proxy || '',
-      callbackurl: ''
-    })
-
+    const res = await whatsapp.getQRCodeLogin(row.account, { proxy: row.proxy || '', callbackurl: '' })
     if (res.code === 0 && res.data?.qrCode) {
       qrCode.value = res.data.qrCode
     } else {
@@ -989,16 +831,11 @@ const handleExport = async (account) => {
     const res = await whatsapp.exportCreds(account)
     if (res.code === 0) {
       let credsData = res.data
-      if (res.data && typeof res.data === 'object') {
-        if (res.data.creds) {
-          credsData = res.data.creds
-        }
+      if (res.data && typeof res.data === 'object' && res.data.creds) {
+        credsData = res.data.creds
       }
-
       const filename = `${account}_${Date.now()}.json`
-      const blob = new Blob([JSON.stringify(credsData, null, 2)], {
-        type: 'application/json'
-      })
+      const blob = new Blob([JSON.stringify(credsData, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -1007,13 +844,40 @@ const handleExport = async (account) => {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-
       ElMessage.success(`凭证 ${filename} 导出成功`)
     } else {
       ElMessage.error(res.message || '导出失败')
     }
   } catch (error) {
     ElMessage.error('导出失败: ' + (error.message || ''))
+  }
+}
+
+// ============ 清空重连队列 ============
+const handleClearReconnectQueue = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清空重连队列吗？\n清空后，所有等待重连的账号将不会自动上线。',
+      '警告',
+      { type: 'warning', confirmButtonText: '确定清空', cancelButtonText: '取消' }
+    )
+    clearQueueLoading.value = true
+    const res = await api.post('/system/reconnect/clear')
+    if (res.code === 0) {
+      const { count, members } = res.data
+      ElMessage.success(`已清空 ${count} 个等待重连的账号`)
+      if (members && members.length > 0) {
+        ElMessage.info(`已清除: ${members.join(', ')}`)
+      }
+    } else {
+      ElMessage.error(res.message || '清空失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('清空失败: ' + (error.message || ''))
+    }
+  } finally {
+    clearQueueLoading.value = false
   }
 }
 
