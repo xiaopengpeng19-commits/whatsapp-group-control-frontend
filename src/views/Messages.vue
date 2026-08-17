@@ -1,4 +1,3 @@
-
 <template>
   <div class="messages">
     <!-- 发送消息 -->
@@ -7,15 +6,9 @@
         <span>📤 发送消息</span>
       </template>
       <el-form :model="sendForm" label-width="100px">
+        <!-- ✅ 改为手动输入 -->
         <el-form-item label="账号">
-          <el-select v-model="sendForm.account" placeholder="选择账号">
-            <el-option
-              v-for="item in accounts"
-              :key="item.account"
-              :label="item.account"
-              :value="item.account"
-            />
-          </el-select>
+          <el-input v-model="sendForm.account" placeholder="请输入账号（手机号）" />
         </el-form-item>
         <el-form-item label="对方号码">
           <el-input v-model="sendForm.to" placeholder="请输入对方手机号" />
@@ -31,12 +24,7 @@
         <!-- 文本消息 -->
         <template v-if="sendForm.type === 'text'">
           <el-form-item label="内容">
-            <el-input
-              v-model="sendForm.content"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入消息内容"
-            />
+            <el-input v-model="sendForm.content" type="textarea" :rows="3" placeholder="请输入消息内容" />
           </el-form-item>
         </template>
 
@@ -74,7 +62,9 @@
 
         <el-form-item>
           <el-button type="primary" @click="handleSend" :loading="sending">
-            <el-icon><Promotion /></el-icon> 发送
+            <el-icon>
+              <Promotion />
+            </el-icon> 发送
           </el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
@@ -86,7 +76,9 @@
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="color:#999">查看所有消息记录</span>
         <el-button type="primary" plain @click="$router.push('/message-history')">
-          <el-icon><Document /></el-icon> 进入消息记录
+          <el-icon>
+            <Document />
+          </el-icon> 进入消息记录
         </el-button>
       </div>
     </el-card>
@@ -94,14 +86,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Promotion, Document } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
-const accounts = ref([])
 const sending = ref(false)
 
 const sendForm = reactive({
@@ -119,25 +108,9 @@ const sendForm = reactive({
   linkButton: ''
 })
 
-const fetchAccounts = async () => {
-  try {
-    const res = await whatsapp.getAccounts()
-    if (res.code === 0) {
-      let data = res.data?.data || res.data || []
-      if (!Array.isArray(data)) data = []
-      accounts.value = data
-      if (accounts.value.length > 0 && !sendForm.account) {
-        sendForm.account = accounts.value[0].account
-      }
-    }
-  } catch (error) {
-    console.error('获取账号失败:', error)
-  }
-}
-
 const handleSend = async () => {
   if (!sendForm.account) {
-    ElMessage.warning('请选择账号')
+    ElMessage.warning('请输入账号')
     return
   }
   if (!sendForm.to) {
@@ -240,10 +213,6 @@ const resetForm = () => {
   sendForm.linkFooter = ''
   sendForm.linkButton = ''
 }
-
-onMounted(() => {
-  fetchAccounts()
-})
 </script>
 
 <style scoped>
