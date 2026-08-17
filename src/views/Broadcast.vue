@@ -444,7 +444,10 @@ const fetchSubTasks = async () => {
       page_size: subPageSize.value
     }
     if (subFilterStatus.value) params.status = subFilterStatus.value
-    const res = await broadcast.getSubTasks(detailTask.value.id, { params })
+    
+    // ✅ 直接传 params，不要包 { params }
+    const res = await broadcast.getSubTasks(detailTask.value.id, params)
+    
     if (res.code === 0) {
       subTasks.value = res.data.data || []
       subTotal.value = res.data.total || 0
