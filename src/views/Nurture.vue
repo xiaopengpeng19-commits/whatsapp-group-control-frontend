@@ -244,14 +244,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                    }}分钟</el-descriptions-item>
+                        }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -259,7 +259,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -268,7 +268,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                        }})</span>
+                            }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -317,7 +317,7 @@
                         </span>
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="completedCount > 0" type="success" size="small">已完成 {{ completedCount
-                            }}</el-tag>
+                                }}</el-tag>
                             <el-tag v-if="failedCount > 0" type="danger" size="small">失败 {{ failedCount }}</el-tag>
                         </div>
                     </div>
@@ -376,9 +376,9 @@
                         <span style="font-weight:bold;font-size:13px;">消息记录 ({{ detailMessages.length }})</span>
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                            }}</el-tag>
+                                }}</el-tag>
                             <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                            }}</el-tag>
+                                }}</el-tag>
                         </div>
                     </div>
                     <div class="message-list" style="max-height:350px;overflow-y:auto;">
@@ -404,7 +404,7 @@
                                         {{ getMessageStatusLabel(msg.status) }}
                                     </el-tag>
                                     <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ formatTime(msg.sentAt)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                     <span v-if="msg.isSimulated"
@@ -445,22 +445,24 @@ const creating = ref(false)
 
 const showCreateDialog = ref(false)
 // createForm
+// Nurture.vue - createForm
+
 const createForm = reactive({
     name: '',
-    nurtureGroups: [],      // ✅ 数组
-    newGroups: [],          // ✅ 数组
+    nurtureGroups: [],
+    newGroups: [],
     language: 'zh',
     initiateRate: 60,
     replyRate: 80,
-    minDelay: 3,
-    maxDelay: 30,
-    minRounds: 2,
-    maxRounds: 6,
-    maxConcurrent: 2,
-    nurtureCooldownMin: 30,
-    nurtureCooldownMax: 45,
-    newCooldownMin: 60,
-    newCooldownMax: 90,
+    minDelay: 5,           // 3 → 5
+    maxDelay: 30,          // 保持 30
+    minRounds: 8,          // 2 → 8
+    maxRounds: 12,         // 6 → 12
+    maxConcurrent: 3,      // 2 → 3
+    nurtureCooldownMin: 60, // 30 → 60
+    nurtureCooldownMax: 80, // 45 → 80
+    newCooldownMin: 10,    // 保持 10
+    newCooldownMax: 20,    // 保持 20
 })
 
 // 详情
