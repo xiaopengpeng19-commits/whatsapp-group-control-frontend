@@ -304,24 +304,19 @@
                     </div>
                 </div>
 
-                <!-- 活跃会话 - 倒序显示最近8条 -->
+                <!-- 会话列表 - 全部显示，倒序最近的8条 -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">
-                            活跃会话 ({{ activeSessions.length }})
+                            会话列表 ({{ allSessions.length }})
                             <span style="font-size:12px;color:#999;font-weight:normal;margin-left:8px;">
                                 显示最近 {{ displaySessions.length }} 条
                             </span>
                         </span>
                         <div style="display:flex;gap:6px;">
-                            <el-tag v-if="activeSessions.length > 0" type="success" size="small">活跃 {{
-                                activeSessions.length
+                            <el-tag v-if="completedCount > 0" type="success" size="small">已完成 {{ completedCount
                                 }}</el-tag>
-                            <el-tag v-if="completedSessionsCount > 0" type="info" size="small">已完成 {{
-                                completedSessionsCount
-                                }}</el-tag>
-                            <el-tag v-if="failedSessionsCount > 0" type="danger" size="small">失败 {{ failedSessionsCount
-                                }}</el-tag>
+                            <el-tag v-if="failedCount > 0" type="danger" size="small">失败 {{ failedCount }}</el-tag>
                         </div>
                     </div>
 
@@ -331,9 +326,9 @@
                         <el-table-column prop="status" label="状态" width="100">
                             <template #default="{ row }">
                                 <el-tag
-                                    :type="row.status === 'active' ? 'success' : row.status === 'completed' ? 'info' : 'danger'"
+                                    :type="row.status === 'completed' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'"
                                     size="small">
-                                    {{ row.status === 'active' ? '🟢 活跃' : row.status === 'completed' ? '✅ 完成' : '❌ 失败'
+                                    {{ row.status === 'completed' ? '✅ 完成' : row.status === 'failed' ? '❌ 失败' : '🟢 进行中'
                                     }}
                                 </el-tag>
                             </template>
@@ -363,9 +358,9 @@
                         </el-table-column>
                     </el-table>
 
-                    <div v-if="activeSessions.length > 8"
+                    <div v-if="allSessions.length > 8"
                         style="text-align:center;padding:4px 0;font-size:12px;color:#999;">
-                        显示最近 8 条，共 {{ activeSessions.length }} 条活跃会话
+                        显示最近 8 条，共 {{ allSessions.length }} 条会话
                     </div>
                 </div>
 
@@ -469,25 +464,30 @@ const detailMessages = ref([])
 const detailTimer = ref(null)
 
 // ============ 计算属性 ============
-const activeSessionsCount = computed(() => sessions.value.filter(s => s.status === 'active').length)
-const completedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'completed').length)
-const failedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'failed').length)
-
-// ✅ 活跃会话 - 倒序显示（最新的在前）
-const activeSessions = computed(() => {
-    const active = sessions.value.filter(s => s.status === 'active') || []
-    return active.sort((a, b) => {
-        return new Date(b.lastTime) - new Date(a.lastTime)
+// ✅ 所有会话 - 倒序显示（最新的在前）
+const allSessions = computed(() => {
+    const list = sessions.value || []
+    return [...list].sort((a, b) => {
+        return new Date(b.lastTime || b.createdAt) - new Date(a.lastTime || a.createdAt)
     })
 })
 
 // ✅ 显示最近的8条
 const displaySessions = computed(() => {
-    return activeSessions.value.slice(0, 8)
+    return allSessions.value.slice(0, 8)
+})
+
+// 统计
+const completedCount = computed(() => {
+    return sessions.value.filter(s => s.status === 'completed').length
+})
+
+const failedCount = computed(() => {
+    return sessions.value.filter(s => s.status === 'failed').length
 })
 
 const simulatedCount = computed(() => detailMessages.value.filter(m => m.isSimulated).length)
-const failedCount = computed(() => detailMessages.value.filter(m => m.status === 'failed').length)
+const msgFailedCount = computed(() => detailMessages.value.filter(m => m.status === 'failed').length)
 
 // ============ 状态映射 ============
 const statusMap = {
