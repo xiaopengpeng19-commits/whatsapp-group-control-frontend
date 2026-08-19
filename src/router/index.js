@@ -71,6 +71,12 @@ const routes = [
         meta: { title: "互聊任务" },
       },
       {
+        path: "nurture",
+        name: "Nurture",
+        component: () => import("@/views/Nurture.vue"),
+        meta: { title: "养号任务" },
+      },
+      {
         path: "check-whatsapp",
         name: "CheckWhatsApp",
         component: () => import("@/views/CheckWhatsApp.vue"),

@@ -54,6 +54,12 @@
           </el-icon>
           <span>互聊任务</span>
         </el-menu-item>
+        <el-menu-item index="/nurture">
+          <el-icon>
+            <Sprout />
+          </el-icon>
+          <span>养号任务</span>
+        </el-menu-item>
         <el-menu-item index="/check-whatsapp">
           <el-icon>
             <Search />

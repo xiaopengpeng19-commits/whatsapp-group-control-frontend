@@ -51,3 +51,4 @@ export { auth, whatsapp, user }
 // 新增群发任务API
 export { default as broadcast } from './broadcast'
 export { default as chat } from './chat'
+export { default as nurture } from './nurture'

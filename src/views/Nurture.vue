@@ -1,0 +1,575 @@
+<!-- frontend/src/views/Nurture.vue -->
+
+<template>
+    <div class="nurture">
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <el-button type="primary" @click="showCreateDialog = true">
+                <el-icon>
+                    <Plus />
+                </el-icon> 创建养号任务
+            </el-button>
+            <el-button @click="fetchTasks">
+                <el-icon>
+                    <Refresh />
+                </el-icon> 刷新
+            </el-button>
+            <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchTasks"
+                style="width:130px;margin-left:10px">
+                <el-option label="全部" value="" />
+                <el-option label="待执行" value="pending" />
+                <el-option label="执行中" value="running" />
+                <el-option label="已暂停" value="paused" />
+                <el-option label="已完成" value="completed" />
+                <el-option label="已停止" value="stopped" />
+            </el-select>
+        </div>
+
+        <!-- 任务列表 -->
+        <el-table :data="tasks" v-loading="loading" border>
+            <el-table-column prop="name" label="任务名称" width="140" />
+            <el-table-column prop="nurtureGroup" label="养号分组" width="120">
+                <template #default="{ row }">
+                    <el-tag size="small" type="success">{{ row.nurtureGroup }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="newGroup" label="新号分组" width="120">
+                <template #default="{ row }">
+                    <el-tag size="small" type="warning">{{ row.newGroup }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column label="配对" width="100" align="center">
+                <template #default="{ row }">
+                    <span style="font-size:13px;">
+                        {{ Object.keys(row.pairMap || {}).length }} 对
+                    </span>
+                </template>
+            </el-table-column>
+            <el-table-column label="轮数" width="90" align="center">
+                <template #default="{ row }">
+                    <span style="font-size:13px;">
+                        {{ row.minRounds || 2 }}~{{ row.maxRounds || 6 }}
+                    </span>
+                </template>
+            </el-table-column>
+            <el-table-column label="进度" width="130">
+                <template #default="{ row }">
+                    <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6"
+                        style="width:100px" />
+                </template>
+            </el-table-column>
+            <el-table-column prop="activeSessions" label="会话" width="70" align="center" />
+            <el-table-column prop="totalMessages" label="消息" width="70" align="center" />
+            <el-table-column prop="status" label="状态" width="90">
+                <template #default="{ row }">
+                    <el-tag :type="getStatusType(row.status)" size="small">
+                        {{ getStatusLabel(row.status) }}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="createdAt" label="创建时间" width="150">
+                <template #default="{ row }">
+                    {{ formatTime(row.createdAt) }}
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" width="300" fixed="right">
+                <template #default="{ row }">
+                    <el-button size="small" type="primary" @click="showTaskDetail(row)">详情</el-button>
+                    <el-button v-if="row.status === 'pending' || row.status === 'paused'" size="small" type="success"
+                        @click="handleStart(row)">启动</el-button>
+                    <el-button v-if="row.status === 'running'" size="small" type="warning"
+                        @click="handlePause(row)">暂停</el-button>
+                    <el-button v-if="row.status === 'paused'" size="small" type="success"
+                        @click="handleResume(row)">恢复</el-button>
+                    <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div style="margin-top:20px;display:flex;justify-content:flex-end">
+            <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50]"
+                :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks"
+                @current-change="fetchTasks" />
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 创建任务对话框 -->
+        <!-- ========================================== -->
+        <el-dialog v-model="showCreateDialog" title="创建养号任务" width="650px" :close-on-click-modal="false">
+            <el-form :model="createForm" label-width="120px" label-position="right">
+                <!-- 基本信息 -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-line"></span>
+                        基本信息
+                    </div>
+                    <el-form-item label="任务名称" required>
+                        <el-input v-model="createForm.name" placeholder="请输入任务名称" size="large" />
+                    </el-form-item>
+                    <el-form-item label="养号分组" required>
+                        <el-select v-model="createForm.nurtureGroup" placeholder="选择养号分组" style="width:100%"
+                            size="large">
+                            <el-option v-for="item in accountGroups" :key="item.name"
+                                :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
+                        </el-select>
+                        <div class="form-tip">该分组下的账号作为养号方，负责发起对话</div>
+                    </el-form-item>
+                    <el-form-item label="新号分组" required>
+                        <el-select v-model="createForm.newGroup" placeholder="选择新号分组" style="width:100%" size="large">
+                            <el-option v-for="item in accountGroups" :key="item.name"
+                                :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
+                        </el-select>
+                        <div class="form-tip">该分组下的账号作为新号，需要已读后才能回复</div>
+                    </el-form-item>
+                    <el-form-item label="消息语言">
+                        <el-radio-group v-model="createForm.language" size="large">
+                            <el-radio-button value="zh">中文</el-radio-button>
+                            <el-radio-button value="en">English</el-radio-button>
+                            <el-radio-button value="pt">Português</el-radio-button>
+                        </el-radio-group>
+                    </el-form-item>
+                </div>
+
+                <!-- 对话参数 -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-line"></span>
+                        对话参数
+                    </div>
+                    <el-form-item label="回复概率">
+                        <div class="slider-wrapper">
+                            <el-slider v-model="createForm.replyRate" :min="10" :max="100" :step="5" />
+                            <span class="slider-value">{{ createForm.replyRate }}%</span>
+                        </div>
+                        <div class="form-tip">新号回复的概率，未命中时自动模拟跳过</div>
+                    </el-form-item>
+                    <el-form-item label="消息间隔">
+                        <div class="range-wrapper">
+                            <el-input-number v-model="createForm.minDelay" :min="1" :max="30" size="large" />
+                            <span class="range-sep">~</span>
+                            <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" size="large" />
+                            <span class="range-unit">秒</span>
+                        </div>
+                    </el-form-item>
+                    <el-form-item label="对话轮数">
+                        <div class="range-wrapper">
+                            <el-input-number v-model="createForm.minRounds" :min="1" :max="20" size="large" />
+                            <span class="range-sep">~</span>
+                            <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" size="large" />
+                            <span class="range-unit">轮</span>
+                        </div>
+                        <div class="form-tip">第1轮严格检查已读，第2+轮宽松处理</div>
+                    </el-form-item>
+                    <el-form-item label="最大并发">
+                        <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
+                        <span style="margin-left:8px;color:#999;font-size:13px;">同时进行的对话数</span>
+                    </el-form-item>
+                </div>
+            </el-form>
+
+            <template #footer>
+                <div class="dialog-footer">
+                    <el-button @click="showCreateDialog = false" size="large">取消</el-button>
+                    <el-button type="primary" @click="handleCreate" :loading="creating" size="large">
+                        {{ creating ? '创建中...' : '创建任务' }}
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+
+        <!-- ========================================== -->
+        <!-- 任务详情对话框 -->
+        <!-- ========================================== -->
+        <el-dialog v-model="showDetailDialog" :title="`养号任务 - ${detailTask?.name || ''}`" width="1000px"
+            :close-on-click-modal="false">
+            <div v-if="detailTask" v-loading="detailLoading">
+                <!-- 基本信息 -->
+                <el-descriptions :column="4" border size="small">
+                    <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
+                    <el-descriptions-item label="养号分组">
+                        <el-tag size="small" type="success">{{ detailTask.nurtureGroup }}</el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="新号分组">
+                        <el-tag size="small" type="warning">{{ detailTask.newGroup }}</el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="状态">
+                        <el-tag :type="getStatusType(detailTask.status)" size="small">
+                            {{ getStatusLabel(detailTask.status) }}
+                        </el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="语言">{{ getLanguageLabel(detailTask.language) }}</el-descriptions-item>
+                    <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
+                    <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds
+                        }}</el-descriptions-item>
+                    <el-descriptions-item label="消息数">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="配对总数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
+                    <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
+                </el-descriptions>
+
+                <!-- 配对列表 -->
+                <div style="margin-top:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
+                            {}).length
+                            }})</span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#f5f7fa;border-radius:4px;">
+                        <el-tag v-for="(newAcc, nurtureAcc) in detailTask.pairMap" :key="nurtureAcc" size="medium"
+                            style="margin:2px;">
+                            {{ nurtureAcc }} ↔ {{ newAcc }}
+                        </el-tag>
+                        <span v-if="Object.keys(detailTask.pairMap || {}).length === 0"
+                            style="color:#999;font-size:13px;">暂无配对</span>
+                    </div>
+                </div>
+
+                <!-- 会话列表 -->
+                <div style="margin-top:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:bold;font-size:13px;">会话列表 ({{ sessions.length }})</span>
+                        <div style="display:flex;gap:6px;">
+                            <el-tag v-if="activeSessionsCount > 0" type="success" size="small">活跃 {{ activeSessionsCount
+                                }}</el-tag>
+                            <el-tag v-if="completedSessionsCount > 0" type="info" size="small">已完成 {{
+                                completedSessionsCount
+                                }}</el-tag>
+                            <el-tag v-if="failedSessionsCount > 0" type="danger" size="small">失败 {{ failedSessionsCount
+                                }}</el-tag>
+                        </div>
+                    </div>
+                    <el-table :data="sessions" border size="small" max-height="300">
+                        <el-table-column prop="nurtureAcc" label="养号" width="140" />
+                        <el-table-column prop="newAcc" label="新号" width="140" />
+                        <el-table-column prop="status" label="状态" width="100">
+                            <template #default="{ row }">
+                                <el-tag
+                                    :type="row.status === 'active' ? 'success' : row.status === 'completed' ? 'info' : 'danger'"
+                                    size="small">
+                                    {{ row.status === 'active' ? '🟢 活跃' : row.status === 'completed' ? '✅ 完成' : '❌ 失败'
+                                    }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="rounds" label="轮数" width="70" align="center">
+                            <template #default="{ row }">
+                                {{ row.rounds }}/{{ row.maxRounds }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="chatCount" label="消息数" width="70" align="center" />
+                        <el-table-column prop="lastTime" label="最后活跃" width="160">
+                            <template #default="{ row }">
+                                {{ formatTime(row.lastTime) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="startedAt" label="开始时间" width="160">
+                            <template #default="{ row }">
+                                {{ formatTime(row.startedAt) }}
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <template #footer>
+                <el-button @click="showDetailDialog = false">关闭</el-button>
+                <el-button type="primary" @click="refreshDetail">刷新</el-button>
+            </template>
+        </el-dialog>
+    </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Refresh } from '@element-plus/icons-vue'
+import nurtureApi from '@/api/nurture'
+import api from '@/api'
+import dayjs from 'dayjs'
+
+// ============ 状态 ============
+const tasks = ref([])
+const accountGroups = ref([])
+const loading = ref(false)
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const filterStatus = ref('')
+const creating = ref(false)
+
+// 创建表单
+const showCreateDialog = ref(false)
+const createForm = reactive({
+    name: '',
+    nurtureGroup: '',
+    newGroup: '',
+    language: 'zh',
+    minDelay: 3,
+    maxDelay: 30,
+    minRounds: 2,
+    maxRounds: 6,
+    replyRate: 80,
+    maxConcurrent: 2
+})
+
+// 详情
+const showDetailDialog = ref(false)
+const detailTask = ref(null)
+const sessions = ref([])
+const detailLoading = ref(false)
+
+// ============ 计算属性 ============
+const activeSessionsCount = computed(() => sessions.value.filter(s => s.status === 'active').length)
+const completedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'completed').length)
+const failedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'failed').length)
+
+// ============ 状态映射 ============
+const statusMap = {
+    pending: '待执行',
+    running: '执行中',
+    paused: '已暂停',
+    completed: '已完成',
+    stopped: '已停止'
+}
+
+const statusTypeMap = {
+    pending: 'info',
+    running: 'warning',
+    paused: 'warning',
+    completed: 'success',
+    stopped: 'danger'
+}
+
+const getStatusLabel = (status) => statusMap[status] || status
+const getStatusType = (status) => statusTypeMap[status] || 'info'
+const getLanguageLabel = (lang) => ({ zh: '中文', en: 'English', pt: 'Português' }[lang] || lang)
+const formatTime = (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
+
+// ============ 进度 ============
+const getProgress = (row) => {
+    if (!row.totalPairs || row.totalPairs === 0) return 0
+    const completed = Object.values(row.sessionStatus || {}).filter(s => s === 'completed' || s === 'failed').length
+    return Math.round((completed / row.totalPairs) * 100)
+}
+
+const getProgressColor = (row) => {
+    const p = getProgress(row)
+    if (p === 100) return '#67c23a'
+    if (p > 50) return '#409eff'
+    return '#e6a23c'
+}
+
+// ============ 数据获取 ============
+const fetchAccountGroups = async () => {
+    try {
+        const res = await api.get('/whatsapp/accounts/groups')
+        if (res.code === 0) accountGroups.value = res.data || []
+    } catch (error) { }
+}
+
+const fetchTasks = async () => {
+    loading.value = true
+    try {
+        const params = { page: page.value, page_size: pageSize.value }
+        if (filterStatus.value) params.status = filterStatus.value
+        const res = await nurtureApi.getTasks(params)
+        if (res.code === 0) {
+            tasks.value = res.data.data || []
+            total.value = res.data.total || 0
+        }
+    } catch (error) {
+        ElMessage.error('获取任务列表失败')
+    } finally {
+        loading.value = false
+    }
+}
+
+// ============ 创建任务 ============
+const handleCreate = async () => {
+    if (!createForm.name) { ElMessage.warning('请输入任务名称'); return }
+    if (!createForm.nurtureGroup) { ElMessage.warning('请选择养号分组'); return }
+    if (!createForm.newGroup) { ElMessage.warning('请选择新号分组'); return }
+    if (createForm.minDelay > createForm.maxDelay) { ElMessage.warning('最小间隔不能大于最大间隔'); return }
+    if (createForm.minRounds > createForm.maxRounds) { ElMessage.warning('最少轮数不能大于最多轮数'); return }
+
+    creating.value = true
+    try {
+        const res = await nurtureApi.createTask(createForm)
+        if (res.code === 0) {
+            ElMessage.success(`任务创建成功，${res.data.pairs} 对配对`)
+            showCreateDialog.value = false
+            createForm.name = ''
+            fetchTasks()
+        }
+    } catch (error) {
+        ElMessage.error('创建失败: ' + (error.message || ''))
+    } finally {
+        creating.value = false
+    }
+}
+
+// ============ 任务操作 ============
+const handleStart = async (row) => {
+    try {
+        await ElMessageBox.confirm(`确定要启动任务 "${row.name}" 吗？`, '提示', { type: 'info' })
+        const res = await nurtureApi.startTask(row.id)
+        if (res.code === 0) { ElMessage.success('任务已启动'); fetchTasks() }
+    } catch (error) {
+        if (error !== 'cancel') ElMessage.error('启动失败')
+    }
+}
+
+const handlePause = async (row) => {
+    try {
+        await ElMessageBox.confirm(`确定要暂停任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
+        const res = await nurtureApi.pauseTask(row.id)
+        if (res.code === 0) { ElMessage.success('任务已暂停'); fetchTasks() }
+    } catch (error) {
+        if (error !== 'cancel') ElMessage.error('暂停失败')
+    }
+}
+
+const handleResume = async (row) => {
+    try {
+        await ElMessageBox.confirm(`确定要恢复任务 "${row.name}" 吗？`, '提示', { type: 'info' })
+        const res = await nurtureApi.resumeTask(row.id)
+        if (res.code === 0) { ElMessage.success('任务已恢复'); fetchTasks() }
+    } catch (error) {
+        if (error !== 'cancel') ElMessage.error('恢复失败')
+    }
+}
+
+const handleDelete = async (row) => {
+    try {
+        await ElMessageBox.confirm(`确定要删除任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
+        const res = await nurtureApi.deleteTask(row.id)
+        if (res.code === 0) { ElMessage.success('删除成功'); fetchTasks() }
+    } catch (error) {
+        if (error !== 'cancel') ElMessage.error('删除失败')
+    }
+}
+
+// ============ 任务详情 ============
+const showTaskDetail = async (row) => {
+    showDetailDialog.value = true
+    detailLoading.value = true
+    detailTask.value = row
+
+    try {
+        const res = await nurtureApi.getTaskDetail(row.id)
+        if (res.code === 0) {
+            detailTask.value = res.data.task
+            sessions.value = res.data.sessions || []
+        }
+        // 获取会话
+        const sessionsRes = await nurtureApi.getSessions(row.id)
+        if (sessionsRes.code === 0) {
+            sessions.value = sessionsRes.data || []
+        }
+    } catch (error) {
+        ElMessage.error('获取任务详情失败')
+    } finally {
+        detailLoading.value = false
+    }
+}
+
+const refreshDetail = () => {
+    if (detailTask.value) {
+        showTaskDetail(detailTask.value)
+    }
+}
+
+// ============ 生命周期 ============
+onMounted(() => {
+    fetchAccountGroups()
+    fetchTasks()
+})
+</script>
+
+<style scoped>
+.toolbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2129;
+    margin-bottom: 16px;
+}
+
+.section-line {
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background: #409eff;
+    border-radius: 2px;
+    margin-right: 10px;
+}
+
+.form-tip {
+    font-size: 12px;
+    color: #86909c;
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+.slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.slider-wrapper .el-slider {
+    flex: 1;
+}
+
+.slider-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #409eff;
+    min-width: 44px;
+    text-align: center;
+}
+
+.range-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.range-wrapper .el-input-number {
+    width: 110px;
+}
+
+.range-sep {
+    color: #86909c;
+    font-size: 14px;
+    padding: 0 2px;
+}
+
+.range-unit {
+    color: #86909c;
+    font-size: 13px;
+    margin-left: 4px;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+</style>
