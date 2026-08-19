@@ -52,6 +52,11 @@
                     </span>
                 </template>
             </el-table-column>
+            <el-table-column prop="replyRate" label="回复率" width="80" align="center">
+                <template #default="{ row }">
+                    {{ row.replyRate || 80 }}%
+                </template>
+            </el-table-column>
             <el-table-column label="进度" width="130">
                 <template #default="{ row }">
                     <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6"
@@ -94,9 +99,10 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- 创建任务对话框 -->
+        <!-- 创建任务对话框（参考互聊任务） -->
         <!-- ========================================== -->
-        <el-dialog v-model="showCreateDialog" title="创建养号任务" width="650px" :close-on-click-modal="false">
+        <el-dialog v-model="showCreateDialog" title="创建养号任务" width="680px" :close-on-click-modal="false"
+            class="create-nurture-dialog">
             <el-form :model="createForm" label-width="120px" label-position="right">
                 <!-- 基本信息 -->
                 <div class="form-section">
@@ -137,6 +143,13 @@
                         <span class="section-line"></span>
                         对话参数
                     </div>
+                    <el-form-item label="发起概率">
+                        <div class="slider-wrapper">
+                            <el-slider v-model="createForm.initiateRate" :min="10" :max="100" :step="5" />
+                            <span class="slider-value">{{ createForm.initiateRate }}%</span>
+                        </div>
+                        <div class="form-tip">概率未命中时自动模拟填充</div>
+                    </el-form-item>
                     <el-form-item label="回复概率">
                         <div class="slider-wrapper">
                             <el-slider v-model="createForm.replyRate" :min="10" :max="100" :step="5" />
@@ -162,8 +175,36 @@
                         <div class="form-tip">第1轮严格检查已读，第2+轮宽松处理</div>
                     </el-form-item>
                     <el-form-item label="最大并发">
-                        <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
-                        <span style="margin-left:8px;color:#999;font-size:13px;">同时进行的对话数</span>
+                        <div class="range-wrapper">
+                            <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
+                            <span class="range-unit" style="margin-left:8px;">同时进行的对话数</span>
+                        </div>
+                    </el-form-item>
+                </div>
+
+                <!-- 配对冷却 -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <span class="section-line"></span>
+                        配对冷却
+                    </div>
+                    <el-form-item label="养号冷却">
+                        <div class="range-wrapper">
+                            <el-input-number v-model="createForm.nurtureCooldownMin" :min="1" :max="120" size="large" />
+                            <span class="range-sep">~</span>
+                            <el-input-number v-model="createForm.nurtureCooldownMax" :min="2" :max="180" size="large" />
+                            <span class="range-unit">分钟</span>
+                        </div>
+                        <div class="form-tip">养号账号配对后的冷却时间，冷却期间不再参与配对</div>
+                    </el-form-item>
+                    <el-form-item label="新号冷却">
+                        <div class="range-wrapper">
+                            <el-input-number v-model="createForm.newCooldownMin" :min="1" :max="120" size="large" />
+                            <span class="range-sep">~</span>
+                            <el-input-number v-model="createForm.newCooldownMax" :min="2" :max="180" size="large" />
+                            <span class="range-unit">分钟</span>
+                        </div>
+                        <div class="form-tip">新号账号配对后的冷却时间，冷却期间不再参与配对（建议比养号长）</div>
                     </el-form-item>
                 </div>
             </el-form>
@@ -179,34 +220,52 @@
         </el-dialog>
 
         <!-- ========================================== -->
-        <!-- 任务详情对话框 -->
+        <!-- 任务详情对话框（参考互聊任务） -->
         <!-- ========================================== -->
         <el-dialog v-model="showDetailDialog" :title="`养号任务 - ${detailTask?.name || ''}`" width="1000px"
-            :close-on-click-modal="false">
+            :close-on-click-modal="false" @close="closeDetail">
             <div v-if="detailTask" v-loading="detailLoading">
-                <!-- 基本信息 -->
+                <!-- 基本信息 - 4列 -->
                 <el-descriptions :column="4" border size="small">
                     <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
                     <el-descriptions-item label="养号分组">
-                        <el-tag size="small" type="success">{{ detailTask.nurtureGroup }}</el-tag>
+                        <el-tag size="small" type="success">{{ detailTask.nurtureGroup || '-' }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="新号分组">
-                        <el-tag size="small" type="warning">{{ detailTask.newGroup }}</el-tag>
+                        <el-tag size="small" type="warning">{{ detailTask.newGroup || '-' }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">
                             {{ getStatusLabel(detailTask.status) }}
                         </el-tag>
                     </el-descriptions-item>
-                    <el-descriptions-item label="语言">{{ getLanguageLabel(detailTask.language) }}</el-descriptions-item>
-                    <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
-                    <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds
+                </el-descriptions>
+
+                <!-- 参数和统计 - 4列 -->
+                <el-descriptions :column="4" border size="small" style="margin-top:12px;">
+                    <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
+                    <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
+                    <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
+                        }}s</el-descriptions-item>
+                    <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
                         }}</el-descriptions-item>
-                    <el-descriptions-item label="消息数">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
-                    <el-descriptions-item label="配对总数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
+                        detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
+                    <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
+                        detailTask.newCooldownMax || 90
+                        }}分钟</el-descriptions-item>
+                    <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
+                    <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
+                        formatTime(detailTask.completedAt)
+                        }}</el-descriptions-item>
+                    <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
+                    <el-descriptions-item label="停止原因" v-if="detailTask.stopReason" :span="4">
+                        <span style="color:#f56c6c;">{{ detailTask.stopReason }}</span>
+                    </el-descriptions-item>
                 </el-descriptions>
 
                 <!-- 配对列表 -->
@@ -216,60 +275,105 @@
                             {}).length
                             }})</span>
                     </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#f5f7fa;border-radius:4px;">
-                        <el-tag v-for="(newAcc, nurtureAcc) in detailTask.pairMap" :key="nurtureAcc" size="medium"
-                            style="margin:2px;">
-                            {{ nurtureAcc }} ↔ {{ newAcc }}
-                        </el-tag>
+                    <div
+                        style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
+                        <template v-for="(newAcc, nurtureAcc) in detailTask.pairMap" :key="nurtureAcc">
+                            <el-tag size="small" style="margin:2px;">
+                                {{ nurtureAcc }} ↔ {{ newAcc }}
+                            </el-tag>
+                        </template>
                         <span v-if="Object.keys(detailTask.pairMap || {}).length === 0"
                             style="color:#999;font-size:13px;">暂无配对</span>
                     </div>
                 </div>
 
-                <!-- 会话列表 -->
+                <!-- 冷却状态 -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">会话列表 ({{ sessions.length }})</span>
-                        <div style="display:flex;gap:6px;">
-                            <el-tag v-if="activeSessionsCount > 0" type="success" size="small">活跃 {{ activeSessionsCount
-                                }}</el-tag>
-                            <el-tag v-if="completedSessionsCount > 0" type="info" size="small">已完成 {{
-                                completedSessionsCount
-                                }}</el-tag>
-                            <el-tag v-if="failedSessionsCount > 0" type="danger" size="small">失败 {{ failedSessionsCount
-                                }}</el-tag>
+                        <span style="font-weight:bold;font-size:13px;">冷却状态</span>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
+                        <template v-for="(cooldownAt, account) in detailTask.nurtureCooldowns" :key="account">
+                            <el-tag size="small" :type="isCooldownActive(cooldownAt) ? 'warning' : 'success'"
+                                style="margin:2px;">
+                                🟡 {{ account }}: {{ formatCooldown(cooldownAt) }}
+                            </el-tag>
+                        </template>
+                        <template v-for="(cooldownAt, account) in detailTask.newCooldowns" :key="account">
+                            <el-tag size="small" :type="isCooldownActive(cooldownAt) ? 'warning' : 'success'"
+                                style="margin:2px;">
+                                🔵 {{ account }}: {{ formatCooldown(cooldownAt) }}
+                            </el-tag>
+                        </template>
+                        <span
+                            v-if="Object.keys(detailTask.nurtureCooldowns || {}).length === 0 && Object.keys(detailTask.newCooldowns || {}).length === 0"
+                            style="color:#999;font-size:13px;">暂无冷却中的账号</span>
+                    </div>
+                </div>
+
+                <!-- 活跃会话 -->
+                <div style="margin-top:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:bold;font-size:13px;">活跃会话 ({{ activeSessions.length }})</span>
+                    </div>
+                    <div v-if="activeSessions.length > 0"
+                        style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
+                        <el-tag v-for="session in displaySessions" :key="session.id" type="success" size="small"
+                            style="margin:2px;">
+                            {{ session.nurtureAcc }} ↔ {{ session.newAcc }}
+                            <span style="margin-left:4px;font-size:11px;color:#999;">
+                                {{ session.rounds }}/{{ session.maxRounds }}轮
+                            </span>
+                        </el-tag>
+                    </div>
+                    <div v-else
+                        style="color:#999;text-align:center;padding:8px;background:#f5f7fa;border-radius:4px;font-size:13px;">
+                        暂无活跃会话
+                    </div>
+                    <el-button v-if="activeSessions.length > 10" size="small" type="primary" plain
+                        @click="showAllSessions = !showAllSessions" style="margin-top:4px;">
+                        {{ showAllSessions ? '收起' : `查看全部 (${activeSessions.length}个)` }}
+                    </el-button>
+                </div>
+
+                <!-- 消息记录 -->
+                <div style="margin-top:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-weight:bold;font-size:13px;">消息记录</span>
+                    </div>
+                    <div class="message-list" style="max-height:300px;overflow-y:auto;">
+                        <div v-if="detailMessages.length === 0"
+                            style="text-align:center;color:#999;padding:20px;font-size:13px;">
+                            暂无消息
+                        </div>
+                        <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:6px;">
+                            <div
+                                style="padding:6px 10px;border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                                <div
+                                    style="display:flex;align-items:center;gap:6px;font-size:12px;color:#999;flex-wrap:wrap;">
+                                    <span style="font-weight:600;color:#333;">{{ msg.fromAccount }}</span>
+                                    <span>→</span>
+                                    <span>{{ msg.toAccount }}</span>
+                                    <el-tag size="small" style="font-size:10px;padding:0 6px;">
+                                        {{ msg.round }}轮
+                                    </el-tag>
+                                    <el-tag v-if="msg.isSimulated" type="warning" size="small"
+                                        style="font-size:10px;padding:0 6px;">模拟</el-tag>
+                                    <el-tag :type="getMessageStatusType(msg.status)" size="small"
+                                        style="font-size:10px;padding:0 6px;">
+                                        {{ getMessageStatusLabel(msg.status) }}
+                                    </el-tag>
+                                    <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ formatTime(msg.sentAt)
+                                        }}</span>
+                                </div>
+                                <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
+                                    <span v-if="msg.isSimulated"
+                                        style="color:#b3b3b3;font-style:italic;">[概率未命中，模拟跳过]</span>
+                                    <span v-else>{{ msg.content }}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <el-table :data="sessions" border size="small" max-height="300">
-                        <el-table-column prop="nurtureAcc" label="养号" width="140" />
-                        <el-table-column prop="newAcc" label="新号" width="140" />
-                        <el-table-column prop="status" label="状态" width="100">
-                            <template #default="{ row }">
-                                <el-tag
-                                    :type="row.status === 'active' ? 'success' : row.status === 'completed' ? 'info' : 'danger'"
-                                    size="small">
-                                    {{ row.status === 'active' ? '🟢 活跃' : row.status === 'completed' ? '✅ 完成' : '❌ 失败'
-                                    }}
-                                </el-tag>
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="rounds" label="轮数" width="70" align="center">
-                            <template #default="{ row }">
-                                {{ row.rounds }}/{{ row.maxRounds }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="chatCount" label="消息数" width="70" align="center" />
-                        <el-table-column prop="lastTime" label="最后活跃" width="160">
-                            <template #default="{ row }">
-                                {{ formatTime(row.lastTime) }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column prop="startedAt" label="开始时间" width="160">
-                            <template #default="{ row }">
-                                {{ formatTime(row.startedAt) }}
-                            </template>
-                        </el-table-column>
-                    </el-table>
                 </div>
             </div>
 
@@ -306,24 +410,45 @@ const createForm = reactive({
     nurtureGroup: '',
     newGroup: '',
     language: 'zh',
+    initiateRate: 60,
+    replyRate: 80,
     minDelay: 3,
     maxDelay: 30,
     minRounds: 2,
     maxRounds: 6,
-    replyRate: 80,
-    maxConcurrent: 2
+    maxConcurrent: 2,
+    nurtureCooldownMin: 30,
+    nurtureCooldownMax: 45,
+    newCooldownMin: 60,
+    newCooldownMax: 90,
 })
 
 // 详情
 const showDetailDialog = ref(false)
 const detailTask = ref(null)
-const sessions = ref([])
 const detailLoading = ref(false)
+const detailMessages = ref([])
+const showAllSessions = ref(false)
+const detailTimer = ref(null)
 
 // ============ 计算属性 ============
-const activeSessionsCount = computed(() => sessions.value.filter(s => s.status === 'active').length)
-const completedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'completed').length)
-const failedSessionsCount = computed(() => sessions.value.filter(s => s.status === 'failed').length)
+const activeSessions = computed(() => {
+    if (!detailTask.value || !detailTask.value.sessionStatus) return []
+    const sessions = []
+    for (const [id, status] of Object.entries(detailTask.value.sessionStatus)) {
+        if (status === 'active') {
+            sessions.push({ id, status })
+        }
+    }
+    return sessions
+})
+
+const displaySessions = computed(() => {
+    if (activeSessions.value.length > 10 && !showAllSessions.value) {
+        return activeSessions.value.slice(0, 10)
+    }
+    return activeSessions.value
+})
 
 // ============ 状态映射 ============
 const statusMap = {
@@ -346,6 +471,30 @@ const getStatusLabel = (status) => statusMap[status] || status
 const getStatusType = (status) => statusTypeMap[status] || 'info'
 const getLanguageLabel = (lang) => ({ zh: '中文', en: 'English', pt: 'Português' }[lang] || lang)
 const formatTime = (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
+
+const getMessageStatusType = (status) => {
+    const map = { sent: 'info', delivered: 'success', read: 'success', failed: 'danger' }
+    return map[status] || 'info'
+}
+
+const getMessageStatusLabel = (status) => {
+    const map = { sent: '已发送', delivered: '已送达', read: '已读', failed: '失败' }
+    return map[status] || status
+}
+
+// ============ 冷却状态 ============
+const isCooldownActive = (cooldownAt) => {
+    if (!cooldownAt) return false
+    return new Date() < new Date(cooldownAt)
+}
+
+const formatCooldown = (cooldownAt) => {
+    if (!cooldownAt) return '已冷却'
+    const remaining = new Date(cooldownAt) - new Date()
+    if (remaining <= 0) return '已冷却'
+    const minutes = Math.ceil(remaining / 60000)
+    return `${minutes}分钟`
+}
 
 // ============ 进度 ============
 const getProgress = (row) => {
@@ -393,12 +542,14 @@ const handleCreate = async () => {
     if (!createForm.newGroup) { ElMessage.warning('请选择新号分组'); return }
     if (createForm.minDelay > createForm.maxDelay) { ElMessage.warning('最小间隔不能大于最大间隔'); return }
     if (createForm.minRounds > createForm.maxRounds) { ElMessage.warning('最少轮数不能大于最多轮数'); return }
+    if (createForm.nurtureCooldownMin > createForm.nurtureCooldownMax) { ElMessage.warning('养号最小冷却不能大于最大冷却'); return }
+    if (createForm.newCooldownMin > createForm.newCooldownMax) { ElMessage.warning('新号最小冷却不能大于最大冷却'); return }
 
     creating.value = true
     try {
         const res = await nurtureApi.createTask(createForm)
         if (res.code === 0) {
-            ElMessage.success(`任务创建成功，${res.data.pairs} 对配对`)
+            ElMessage.success(`任务创建成功`)
             showCreateDialog.value = false
             createForm.name = ''
             fetchTasks()
@@ -456,23 +607,41 @@ const showTaskDetail = async (row) => {
     showDetailDialog.value = true
     detailLoading.value = true
     detailTask.value = row
+    detailMessages.value = []
+    showAllSessions.value = false
 
     try {
         const res = await nurtureApi.getTaskDetail(row.id)
         if (res.code === 0) {
             detailTask.value = res.data.task
-            sessions.value = res.data.sessions || []
-        }
-        // 获取会话
-        const sessionsRes = await nurtureApi.getSessions(row.id)
-        if (sessionsRes.code === 0) {
-            sessions.value = sessionsRes.data || []
+            detailMessages.value = res.data.messages || []
         }
     } catch (error) {
         ElMessage.error('获取任务详情失败')
     } finally {
         detailLoading.value = false
     }
+
+    // 定时刷新
+    if (detailTimer.value) clearInterval(detailTimer.value)
+    detailTimer.value = setInterval(async () => {
+        if (!showDetailDialog.value || !detailTask.value) return
+        try {
+            const res = await nurtureApi.getTaskDetail(detailTask.value.id)
+            if (res.code === 0) {
+                detailTask.value = res.data.task
+                detailMessages.value = res.data.messages || []
+            }
+        } catch (error) { }
+    }, 5000)
+}
+
+const closeDetail = () => {
+    if (detailTimer.value) {
+        clearInterval(detailTimer.value)
+        detailTimer.value = null
+    }
+    showAllSessions.value = false
 }
 
 const refreshDetail = () => {
@@ -495,6 +664,11 @@ onMounted(() => {
     margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.create-nurture-dialog :deep(.el-dialog__body) {
+    max-height: 65vh;
+    overflow-y: auto;
 }
 
 .form-section {
@@ -571,5 +745,19 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+.message-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message-list::-webkit-scrollbar-track {
+    background: #e4e7ed;
+    border-radius: 3px;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+    background: #c0c4cc;
+    border-radius: 3px;
 }
 </style>
