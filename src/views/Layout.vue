@@ -56,7 +56,7 @@
         </el-menu-item>
         <el-menu-item index="/nurture">
           <el-icon>
-            <Sprout />
+            <Sunny />
           </el-icon>
           <span>养号任务</span>
         </el-menu-item>
