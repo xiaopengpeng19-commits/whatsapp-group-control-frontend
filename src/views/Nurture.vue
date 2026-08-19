@@ -114,19 +114,21 @@
                         <el-input v-model="createForm.name" placeholder="请输入任务名称" size="large" />
                     </el-form-item>
                     <el-form-item label="养号分组" required>
-                        <el-select v-model="createForm.nurtureGroup" placeholder="选择养号分组" style="width:100%"
+                        <el-select v-model="createForm.nurtureGroups" multiple placeholder="选择养号分组" style="width:100%"
                             size="large">
                             <el-option v-for="item in accountGroups" :key="item.name"
                                 :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
                         </el-select>
-                        <div class="form-tip">该分组下的账号作为养号方，负责发起对话</div>
+                        <div class="form-tip">可选择多个分组</div>
                     </el-form-item>
+
                     <el-form-item label="新号分组" required>
-                        <el-select v-model="createForm.newGroup" placeholder="选择新号分组" style="width:100%" size="large">
+                        <el-select v-model="createForm.newGroups" multiple placeholder="选择新号分组" style="width:100%"
+                            size="large">
                             <el-option v-for="item in accountGroups" :key="item.name"
                                 :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
                         </el-select>
-                        <div class="form-tip">该分组下的账号作为新号，需要已读后才能回复</div>
+                        <div class="form-tip">可选择多个分组</div>
                     </el-form-item>
                     <el-form-item label="消息语言">
                         <el-radio-group v-model="createForm.language" size="large">
@@ -442,10 +444,11 @@ const filterStatus = ref('')
 const creating = ref(false)
 
 const showCreateDialog = ref(false)
+// createForm
 const createForm = reactive({
     name: '',
-    nurtureGroup: '',
-    newGroup: '',
+    nurtureGroups: [],      // ✅ 数组
+    newGroups: [],          // ✅ 数组
     language: 'zh',
     initiateRate: 60,
     replyRate: 80,
