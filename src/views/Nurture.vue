@@ -371,7 +371,7 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
                             }}</el-tag>
-                            <el-tag v-if="failedCount > 0" type="danger" size="small">失败 {{ failedCount }}</el-tag>
+                            <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount }}</el-tag>
                         </div>
                     </div>
                     <div class="message-list" style="max-height:350px;overflow-y:auto;">
