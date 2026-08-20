@@ -221,7 +221,7 @@
         </el-dialog>
 
         <!-- ========================================== -->
-        <!-- 任务详情对话框 - 后端统计 + 会话分页 -->
+        <!-- 任务详情对话框 -->
         <!-- ========================================== -->
         <el-dialog v-model="showDetailDialog" :title="`养号任务 - ${detailTask?.name || ''}`" width="1000px"
             :close-on-click-modal="false" @close="closeDetail">
@@ -306,7 +306,7 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- 会话列表 - 使用后端统计 + 分页 -->
+                <!-- 会话列表 -->
                 <!-- ========================================== -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -319,7 +319,6 @@
                             </span>
                         </span>
                         <div style="display:flex;gap:6px;">
-                            <!-- ✅ 使用后端统计 -->
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">
                                 已完成 {{ sessionStats.completed }}
                             </el-tag>
@@ -332,22 +331,32 @@
                         </div>
                     </div>
 
-                    <!-- 会话状态筛选 -->
+                    <!-- ✅ 搜索栏 -->
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+                        <el-input v-model="searchNurtureAcc" placeholder="养号号码" clearable style="width:150px"
+                            size="small" @keyup.enter="onSearch" />
+                        <el-input v-model="searchNewAcc" placeholder="新号号码" clearable style="width:150px" size="small"
+                            @keyup.enter="onSearch" />
+                        <el-button type="primary" size="small" @click="onSearch">搜索</el-button>
+                        <el-button size="small" @click="onResetSearch">重置</el-button>
+                    </div>
+
+                    <!-- 状态筛选按钮 -->
                     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
                         <el-button :type="sessionFilterStatus === '' ? 'primary' : ''" size="small"
-                            @click="sessionFilterStatus = ''; fetchTaskDetail()">
+                            @click="sessionFilterStatus = ''; onSessionFilterChange()">
                             全部
                         </el-button>
                         <el-button :type="sessionFilterStatus === 'active' ? 'primary' : ''" size="small"
-                            @click="sessionFilterStatus = 'active'; fetchTaskDetail()">
+                            @click="sessionFilterStatus = 'active'; onSessionFilterChange()">
                             进行中
                         </el-button>
                         <el-button :type="sessionFilterStatus === 'completed' ? 'primary' : ''" size="small"
-                            @click="sessionFilterStatus = 'completed'; fetchTaskDetail()">
+                            @click="sessionFilterStatus = 'completed'; onSessionFilterChange()">
                             已完成
                         </el-button>
                         <el-button :type="sessionFilterStatus === 'failed' ? 'primary' : ''" size="small"
-                            @click="sessionFilterStatus = 'failed'; fetchTaskDetail()">
+                            @click="sessionFilterStatus = 'failed'; onSessionFilterChange()">
                             失败
                         </el-button>
                     </div>
@@ -392,7 +401,7 @@
                         </el-table-column>
                     </el-table>
 
-                    <!-- ✅ 会话分页组件 -->
+                    <!-- 会话分页 -->
                     <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                         <el-pagination v-model:current-page="sessionPage" v-model:page-size="sessionPageSize"
                             :page-sizes="[10, 20, 50, 100]" :total="sessionTotal"
@@ -402,7 +411,7 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- 消息记录（分页版） -->
+                <!-- 消息记录 -->
                 <!-- ========================================== -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -455,7 +464,7 @@
                         </div>
                     </div>
 
-                    <!-- 消息分页组件 -->
+                    <!-- 消息分页 -->
                     <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                         <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
                             :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
@@ -518,13 +527,17 @@ const sessions = ref([])
 const detailMessages = ref([])
 const detailTimer = ref(null)
 
-// ✅ 会话分页
+// 会话分页
 const sessionPage = ref(1)
 const sessionPageSize = ref(20)
 const sessionTotal = ref(0)
 const sessionFilterStatus = ref('')
 
-// ✅ 会话统计（后端返回）
+// ✅ 会话搜索
+const searchNurtureAcc = ref('')
+const searchNewAcc = ref('')
+
+// 会话统计（后端返回）
 const sessionStats = ref({
     active: 0,
     completed: 0,
@@ -700,42 +713,39 @@ const handleDelete = async (row) => {
     }
 }
 
-// ============ ✅ 任务详情（后端统计 + 会话分页） ============
+// ============ 任务详情 ============
 
-// 获取任务详情（合并会话和消息的分页请求）
+// 获取任务详情
 const fetchTaskDetail = async () => {
     if (!detailTask.value) return
 
     try {
         const params = {
-            // 消息分页参数
             page: messagePage.value,
             page_size: messagePageSize.value,
-            // 会话分页参数
             session_page: sessionPage.value,
             session_page_size: sessionPageSize.value,
         }
-        // 消息状态过滤
         if (messageFilterStatus.value) {
             params.status = messageFilterStatus.value
         }
-        // 会话状态过滤
         if (sessionFilterStatus.value) {
             params.session_status = sessionFilterStatus.value
+        }
+        // ✅ 搜索参数
+        if (searchNurtureAcc.value) {
+            params.nurture_acc = searchNurtureAcc.value
+        }
+        if (searchNewAcc.value) {
+            params.new_acc = searchNewAcc.value
         }
 
         const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
         if (res.code === 0) {
             detailTask.value = res.data.task
-
-            // ✅ 会话数据
             sessions.value = res.data.sessions || []
             sessionTotal.value = res.data.session_total || 0
-
-            // ✅ 会话统计（后端返回）
             sessionStats.value = res.data.session_stats || { active: 0, completed: 0, failed: 0 }
-
-            // 消息数据
             detailMessages.value = res.data.messages || []
             messageTotal.value = res.data.total || 0
         }
@@ -766,13 +776,27 @@ const onMessageFilterChange = () => {
     fetchTaskDetail()
 }
 
+// ✅ 搜索
+const onSearch = () => {
+    sessionPage.value = 1
+    fetchTaskDetail()
+}
+
+// ✅ 重置搜索
+const onResetSearch = () => {
+    searchNurtureAcc.value = ''
+    searchNewAcc.value = ''
+    sessionPage.value = 1
+    fetchTaskDetail()
+}
+
 // 显示任务详情
 const showTaskDetail = async (row) => {
     showDetailDialog.value = true
     detailLoading.value = true
     detailTask.value = row
 
-    // 重置所有分页参数
+    // 重置所有分页
     messagePage.value = 1
     messagePageSize.value = 20
     messageTotal.value = 0
@@ -783,6 +807,10 @@ const showTaskDetail = async (row) => {
     sessionTotal.value = 0
     sessionFilterStatus.value = ''
     sessionStats.value = { active: 0, completed: 0, failed: 0 }
+
+    // ✅ 重置搜索
+    searchNurtureAcc.value = ''
+    searchNewAcc.value = ''
 
     sessions.value = []
     detailMessages.value = []
@@ -796,7 +824,7 @@ const showTaskDetail = async (row) => {
         detailLoading.value = false
     }
 
-    // 定时刷新（保持当前分页）
+    // 定时刷新
     if (detailTimer.value) clearInterval(detailTimer.value)
     detailTimer.value = setInterval(() => {
         if (showDetailDialog.value && detailTask.value) {
