@@ -19,9 +19,9 @@
       </el-col>
     </el-row>
 
-    <!-- 图表区域 -->
+    <!-- 最近消息 -->
     <el-row :gutter="20" style="margin-top: 20px">
-      <el-col :span="12">
+      <el-col :span="24">
         <el-card>
           <template #header>
             <span>最近消息</span>
@@ -45,32 +45,6 @@
           </el-table>
         </el-card>
       </el-col>
-
-      <el-col :span="12">
-        <el-card>
-          <template #header>
-            <span>账号状态</span>
-          </template>
-          <el-table :data="accountStatus" style="width: 100%">
-            <el-table-column prop="account" label="账号" />
-            <el-table-column prop="nickname" label="昵称" />
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="getStatusTagType(row.status)" size="small">
-                  {{ getStatusText(row.status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="isLogin" label="登录" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small">
-                  {{ row.isLogin ? '已登录' : '未登录' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
     </el-row>
   </div>
 </template>
@@ -78,7 +52,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import dayjs from 'dayjs'
-import { DataLine, User, Warning, SwitchButton } from '@element-plus/icons-vue'
+import { DataLine, Warning, SwitchButton } from '@element-plus/icons-vue'
 import api from '@/api'
 
 const stats = ref([
@@ -89,34 +63,7 @@ const stats = ref([
 ])
 
 const recentMessages = ref([])
-const accountStatus = ref([])
 let intervalId = null
-
-const statusMap = {
-  'online': '在线',
-  'normal': '在线',
-  'logging': '登录中',
-  'offline': '离线',
-  'banned': '封禁',
-  'expired': '过期'
-}
-
-const statusTagTypeMap = {
-  'online': 'success',
-  'normal': 'success',
-  'logging': 'warning',
-  'offline': 'info',
-  'banned': 'danger',
-  'expired': 'danger'
-}
-
-const getStatusText = (status) => {
-  return statusMap[status] || status
-}
-
-const getStatusTagType = (status) => {
-  return statusTagTypeMap[status] || 'info'
-}
 
 const getStatusType = (status) => {
   const map = {
@@ -151,25 +98,7 @@ const fetchData = async () => {
       stats.value[3].value = statsRes.data.banned || 0
     }
 
-    // 2. 获取账号列表（用于账号状态表格）
-    const accRes = await api.get('/whatsapp/accounts/list', {
-      params: { page: 1, page_size: 1000 }
-    })
-    if (accRes.code === 0) {
-      let data = accRes.data
-      if (data && data.data && Array.isArray(data.data)) {
-        data = data.data
-      }
-      const accounts = data || []
-      accountStatus.value = accounts.map(a => ({
-        account: a.account,
-        nickname: a.nickname || a.account,
-        status: a.status || 'offline',
-        isLogin: a.isLogin || false
-      }))
-    }
-
-    // 3. 获取最近消息
+    // 2. 获取最近消息
     const msgRes = await api.get('/whatsapp/messages/get', {
       params: { page: 1, page_size: 10 }
     })
