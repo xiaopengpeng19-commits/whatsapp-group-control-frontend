@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/api'
+import { DataLine, User, Iphone, Warning, SwitchButton } from '@element-plus/icons-vue'
 
 const stats = ref([
   { title: '总账号', value: 0, icon: Iphone, color: '#409eff' },
