@@ -221,7 +221,7 @@
         </el-dialog>
 
         <!-- ========================================== -->
-        <!-- 任务详情对话框 -->
+        <!-- 任务详情对话框 - 已修复分页 -->
         <!-- ========================================== -->
         <el-dialog v-model="showDetailDialog" :title="`养号任务 - ${detailTask?.name || ''}`" width="1000px"
             :close-on-click-modal="false" @close="closeDetail">
@@ -243,14 +243,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -258,7 +258,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -267,7 +267,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                            }})</span>
+                        }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -316,7 +316,7 @@
                         </span>
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="completedCount > 0" type="success" size="small">已完成 {{ completedCount
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="failedCount > 0" type="danger" size="small">失败 {{ failedCount }}</el-tag>
                         </div>
                     </div>
@@ -368,7 +368,7 @@
                 </div>
 
                 <!-- ========================================== -->
-                <!-- 消息记录（带分页） -->
+                <!-- 消息记录（分页版） -->
                 <!-- ========================================== -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -383,9 +383,9 @@
                                 <el-option label="失败" value="failed" />
                             </el-select>
                             <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -410,7 +410,7 @@
                                         {{ getMessageStatusLabel(msg.status) }}
                                     </el-tag>
                                     <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ formatTime(msg.sentAt)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                     <span v-if="msg.isSimulated"
@@ -421,12 +421,12 @@
                         </div>
                     </div>
 
-                    <!-- ✅ 分页 -->
+                    <!-- ✅ 分页组件 -->
                     <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                         <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
                             :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
-                            layout="total, sizes, prev, pager, next" small @size-change="fetchTaskMessages"
-                            @current-change="fetchTaskMessages" />
+                            layout="total, sizes, prev, pager, next" small @size-change="onMessagePageChange"
+                            @current-change="onMessagePageChange" />
                     </div>
                 </div>
             </div>
@@ -484,7 +484,7 @@ const sessions = ref([])
 const detailMessages = ref([])
 const detailTimer = ref(null)
 
-// 消息分页
+// ✅ 消息分页
 const messagePage = ref(1)
 const messagePageSize = ref(20)
 const messageTotal = ref(0)
@@ -672,15 +672,31 @@ const handleDelete = async (row) => {
     }
 }
 
-// ============ 任务详情 ============
+// ============ ✅ 消息分页方法 ============
+
+// ✅ 分页变化（页码或每页条数变化）
+const onMessagePageChange = () => {
+    fetchTaskMessages()
+}
+
+// ✅ 状态过滤变化
+const onMessageFilterChange = () => {
+    messagePage.value = 1  // 重置到第一页
+    fetchTaskMessages()
+}
+
+// ✅ 获取任务消息（分页）
 const fetchTaskMessages = async () => {
     if (!detailTask.value) return
+
     try {
         const params = {
             page: messagePage.value,
             page_size: messagePageSize.value
         }
-        if (messageFilterStatus.value) params.status = messageFilterStatus.value
+        if (messageFilterStatus.value) {
+            params.status = messageFilterStatus.value
+        }
 
         const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
         if (res.code === 0) {
@@ -692,10 +708,7 @@ const fetchTaskMessages = async () => {
     }
 }
 
-const onMessageFilterChange = () => {
-    messagePage.value = 1
-    fetchTaskMessages()
-}
+// ============ 任务详情 ============
 
 const showTaskDetail = async (row) => {
     showDetailDialog.value = true
@@ -703,13 +716,20 @@ const showTaskDetail = async (row) => {
     detailTask.value = row
     sessions.value = []
     detailMessages.value = []
+
+    // ✅ 重置分页参数
     messageFilterStatus.value = ''
     messagePage.value = 1
     messagePageSize.value = 20
     messageTotal.value = 0
 
     try {
-        const params = { page: 1, page_size: 20 }
+        // 先获取任务基本信息和会话
+        const params = {
+            page: messagePage.value,
+            page_size: messagePageSize.value
+        }
+
         const res = await api.get(`/nurture/tasks/detail/${row.id}`, { params })
         if (res.code === 0) {
             detailTask.value = res.data.task
@@ -724,15 +744,19 @@ const showTaskDetail = async (row) => {
         detailLoading.value = false
     }
 
+    // 定时刷新（保持当前分页）
     if (detailTimer.value) clearInterval(detailTimer.value)
     detailTimer.value = setInterval(async () => {
         if (!showDetailDialog.value || !detailTask.value) return
         try {
+            // ✅ 定时刷新也使用当前分页参数
             const params = {
                 page: messagePage.value,
                 page_size: messagePageSize.value
             }
-            if (messageFilterStatus.value) params.status = messageFilterStatus.value
+            if (messageFilterStatus.value) {
+                params.status = messageFilterStatus.value
+            }
 
             const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
             if (res.code === 0) {
@@ -754,7 +778,7 @@ const closeDetail = () => {
 
 const refreshDetail = () => {
     if (detailTask.value) {
-        fetchTaskMessages()
+        fetchTaskMessages()  // ✅ 使用当前分页
     }
 }
 
