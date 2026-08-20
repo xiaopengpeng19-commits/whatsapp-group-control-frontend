@@ -48,7 +48,7 @@
       </el-table-column>
 
       <!-- 完成进度：(delivered + read) / total -->
-      <el-table-column label="完成进度" width="160">
+      <el-table-column label="送达比例" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
             <el-progress :percentage="getCompleteProgress(row)" :color="getCompleteColor(row)" :stroke-width="6"
@@ -178,7 +178,7 @@
           <el-descriptions-item label="发送进度">
             <el-progress :percentage="getSendProgress(detailTask)" :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
-          <el-descriptions-item label="完成进度">
+          <el-descriptions-item label="送达比例">
             <el-progress :percentage="getCompleteProgress(detailTask)" :color="getCompleteColor(detailTask)"
               :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
