@@ -221,7 +221,7 @@
         </el-dialog>
 
         <!-- ========================================== -->
-        <!-- 任务详情对话框 - 已修复分页 -->
+        <!-- 任务详情对话框 - 后端统计 + 会话分页 -->
         <!-- ========================================== -->
         <el-dialog v-model="showDetailDialog" :title="`养号任务 - ${detailTask?.name || ''}`" width="1000px"
             :close-on-click-modal="false" @close="closeDetail">
@@ -243,14 +243,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                    }}分钟</el-descriptions-item>
+                        }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -258,7 +258,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -267,7 +267,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                        }})</span>
+                            }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -305,23 +305,54 @@
                     </div>
                 </div>
 
-                <!-- 会话列表 -->
+                <!-- ========================================== -->
+                <!-- 会话列表 - 使用后端统计 + 分页 -->
+                <!-- ========================================== -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">
-                            会话列表 ({{ allSessions.length }})
+                            会话列表 ({{ sessionTotal }})
                             <span style="font-size:12px;color:#999;font-weight:normal;margin-left:8px;">
-                                显示最近 {{ displaySessions.length }} 条
+                                显示第 {{ (sessionPage - 1) * sessionPageSize + 1 }} - {{ Math.min(sessionPage *
+                                sessionPageSize,
+                                sessionTotal) }} 条
                             </span>
                         </span>
                         <div style="display:flex;gap:6px;">
-                            <el-tag v-if="completedCount > 0" type="success" size="small">已完成 {{ completedCount
-                            }}</el-tag>
-                            <el-tag v-if="failedCount > 0" type="danger" size="small">失败 {{ failedCount }}</el-tag>
+                            <!-- ✅ 使用后端统计 -->
+                            <el-tag v-if="sessionStats.completed > 0" type="success" size="small">
+                                已完成 {{ sessionStats.completed }}
+                            </el-tag>
+                            <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">
+                                失败 {{ sessionStats.failed }}
+                            </el-tag>
+                            <el-tag v-if="sessionStats.active > 0" type="warning" size="small">
+                                进行中 {{ sessionStats.active }}
+                            </el-tag>
                         </div>
                     </div>
 
-                    <el-table :data="displaySessions" border size="small" max-height="300">
+                    <!-- 会话状态筛选 -->
+                    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                        <el-button :type="sessionFilterStatus === '' ? 'primary' : ''" size="small"
+                            @click="sessionFilterStatus = ''; fetchTaskDetail()">
+                            全部
+                        </el-button>
+                        <el-button :type="sessionFilterStatus === 'active' ? 'primary' : ''" size="small"
+                            @click="sessionFilterStatus = 'active'; fetchTaskDetail()">
+                            进行中
+                        </el-button>
+                        <el-button :type="sessionFilterStatus === 'completed' ? 'primary' : ''" size="small"
+                            @click="sessionFilterStatus = 'completed'; fetchTaskDetail()">
+                            已完成
+                        </el-button>
+                        <el-button :type="sessionFilterStatus === 'failed' ? 'primary' : ''" size="small"
+                            @click="sessionFilterStatus = 'failed'; fetchTaskDetail()">
+                            失败
+                        </el-button>
+                    </div>
+
+                    <el-table :data="sessions" border size="small" max-height="300">
                         <el-table-column prop="nurtureAcc" label="养号" width="140" />
                         <el-table-column prop="newAcc" label="新号" width="140" />
                         <el-table-column prop="status" label="状态" width="100">
@@ -361,9 +392,12 @@
                         </el-table-column>
                     </el-table>
 
-                    <div v-if="allSessions.length > 8"
-                        style="text-align:center;padding:4px 0;font-size:12px;color:#999;">
-                        显示最近 8 条，共 {{ allSessions.length }} 条会话
+                    <!-- ✅ 会话分页组件 -->
+                    <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+                        <el-pagination v-model:current-page="sessionPage" v-model:page-size="sessionPageSize"
+                            :page-sizes="[10, 20, 50, 100]" :total="sessionTotal"
+                            layout="total, sizes, prev, pager, next" small @size-change="onSessionPageChange"
+                            @current-change="onSessionPageChange" />
                     </div>
                 </div>
 
@@ -383,9 +417,9 @@
                                 <el-option label="失败" value="failed" />
                             </el-select>
                             <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                            }}</el-tag>
+                                }}</el-tag>
                             <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                            }}</el-tag>
+                                }}</el-tag>
                         </div>
                     </div>
 
@@ -410,7 +444,7 @@
                                         {{ getMessageStatusLabel(msg.status) }}
                                     </el-tag>
                                     <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ formatTime(msg.sentAt)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                     <span v-if="msg.isSimulated"
@@ -421,7 +455,7 @@
                         </div>
                     </div>
 
-                    <!-- ✅ 分页组件 -->
+                    <!-- 消息分页组件 -->
                     <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                         <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
                             :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
@@ -440,7 +474,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import nurtureApi from '@/api/nurture'
@@ -484,32 +518,26 @@ const sessions = ref([])
 const detailMessages = ref([])
 const detailTimer = ref(null)
 
-// ✅ 消息分页
+// ✅ 会话分页
+const sessionPage = ref(1)
+const sessionPageSize = ref(20)
+const sessionTotal = ref(0)
+const sessionFilterStatus = ref('')
+
+// ✅ 会话统计（后端返回）
+const sessionStats = ref({
+    active: 0,
+    completed: 0,
+    failed: 0
+})
+
+// 消息分页
 const messagePage = ref(1)
 const messagePageSize = ref(20)
 const messageTotal = ref(0)
 const messageFilterStatus = ref('')
 
 // ============ 计算属性 ============
-const allSessions = computed(() => {
-    const list = sessions.value || []
-    return [...list].sort((a, b) => {
-        return new Date(b.lastTime || b.createdAt) - new Date(a.lastTime || a.createdAt)
-    })
-})
-
-const displaySessions = computed(() => {
-    return allSessions.value.slice(0, 8)
-})
-
-const completedCount = computed(() => {
-    return sessions.value.filter(s => s.status === 'completed').length
-})
-
-const failedCount = computed(() => {
-    return sessions.value.filter(s => s.status === 'failed').length
-})
-
 const simulatedCount = computed(() => detailMessages.value.filter(m => m.isSimulated).length)
 const msgFailedCount = computed(() => {
     return detailMessages.value.filter(m => m.status === 'failed' || m.errorMsg !== '').length
@@ -672,72 +700,96 @@ const handleDelete = async (row) => {
     }
 }
 
-// ============ ✅ 消息分页方法 ============
+// ============ ✅ 任务详情（后端统计 + 会话分页） ============
 
-// ✅ 分页变化（页码或每页条数变化）
-const onMessagePageChange = () => {
-    fetchTaskMessages()
-}
-
-// ✅ 状态过滤变化
-const onMessageFilterChange = () => {
-    messagePage.value = 1  // 重置到第一页
-    fetchTaskMessages()
-}
-
-// ✅ 获取任务消息（分页）
-const fetchTaskMessages = async () => {
+// 获取任务详情（合并会话和消息的分页请求）
+const fetchTaskDetail = async () => {
     if (!detailTask.value) return
 
     try {
         const params = {
+            // 消息分页参数
             page: messagePage.value,
-            page_size: messagePageSize.value
+            page_size: messagePageSize.value,
+            // 会话分页参数
+            session_page: sessionPage.value,
+            session_page_size: sessionPageSize.value,
         }
+        // 消息状态过滤
         if (messageFilterStatus.value) {
             params.status = messageFilterStatus.value
+        }
+        // 会话状态过滤
+        if (sessionFilterStatus.value) {
+            params.session_status = sessionFilterStatus.value
         }
 
         const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
         if (res.code === 0) {
+            detailTask.value = res.data.task
+
+            // ✅ 会话数据
+            sessions.value = res.data.sessions || []
+            sessionTotal.value = res.data.session_total || 0
+
+            // ✅ 会话统计（后端返回）
+            sessionStats.value = res.data.session_stats || { active: 0, completed: 0, failed: 0 }
+
+            // 消息数据
             detailMessages.value = res.data.messages || []
             messageTotal.value = res.data.total || 0
         }
     } catch (error) {
-        console.error('获取消息失败:', error)
+        console.error('获取详情失败:', error)
     }
 }
 
-// ============ 任务详情 ============
+// 会话分页变化
+const onSessionPageChange = () => {
+    fetchTaskDetail()
+}
 
+// 会话状态过滤变化
+const onSessionFilterChange = () => {
+    sessionPage.value = 1
+    fetchTaskDetail()
+}
+
+// 消息分页变化
+const onMessagePageChange = () => {
+    fetchTaskDetail()
+}
+
+// 消息状态过滤变化
+const onMessageFilterChange = () => {
+    messagePage.value = 1
+    fetchTaskDetail()
+}
+
+// 显示任务详情
 const showTaskDetail = async (row) => {
     showDetailDialog.value = true
     detailLoading.value = true
     detailTask.value = row
-    sessions.value = []
-    detailMessages.value = []
 
-    // ✅ 重置分页参数
-    messageFilterStatus.value = ''
+    // 重置所有分页参数
     messagePage.value = 1
     messagePageSize.value = 20
     messageTotal.value = 0
+    messageFilterStatus.value = ''
+
+    sessionPage.value = 1
+    sessionPageSize.value = 20
+    sessionTotal.value = 0
+    sessionFilterStatus.value = ''
+    sessionStats.value = { active: 0, completed: 0, failed: 0 }
+
+    sessions.value = []
+    detailMessages.value = []
 
     try {
-        // 先获取任务基本信息和会话
-        const params = {
-            page: messagePage.value,
-            page_size: messagePageSize.value
-        }
-
-        const res = await api.get(`/nurture/tasks/detail/${row.id}`, { params })
-        if (res.code === 0) {
-            detailTask.value = res.data.task
-            sessions.value = res.data.sessions || []
-            detailMessages.value = res.data.messages || []
-            messageTotal.value = res.data.total || 0
-            await nextTick()
-        }
+        await fetchTaskDetail()
+        await nextTick()
     } catch (error) {
         ElMessage.error('获取任务详情失败')
     } finally {
@@ -746,29 +798,14 @@ const showTaskDetail = async (row) => {
 
     // 定时刷新（保持当前分页）
     if (detailTimer.value) clearInterval(detailTimer.value)
-    detailTimer.value = setInterval(async () => {
-        if (!showDetailDialog.value || !detailTask.value) return
-        try {
-            // ✅ 定时刷新也使用当前分页参数
-            const params = {
-                page: messagePage.value,
-                page_size: messagePageSize.value
-            }
-            if (messageFilterStatus.value) {
-                params.status = messageFilterStatus.value
-            }
-
-            const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
-            if (res.code === 0) {
-                detailTask.value = res.data.task
-                sessions.value = res.data.sessions || []
-                detailMessages.value = res.data.messages || []
-                messageTotal.value = res.data.total || 0
-            }
-        } catch (error) { }
+    detailTimer.value = setInterval(() => {
+        if (showDetailDialog.value && detailTask.value) {
+            fetchTaskDetail()
+        }
     }, 5000)
 }
 
+// 关闭详情
 const closeDetail = () => {
     if (detailTimer.value) {
         clearInterval(detailTimer.value)
@@ -776,9 +813,10 @@ const closeDetail = () => {
     }
 }
 
+// 手动刷新详情
 const refreshDetail = () => {
     if (detailTask.value) {
-        fetchTaskMessages()  // ✅ 使用当前分页
+        fetchTaskDetail()
     }
 }
 
@@ -786,6 +824,13 @@ const refreshDetail = () => {
 onMounted(() => {
     fetchAccountGroups()
     fetchTasks()
+})
+
+onBeforeUnmount(() => {
+    if (detailTimer.value) {
+        clearInterval(detailTimer.value)
+        detailTimer.value = null
+    }
 })
 </script>
 
