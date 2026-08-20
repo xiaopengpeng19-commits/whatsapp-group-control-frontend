@@ -121,7 +121,6 @@
                         </el-select>
                         <div class="form-tip">可选择多个分组</div>
                     </el-form-item>
-
                     <el-form-item label="新号分组" required>
                         <el-select v-model="createForm.newGroups" multiple placeholder="选择新号分组" style="width:100%"
                             size="large">
@@ -306,7 +305,7 @@
                     </div>
                 </div>
 
-                <!-- 会话列表 - 全部显示，倒序最近的8条 -->
+                <!-- 会话列表 -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">
@@ -353,10 +352,8 @@
                         </el-table-column>
                         <el-table-column prop="endReason" label="结束原因" min-width="120" show-overflow-tooltip>
                             <template #default="{ row }">
-                                <span v-if="row.endReason" :style="{
-                                    color: row.status === 'completed' ? '#67c23a' : '#f56c6c',
-                                    fontSize: '12px'
-                                }">
+                                <span v-if="row.endReason"
+                                    :style="{ color: row.status === 'completed' ? '#67c23a' : '#f56c6c', fontSize: '12px' }">
                                     {{ row.endReason }}
                                 </span>
                                 <span v-else style="color:#999;font-size:12px;">-</span>
@@ -370,17 +367,28 @@
                     </div>
                 </div>
 
-                <!-- 消息记录 -->
+                <!-- ========================================== -->
+                <!-- 消息记录（带分页） -->
+                <!-- ========================================== -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">消息记录 ({{ detailMessages.length }})</span>
-                        <div style="display:flex;gap:6px;">
+                        <span style="font-weight:bold;font-size:13px;">消息记录 ({{ messageTotal }})</span>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small"
+                                style="width:100px" @change="onMessageFilterChange">
+                                <el-option label="全部" value="" />
+                                <el-option label="已发送" value="sent" />
+                                <el-option label="已送达" value="delivered" />
+                                <el-option label="已读" value="read" />
+                                <el-option label="失败" value="failed" />
+                            </el-select>
                             <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
                                 }}</el-tag>
                             <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
                                 }}</el-tag>
                         </div>
                     </div>
+
                     <div class="message-list" style="max-height:350px;overflow-y:auto;">
                         <div v-if="detailMessages.length === 0"
                             style="text-align:center;color:#999;padding:20px;font-size:13px;">
@@ -394,9 +402,7 @@
                                     <span style="font-weight:600;color:#333;">{{ msg.fromAccount }}</span>
                                     <span>→</span>
                                     <span>{{ msg.toAccount }}</span>
-                                    <el-tag size="small" style="font-size:10px;padding:0 6px;">
-                                        {{ msg.round }}轮
-                                    </el-tag>
+                                    <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round }}轮</el-tag>
                                     <el-tag v-if="msg.isSimulated" type="warning" size="small"
                                         style="font-size:10px;padding:0 6px;">模拟</el-tag>
                                     <el-tag :type="getMessageStatusType(msg.status)" size="small"
@@ -414,6 +420,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ✅ 分页 -->
+                    <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+                        <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
+                            :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
+                            layout="total, sizes, prev, pager, next" small @size-change="fetchTaskMessages"
+                            @current-change="fetchTaskMessages" />
+                    </div>
                 </div>
             </div>
 
@@ -426,7 +440,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import nurtureApi from '@/api/nurture'
@@ -444,9 +458,6 @@ const filterStatus = ref('')
 const creating = ref(false)
 
 const showCreateDialog = ref(false)
-// createForm
-// Nurture.vue - createForm
-
 const createForm = reactive({
     name: '',
     nurtureGroups: [],
@@ -454,15 +465,15 @@ const createForm = reactive({
     language: 'zh',
     initiateRate: 60,
     replyRate: 80,
-    minDelay: 5,           // 3 → 5
-    maxDelay: 30,          // 保持 30
-    minRounds: 8,          // 2 → 8
-    maxRounds: 12,         // 6 → 12
-    maxConcurrent: 3,      // 2 → 3
-    nurtureCooldownMin: 60, // 30 → 60
-    nurtureCooldownMax: 80, // 45 → 80
-    newCooldownMin: 10,    // 保持 10
-    newCooldownMax: 20,    // 保持 20
+    minDelay: 5,
+    maxDelay: 30,
+    minRounds: 8,
+    maxRounds: 12,
+    maxConcurrent: 3,
+    nurtureCooldownMin: 60,
+    nurtureCooldownMax: 80,
+    newCooldownMin: 10,
+    newCooldownMax: 20,
 })
 
 // 详情
@@ -473,8 +484,13 @@ const sessions = ref([])
 const detailMessages = ref([])
 const detailTimer = ref(null)
 
+// 消息分页
+const messagePage = ref(1)
+const messagePageSize = ref(20)
+const messageTotal = ref(0)
+const messageFilterStatus = ref('')
+
 // ============ 计算属性 ============
-// ✅ 所有会话 - 倒序显示（最新的在前）
 const allSessions = computed(() => {
     const list = sessions.value || []
     return [...list].sort((a, b) => {
@@ -482,12 +498,10 @@ const allSessions = computed(() => {
     })
 })
 
-// ✅ 显示最近的8条
 const displaySessions = computed(() => {
     return allSessions.value.slice(0, 8)
 })
 
-// 统计
 const completedCount = computed(() => {
     return sessions.value.filter(s => s.status === 'completed').length
 })
@@ -498,7 +512,6 @@ const failedCount = computed(() => {
 
 const simulatedCount = computed(() => detailMessages.value.filter(m => m.isSimulated).length)
 const msgFailedCount = computed(() => {
-    // ✅ 统计所有 status === 'failed' 或 errorMsg 不为空的消息
     return detailMessages.value.filter(m => m.status === 'failed' || m.errorMsg !== '').length
 })
 
@@ -521,7 +534,6 @@ const statusTypeMap = {
 
 const getStatusLabel = (status) => statusMap[status] || status
 const getStatusType = (status) => statusTypeMap[status] || 'info'
-const getLanguageLabel = (lang) => ({ zh: '中文', en: 'English', pt: 'Português' }[lang] || lang)
 const formatTime = (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 
 const getMessageStatusType = (status) => {
@@ -607,7 +619,7 @@ const handleCreate = async () => {
     try {
         const res = await nurtureApi.createTask(createForm)
         if (res.code === 0) {
-            ElMessage.success(`任务创建成功`)
+            ElMessage.success('任务创建成功')
             showCreateDialog.value = false
             createForm.name = ''
             fetchTasks()
@@ -661,19 +673,50 @@ const handleDelete = async (row) => {
 }
 
 // ============ 任务详情 ============
+const fetchTaskMessages = async () => {
+    if (!detailTask.value) return
+    try {
+        const params = {
+            page: messagePage.value,
+            page_size: messagePageSize.value
+        }
+        if (messageFilterStatus.value) params.status = messageFilterStatus.value
+
+        const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
+        if (res.code === 0) {
+            detailMessages.value = res.data.messages || []
+            messageTotal.value = res.data.total || 0
+        }
+    } catch (error) {
+        console.error('获取消息失败:', error)
+    }
+}
+
+const onMessageFilterChange = () => {
+    messagePage.value = 1
+    fetchTaskMessages()
+}
+
 const showTaskDetail = async (row) => {
     showDetailDialog.value = true
     detailLoading.value = true
     detailTask.value = row
     sessions.value = []
     detailMessages.value = []
+    messageFilterStatus.value = ''
+    messagePage.value = 1
+    messagePageSize.value = 20
+    messageTotal.value = 0
 
     try {
-        const res = await nurtureApi.getTaskDetail(row.id)
+        const params = { page: 1, page_size: 20 }
+        const res = await api.get(`/nurture/tasks/detail/${row.id}`, { params })
         if (res.code === 0) {
             detailTask.value = res.data.task
             sessions.value = res.data.sessions || []
             detailMessages.value = res.data.messages || []
+            messageTotal.value = res.data.total || 0
+            await nextTick()
         }
     } catch (error) {
         ElMessage.error('获取任务详情失败')
@@ -685,11 +728,18 @@ const showTaskDetail = async (row) => {
     detailTimer.value = setInterval(async () => {
         if (!showDetailDialog.value || !detailTask.value) return
         try {
-            const res = await nurtureApi.getTaskDetail(detailTask.value.id)
+            const params = {
+                page: messagePage.value,
+                page_size: messagePageSize.value
+            }
+            if (messageFilterStatus.value) params.status = messageFilterStatus.value
+
+            const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
             if (res.code === 0) {
                 detailTask.value = res.data.task
                 sessions.value = res.data.sessions || []
                 detailMessages.value = res.data.messages || []
+                messageTotal.value = res.data.total || 0
             }
         } catch (error) { }
     }, 5000)
@@ -704,7 +754,7 @@ const closeDetail = () => {
 
 const refreshDetail = () => {
     if (detailTask.value) {
-        showTaskDetail(detailTask.value)
+        fetchTaskMessages()
     }
 }
 
