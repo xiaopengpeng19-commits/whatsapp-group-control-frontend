@@ -201,15 +201,6 @@
                 <el-option label="失败" value="failed" />
               </el-select>
             </div>
-            <el-select v-model="subFilterStatus" placeholder="全部状态" clearable @change="fetchSubTasks"
-              style="width:120px">
-              <el-option label="全部" value="" />
-              <el-option label="待执行" value="pending" />
-              <el-option label="已发送" value="sent" />
-              <el-option label="已送达" value="delivered" />
-              <el-option label="已读" value="read" />
-              <el-option label="失败" value="failed" />
-            </el-select>
           </div>
           <el-table :data="subTasks" v-loading="subLoading" border size="small">
             <el-table-column prop="account" label="账号" width="130" />
