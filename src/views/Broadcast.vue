@@ -299,19 +299,18 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
-// 发送进度：(sent + delivered + read) / total
+// 发送进度 = sentCount / totalTargets
 const getSendProgress = (row) => {
   if (!row || row.totalTargets === 0) return 0
-  const sent = (row.sentCount || 0) + (row.deliveredCount || 0) + (row.readCount || 0)
-  return Math.round((sent / row.totalTargets) * 100)
+  return Math.round((row.sentCount / row.totalTargets) * 100)
 }
 
 const getSentCount = (row) => {
   if (!row) return 0
-  return (row.sentCount || 0) + (row.deliveredCount || 0) + (row.readCount || 0)
+  return row.sentCount || 0
 }
 
-// 完成进度：(delivered + read) / total
+// 送达比例 = (deliveredCount + readCount) / totalTargets
 const getCompleteProgress = (row) => {
   if (!row || row.totalTargets === 0) return 0
   const completed = (row.deliveredCount || 0) + (row.readCount || 0)
