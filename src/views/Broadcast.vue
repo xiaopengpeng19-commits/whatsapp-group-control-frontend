@@ -36,7 +36,7 @@
       <el-table-column prop="totalTargets" label="总数" width="60" />
 
       <!-- 发送进度：sent + delivered + read / total -->
-      <el-table-column label="发送进度" width="160">
+      <el-table-column label="发送成功率" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
             <el-progress :percentage="getSendProgress(row)" color="#409eff" :stroke-width="6" style="flex:1" />
@@ -48,7 +48,7 @@
       </el-table-column>
 
       <!-- 完成进度：(delivered + read) / total -->
-      <el-table-column label="送达比例" width="160">
+      <el-table-column label="送达率" width="160">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
             <el-progress :percentage="getCompleteProgress(row)" :color="getCompleteColor(row)" :stroke-width="6"
@@ -175,10 +175,10 @@
           <el-descriptions-item label="已读">{{ detailTask.readCount }}</el-descriptions-item>
           <el-descriptions-item label="失败">{{ detailTask.failedCount }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
-          <el-descriptions-item label="发送进度">
+          <el-descriptions-item label="发送成功率">
             <el-progress :percentage="getSendProgress(detailTask)" :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
-          <el-descriptions-item label="送达比例">
+          <el-descriptions-item label="送达率">
             <el-progress :percentage="getCompleteProgress(detailTask)" :color="getCompleteColor(detailTask)"
               :stroke-width="8" style="width:120px" />
           </el-descriptions-item>
