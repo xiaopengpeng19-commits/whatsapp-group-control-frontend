@@ -275,6 +275,7 @@ const subTotal = ref(0)
 const subPage = ref(1)
 const subPageSize = ref(20)
 const subFilterStatus = ref('')
+const subSearchAccount = ref('')
 
 const getStatusType = (status) => {
   const map = {
