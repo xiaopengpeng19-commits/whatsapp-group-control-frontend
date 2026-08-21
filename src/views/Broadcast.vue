@@ -187,6 +187,20 @@
         <div style="margin-top:20px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <span style="font-weight:bold;">子任务列表</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <!-- ✅ 账号搜索框 -->
+              <el-input v-model="subSearchAccount" placeholder="搜索账号" clearable size="small" style="width:160px"
+                @input="fetchSubTasks" />
+              <el-select v-model="subFilterStatus" placeholder="全部状态" clearable @change="fetchSubTasks"
+                style="width:120px">
+                <el-option label="全部" value="" />
+                <el-option label="待执行" value="pending" />
+                <el-option label="已发送" value="sent" />
+                <el-option label="已送达" value="delivered" />
+                <el-option label="已读" value="read" />
+                <el-option label="失败" value="failed" />
+              </el-select>
+            </div>
             <el-select v-model="subFilterStatus" placeholder="全部状态" clearable @change="fetchSubTasks"
               style="width:120px">
               <el-option label="全部" value="" />
@@ -444,10 +458,10 @@ const fetchSubTasks = async () => {
       page_size: subPageSize.value
     }
     if (subFilterStatus.value) params.status = subFilterStatus.value
+    // ✅ 账号搜索参数
+    if (subSearchAccount.value) params.account = subSearchAccount.value
 
-    // ✅ 直接传 params，不要包 { params }
     const res = await broadcast.getSubTasks(detailTask.value.id, params)
-
     if (res.code === 0) {
       subTasks.value = res.data.data || []
       subTotal.value = res.data.total || 0
