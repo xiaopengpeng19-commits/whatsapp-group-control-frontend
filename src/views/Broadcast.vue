@@ -441,23 +441,29 @@ const showTaskDetail = async (row) => {
 }
 
 const fetchSubTasks = async () => {
-  if (!detailTask.value) return
+  console.log('fetchSubTasks 开始执行')
+  if (!detailTask.value) {
+    console.log('detailTask.value 为空')
+    return
+  }
   subLoading.value = true
   try {
+    console.log('开始请求:', detailTask.value.id, subPage.value, subPageSize.value)
     const params = {
       page: subPage.value,
       page_size: subPageSize.value
     }
     if (subFilterStatus.value) params.status = subFilterStatus.value
-    // ✅ 账号搜索参数
     if (subSearchAccount.value) params.account = subSearchAccount.value
 
     const res = await broadcast.getSubTasks(detailTask.value.id, params)
+    console.log('请求结果:', res)
     if (res.code === 0) {
       subTasks.value = res.data.data || []
       subTotal.value = res.data.total || 0
     }
   } catch (error) {
+    console.error('获取子任务失败:', error)
     ElMessage.error('获取子任务失败')
   } finally {
     subLoading.value = false
