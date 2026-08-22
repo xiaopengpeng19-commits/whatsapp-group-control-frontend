@@ -815,6 +815,9 @@ const fetchTaskDetail = async () => {
             page_size: messagePageSize.value,
             session_page: sessionPage.value,
             session_page_size: sessionPageSize.value,
+            // ✅ 加上复活消息分页参数
+            repeat_page: repeatPage.value,
+            repeat_page_size: repeatPageSize.value,
         }
         if (messageFilterStatus.value) {
             params.status = messageFilterStatus.value
@@ -822,7 +825,6 @@ const fetchTaskDetail = async () => {
         if (sessionFilterStatus.value) {
             params.session_status = sessionFilterStatus.value
         }
-        // ✅ 搜索参数
         if (searchNurtureAcc.value) {
             params.nurture_acc = searchNurtureAcc.value
         }
@@ -838,6 +840,9 @@ const fetchTaskDetail = async () => {
             sessionStats.value = res.data.session_stats || { active: 0, completed: 0, failed: 0 }
             detailMessages.value = res.data.messages || []
             messageTotal.value = res.data.total || 0
+            // ✅ 赋值复活消息
+            repeatMessages.value = res.data.repeat_messages || []
+            repeatTotal.value = res.data.repeat_total || 0
         }
     } catch (error) {
         console.error('获取详情失败:', error)
@@ -898,6 +903,11 @@ const showTaskDetail = async (row) => {
     sessionFilterStatus.value = ''
     sessionStats.value = { active: 0, completed: 0, failed: 0 }
 
+    // 重置复活消息
+    repeatMessages.value = []
+    repeatTotal.value = 0
+    repeatPage.value = 1
+    repeatPageSize.value = 20
     // ✅ 重置搜索
     searchNurtureAcc.value = ''
     searchNewAcc.value = ''
