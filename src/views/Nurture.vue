@@ -551,6 +551,12 @@ const sessionStats = ref({
     failed: 0
 })
 
+const repeatMessages = ref([])  // ← 确保是数组
+const repeatTotal = ref(0)
+const repeatPage = ref(1)
+const repeatPageSize = ref(20)
+const repeatFilterStatus = ref('')
+
 // 消息分页
 const messagePage = ref(1)
 const messagePageSize = ref(20)
