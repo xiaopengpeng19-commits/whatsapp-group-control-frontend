@@ -243,14 +243,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -258,7 +258,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -267,7 +267,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                            }})</span>
+                        }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -416,15 +416,74 @@
                 <!-- 在消息记录下方或旁边新增复活消息 Tab -->
 
                 <el-tabs v-model="activeTab" style="margin-top:12px;">
+                    <!-- ========================================== -->
+                    <!-- Tab 1: 会话消息 -->
+                    <!-- ========================================== -->
                     <el-tab-pane label="会话消息" name="session">
-                        <!-- 原有的消息记录 -->
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                            <span style="font-weight:bold;font-size:13px;">消息记录 ({{ messageTotal }})</span>
-                            <!-- ... 原有筛选和分页 ... -->
+                            <span style="font-weight:bold;font-size:13px;">会话消息 ({{ messageTotal }})</span>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small"
+                                    style="width:100px" @change="onMessageFilterChange">
+                                    <el-option label="全部" value="" />
+                                    <el-option label="已发送" value="sent" />
+                                    <el-option label="已送达" value="delivered" />
+                                    <el-option label="已读" value="read" />
+                                    <el-option label="失败" value="failed" />
+                                </el-select>
+                                <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
+                                    }}</el-tag>
+                                <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
+                                    }}</el-tag>
+                            </div>
                         </div>
-                        <!-- ... 原有消息列表 ... -->
+
+                        <div class="message-list" style="max-height:350px;overflow-y:auto;">
+                            <div v-if="detailMessages.length === 0"
+                                style="text-align:center;color:#999;padding:20px;font-size:13px;">
+                                暂无消息
+                            </div>
+                            <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:6px;">
+                                <div
+                                    style="padding:6px 10px;border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                                    <div
+                                        style="display:flex;align-items:center;gap:6px;font-size:12px;color:#999;flex-wrap:wrap;">
+                                        <span style="font-weight:600;color:#333;">{{ msg.fromAccount }}</span>
+                                        <span>→</span>
+                                        <span>{{ msg.toAccount }}</span>
+                                        <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round
+                                            }}轮</el-tag>
+                                        <el-tag v-if="msg.isSimulated" type="warning" size="small"
+                                            style="font-size:10px;padding:0 6px;">模拟</el-tag>
+                                        <el-tag :type="getMessageStatusType(msg.status)" size="small"
+                                            style="font-size:10px;padding:0 6px;">
+                                            {{ getMessageStatusLabel(msg.status) }}
+                                        </el-tag>
+                                        <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
+                                            formatTime(msg.sentAt)
+                                            }}</span>
+                                    </div>
+                                    <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
+                                        <span v-if="msg.isSimulated"
+                                            style="color:#b3b3b3;font-style:italic;">[概率未命中，模拟跳过]</span>
+                                        <span v-else>{{ msg.content }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 会话消息分页 -->
+                        <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+                            <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
+                                :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
+                                layout="total, sizes, prev, pager, next" small @size-change="onMessagePageChange"
+                                @current-change="onMessagePageChange" />
+                        </div>
                     </el-tab-pane>
 
+                    <!-- ========================================== -->
+                    <!-- Tab 2: 复活消息 -->
+                    <!-- ========================================== -->
                     <el-tab-pane label="复活消息" name="repeat">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                             <span style="font-weight:bold;font-size:13px;">复活消息 ({{ repeatTotal }})</span>
@@ -441,11 +500,11 @@
                         </div>
 
                         <div class="message-list" style="max-height:350px;overflow-y:auto;">
-                            <div v-if="repeatMessages.length === 0"
+                            <div v-if="!repeatMessages || repeatMessages.length === 0"
                                 style="text-align:center;color:#999;padding:20px;font-size:13px;">
                                 暂无复活消息
                             </div>
-                            <div v-for="msg in repeatMessages" :key="msg.id" style="margin-bottom:6px;">
+                            <div v-for="msg in (repeatMessages || [])" :key="msg.id" style="margin-bottom:6px;">
                                 <div
                                     style="padding:6px 10px;border-radius:4px;background:#f5f7fa;box-shadow:0 1px 2px rgba(0,0,0,0.06);border-left:3px solid #e6a23c;">
                                     <div
@@ -470,7 +529,7 @@
                             </div>
                         </div>
 
-                        <!-- 分页 -->
+                        <!-- 复活消息分页 -->
                         <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                             <el-pagination v-model:current-page="repeatPage" v-model:page-size="repeatPageSize"
                                 :page-sizes="[10, 20, 50, 100]" :total="repeatTotal"
@@ -550,13 +609,31 @@ const sessionStats = ref({
     completed: 0,
     failed: 0
 })
-
+const activeTab = ref('session')
 const repeatMessages = ref([])  // ← 确保是数组
 const repeatTotal = ref(0)
 const repeatPage = ref(1)
 const repeatPageSize = ref(20)
 const repeatFilterStatus = ref('')
-
+const fetchRepeatMessages = async () => {
+    if (!detailTask.value) return
+    try {
+        const params = {
+            page: repeatPage.value,
+            page_size: repeatPageSize.value,
+        }
+        if (repeatFilterStatus.value) {
+            params.status = repeatFilterStatus.value
+        }
+        const res = await api.get(`/nurture/tasks/repeat/${detailTask.value.id}`, { params })
+        if (res.code === 0) {
+            repeatMessages.value = res.data.data || []
+            repeatTotal.value = res.data.total || 0
+        }
+    } catch (error) {
+        console.error('获取复活消息失败:', error)
+    }
+}
 // 消息分页
 const messagePage = ref(1)
 const messagePageSize = ref(20)
