@@ -270,14 +270,14 @@
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
           <el-descriptions-item label="轮数">{{ detailTask.minRounds }}~{{ detailTask.maxRounds }}</el-descriptions-item>
           <el-descriptions-item label="配对间隔">{{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45
-            }}分钟</el-descriptions-item>
+          }}分钟</el-descriptions-item>
           <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
           <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
           <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
           <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
           <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{ formatTime(detailTask.completedAt)
-            }}</el-descriptions-item>
+          }}</el-descriptions-item>
           <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
           <el-descriptions-item label="停止原因" v-if="detailTask.stopReason" :span="4">
             <span style="color:#f56c6c;">{{ detailTask.stopReason }}</span>
@@ -332,10 +332,10 @@
               <span style="color:#999;font-size:12px;">
                 共 {{ messageTotal }} 条
                 <el-tag v-if="failedCount > 0" type="danger" size="small" style="margin-left:4px;">失败 {{ failedCount
-                  }}</el-tag>
+                }}</el-tag>
                 <el-tag v-if="simulatedCount > 0" type="warning" size="small" style="margin-left:4px;">模拟 {{
                   simulatedCount
-                  }}</el-tag>
+                }}</el-tag>
               </span>
             </div>
           </div>
@@ -849,8 +849,11 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-.slider-wrapper .el-slider {
+/* 关键 :deep()穿透scoped */
+.slider-wrapper :deep(.el-slider) {
   flex: 1;
+  /* 兜底给最小宽度，防止极端压缩 */
+  min-width: 120px;
 }
 
 .slider-value {
