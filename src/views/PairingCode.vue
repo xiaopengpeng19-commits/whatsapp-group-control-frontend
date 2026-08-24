@@ -143,14 +143,17 @@ const handleGenerate = async () => {
             proxy: form.proxy || ''
         })
 
-        if (res.code === 0 || res.status === 200) {
+        // ✅ 兼容两种格式
+        const isSuccess = res.code === 0 || res.status === 200
+
+        if (isSuccess) {
             const data = res.data || res
             result.value = {
                 account: form.account,
                 proxy: form.proxy || '-',
-                pairingCode: data.pairingCode || data.pairCode || data.code || '生成成功',
+                pairingCode: data.pairingCode || data.data || '生成成功',
                 success: true,
-                message: data.message || '',
+                message: res.message || '',
                 createdAt: new Date().toISOString()
             }
             ElMessage.success('配对码生成成功')
