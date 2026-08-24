@@ -99,44 +99,28 @@
     </div>
 
     <!-- 联系人列表 -->
-    <el-card style="margin-top:20px;" v-if="selectedAccount || selectedAccounts.length > 0">
-      <template #header>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span>
-            联系人 - {{ selectedAccount || '多个账号' }}
-            <el-tag size="small" type="info" style="margin-left:8px;">
-              {{ contacts.length }} 个
-            </el-tag>
-          </span>
-          <el-button size="small" @click="closeContacts">
-            关闭
-          </el-button>
-        </div>
-      </template>
-      
-      <el-table :data="contacts" border v-loading="contactsLoading" max-height="400">
-        <el-table-column label="名称" min-width="150">
-          <template #default="{ row }">
-            {{ getDisplayName(row) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="手机号" width="150">
-          <template #default="{ row }">
+    <el-table :data="contacts" border v-loading="contactsLoading" max-height="400">
+    <el-table-column prop="phone" label="手机号" width="150">
+        <template #default="{ row }">
             {{ getDisplayPhone(row) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="JID" min-width="200">
-          <template #default="{ row }">
+        </template>
+    </el-table-column>
+    <el-table-column label="名称" min-width="150">
+        <template #default="{ row }">
+            {{ getDisplayName(row) }}
+        </template>
+    </el-table-column>
+    <el-table-column label="JID" min-width="200">
+        <template #default="{ row }">
             {{ row.peerId || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="170">
-          <template #default="{ row }">
-            {{ formatTime(row.updatedAt) }}
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        </template>
+    </el-table-column>
+    <el-table-column prop="createdAt" label="创建时间" width="170">
+        <template #default="{ row }">
+            {{ formatTime(row.createdAt) }}
+        </template>
+    </el-table-column>
+</el-table>
 
     <!-- 添加联系人对话框 -->
     <el-dialog v-model="showAddDialog" title="添加联系人" width="500px">
