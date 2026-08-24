@@ -111,8 +111,8 @@ import api from '@/api'
 import dayjs from 'dayjs'
 
 const form = reactive({
-    account: '',
-    proxy: ''
+    account: '8618939797045',
+    proxy: 'socks5://4g2edg8h3pe6:fgio1mwtpgwf@103.247.69.108:1337'
 })
 
 const generating = ref(false)
@@ -142,7 +142,9 @@ const handleGenerate = async () => {
         const res = await api.post(`/whatsapp/accounts/${form.account}/request-pairing`, {
             proxy: form.proxy || ''
         })
-
+        console.log('res:', res)
+        console.log('res.data:', res.data)
+        console.log('res.status:', res.status)
         // ✅ 兼容两种格式
         const isSuccess = res.code === 0 || res.status === 200
 
