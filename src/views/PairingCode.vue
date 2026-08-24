@@ -139,23 +139,17 @@ const handleGenerate = async () => {
     result.value = null
 
     try {
-        console.log('start')
         const res = await api.post(`/whatsapp/accounts/${form.account}/request-pairing`, {
             proxy: form.proxy || ''
         })
-        console.log('res:', res)
-        return
-        // console.log('res.data:', res.data)
-        // console.log('res.status:', res.status)
-        // ✅ 兼容两种格式
-        const isSuccess = res.code === 0 || res.status === 200
 
-        if (isSuccess) {
-            const data = res.data || res
+        // ✅ 标准格式：code === 0 表示成功
+        if (res.code === 0) {
+            const pairingCode = res.data?.pairingCode || '生成成功'
             result.value = {
                 account: form.account,
                 proxy: form.proxy || '-',
-                pairingCode: data.pairingCode || data.data || '生成成功',
+                pairingCode: pairingCode,
                 success: true,
                 message: res.message || '',
                 createdAt: new Date().toISOString()
