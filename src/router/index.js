@@ -95,6 +95,12 @@ const routes = [
         meta: { title: "群组管理" },
       },
       {
+        path: "pairing-code",
+        name: "PairingCode",
+        component: () => import("@/views/PairingCode.vue"),
+        meta: { title: "生成配对码" },
+      },
+      {
         path: "users",
         name: "Users",
         component: Users,

@@ -78,6 +78,12 @@
           </el-icon>
           <span>群组管理</span>
         </el-menu-item>
+        <el-menu-item index="/pairing-code">
+          <el-icon>
+            <Key />
+          </el-icon>
+          <span>生成配对码</span>
+        </el-menu-item>
         <el-menu-item index="/users">
           <el-icon>
             <Setting />
