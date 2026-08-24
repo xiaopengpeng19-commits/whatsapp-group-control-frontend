@@ -139,6 +139,8 @@ const handleGenerate = async () => {
     result.value = null
 
     try {
+        console.log('start')
+        return
         const res = await api.post(`/whatsapp/accounts/${form.account}/request-pairing`, {
             proxy: form.proxy || ''
         })
