@@ -305,31 +305,25 @@ const fetchAccounts = async () => {
 }
 
 const fetchContacts = async (account) => {
-  if (!account) {
-    ElMessage.warning('请选择账号')
-    return
-  }
-  contactsLoading.value = true
-  try {
-    const res = await whatsapp.getContacts({ account })
-    if (res.code === 0) {
-      const rawContacts = res.data?.contacts || []
-      contacts.value = rawContacts.filter(c => {
-        const peerId = c.peerId || ''
-        const peerPhone = c.peerPhone || ''
-        const peerName = c.peerName || ''
-        if (peerId === '0@s.whatsapp.net') return false
-        if (peerPhone === '0') return false
-        if (peerName === 'WhatsApp') return false
-        if (peerId.startsWith('0@')) return false
-        return true
-      })
+    if (!account) {
+        ElMessage.warning('请选择账号')
+        return
     }
-  } catch (error) {
-    ElMessage.error('获取联系人失败')
-  } finally {
-    contactsLoading.value = false
-  }
+    contactsLoading.value = true
+    try {
+        const res = await whatsapp.getContacts({ account })
+        if (res.code === 0) {
+            const rawContacts = res.data?.contacts || []
+            // ✅ 前端按创建时间排序
+            contacts.value = rawContacts
+                .filter(c => c.peerId && !c.peerId.startsWith('0@'))
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        }
+    } catch (error) {
+        ElMessage.error('获取联系人失败')
+    } finally {
+        contactsLoading.value = false
+    }
 }
 
 const viewContacts = (account) => {
