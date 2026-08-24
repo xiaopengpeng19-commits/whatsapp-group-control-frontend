@@ -140,13 +140,13 @@ const handleGenerate = async () => {
 
     try {
         console.log('start')
-        return
         const res = await api.post(`/whatsapp/accounts/${form.account}/request-pairing`, {
             proxy: form.proxy || ''
         })
         console.log('res:', res)
-        console.log('res.data:', res.data)
-        console.log('res.status:', res.status)
+        return
+        // console.log('res.data:', res.data)
+        // console.log('res.status:', res.status)
         // ✅ 兼容两种格式
         const isSuccess = res.code === 0 || res.status === 200
 
