@@ -305,7 +305,8 @@ const fetchContacts = async (account) => {
 }
 
 const viewContacts = (account) => {
-  selectedAccount.value = account
+  searchAccount.value = account
+  currentViewAccount.value = account
   fetchContacts(account)
 }
 
