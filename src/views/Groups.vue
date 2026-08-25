@@ -3,45 +3,32 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <!-- 搜索框 -->
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索账号"
-          clearable
-          prefix-icon="Search"
-          style="width:200px"
-          @input="handleSearch"
-        />
+        <el-input v-model="searchKeyword" placeholder="搜索账号" clearable prefix-icon="Search" style="width:200px"
+          @input="handleSearch" />
 
-        <!-- 分组筛选 -->
         <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:150px">
           <el-option label="全部分组" value="" />
-          <el-option
-            v-for="item in accountGroups"
-            :key="item.name"
-            :label="item.name + ' (' + item.count + '个)'"
-            :value="item.name"
-          />
+          <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+            :value="item.name" />
         </el-select>
 
-        <el-button type="primary" @click="syncSelectedAccounts" :disabled="selectedAccounts.length === 0" :loading="syncing">
-          <el-icon><Refresh /></el-icon> 同步勾选 ({{ selectedAccounts.length }})
+        <el-button type="primary" @click="syncSelectedAccounts" :disabled="selectedAccounts.length === 0"
+          :loading="syncing">
+          <el-icon>
+            <Refresh />
+          </el-icon> 同步勾选 ({{ selectedAccounts.length }})
         </el-button>
         <el-button @click="fetchAccounts">
-          <el-icon><Refresh /></el-icon> 刷新
+          <el-icon>
+            <Refresh />
+          </el-icon> 刷新
         </el-button>
       </div>
     </div>
 
     <!-- 账号列表 -->
-    <el-table
-      :data="filteredAccounts"
-      v-loading="loading"
-      border
-      stripe
-      @selection-change="handleSelectionChange"
-      row-key="account"
-    >
+    <el-table :data="accounts" v-loading="loading" border stripe @selection-change="handleSelectionChange"
+      row-key="account">
       <el-table-column type="selection" width="40" />
       <el-table-column prop="account" label="账号" width="150" />
       <el-table-column prop="group" label="分组" width="120">
@@ -82,39 +69,32 @@
 
     <!-- 分页 -->
     <div style="margin-top:20px;display:flex;justify-content:flex-end;">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchAccounts"
-        @current-change="fetchAccounts"
-      />
+      <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]"
+        :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
+        @current-change="fetchAccounts" />
     </div>
 
     <!-- ========================================== -->
     <!-- 群组列表对话框 -->
     <!-- ========================================== -->
-    <el-dialog
-      v-model="showGroupsDialog"
-      :title="`群组列表 - ${selectedAccount}`"
-      width="1000px"
-      :close-on-click-modal="false"
-      @close="closeGroups"
-    >
+    <el-dialog v-model="showGroupsDialog" :title="`群组列表 - ${selectedAccount}`" width="1000px"
+      :close-on-click-modal="false" @close="closeGroups">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <span style="color:#999;font-size:13px;">
           共 {{ groupList.length }} 个群组
-          <el-tag v-if="groupList.filter(g => g.status === 'active').length > 0" type="success" size="small" style="margin-left:8px;">
-            活跃 {{ groupList.filter(g => g.status === 'active').length }}
+          <el-tag v-if="groupList.filter(g => g.status === 'active').length > 0" type="success" size="small"
+            style="margin-left:8px;">
+            活跃 {{groupList.filter(g => g.status === 'active').length}}
           </el-tag>
-          <el-tag v-if="groupList.filter(g => g.status === 'left').length > 0" type="info" size="small" style="margin-left:4px;">
-            已退出 {{ groupList.filter(g => g.status === 'left').length }}
+          <el-tag v-if="groupList.filter(g => g.status === 'left').length > 0" type="info" size="small"
+            style="margin-left:4px;">
+            已退出 {{groupList.filter(g => g.status === 'left').length}}
           </el-tag>
         </span>
         <el-button size="small" type="primary" @click="syncAccount(selectedAccount)" :loading="syncing">
-          <el-icon><Refresh /></el-icon> 同步
+          <el-icon>
+            <Refresh />
+          </el-icon> 同步
         </el-button>
       </div>
 
@@ -145,29 +125,15 @@
             {{ formatTime(row.createdAt) }}
           </template>
         </el-table-column>
-
-        <!-- 操作列 -->
         <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="info" plain @click="viewGroupDetail(row)">
               详情
             </el-button>
-            <el-button
-              v-if="row.status === 'active'"
-              size="small"
-              type="warning"
-              plain
-              @click="leaveGroup(row)"
-            >
+            <el-button v-if="row.status === 'active'" size="small" type="warning" plain @click="leaveGroup(row)">
               退出
             </el-button>
-            <el-button
-              v-if="row.status === 'active'"
-              size="small"
-              type="success"
-              plain
-              @click="getInviteLink(row)"
-            >
+            <el-button v-if="row.status === 'active'" size="small" type="success" plain @click="getInviteLink(row)">
               邀请链接
             </el-button>
           </template>
@@ -178,19 +144,15 @@
     <!-- ========================================== -->
     <!-- 群组详情弹窗 -->
     <!-- ========================================== -->
-    <el-dialog
-      v-model="showGroupDetailDialog"
-      :title="`群组详情 - ${groupDetail?.subject || groupDetail?.groupId || ''}`"
-      width="750px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showGroupDetailDialog" :title="`群组详情 - ${groupDetail?.subject || groupDetail?.groupId || ''}`"
+      width="750px" :close-on-click-modal="false">
       <div v-if="groupDetail" v-loading="groupDetailLoading">
-        <!-- 基本信息 -->
         <el-descriptions :column="2" border>
           <el-descriptions-item label="群ID">{{ groupDetail.groupId }}</el-descriptions-item>
           <el-descriptions-item label="群名称">{{ groupDetail.subject || '未命名' }}</el-descriptions-item>
           <el-descriptions-item label="群主">{{ groupDetail.owner || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="成员数">{{ groupDetail.size || groupDetail.participants?.length || 0 }}</el-descriptions-item>
+          <el-descriptions-item label="成员数">{{ groupDetail.size || groupDetail.participants?.length || 0
+            }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ groupDetail.creation ? formatTime(groupDetail.creation * 1000) : '-' }}
           </el-descriptions-item>
@@ -204,15 +166,8 @@
               <el-tag :type="groupDetail.announce ? 'danger' : 'success'" size="small">
                 {{ groupDetail.announce ? '已开启' : '未开启' }}
               </el-tag>
-              <!-- 只有群主或管理员才能设置禁言 -->
-              <el-switch
-                v-if="isCurrentUserAdminOrOwner"
-                v-model="groupDetail.announce"
-                active-text="开启"
-                inactive-text="关闭"
-                @change="handleSetAnnounce"
-                :loading="settingAnnounce"
-              />
+              <el-switch v-if="isCurrentUserAdminOrOwner" v-model="groupDetail.announce" active-text="开启"
+                inactive-text="关闭" @change="handleSetAnnounce" :loading="settingAnnounce" />
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="仅管理员可改群名">
@@ -222,7 +177,6 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <!-- 成员列表 -->
         <div style="margin-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:bold;">成员列表</span>
@@ -230,14 +184,11 @@
               <span style="color:#999;font-size:13px;">
                 共 {{ groupDetail.participants?.length || 0 }} 人
               </span>
-              <!-- 只有群主或管理员才能添加成员 -->
-              <el-button
-                v-if="isCurrentUserAdminOrOwner"
-                size="small"
-                type="primary"
-                @click="showAddMemberDialog = true"
-              >
-                <el-icon><Plus /></el-icon> 添加成员
+              <el-button v-if="isCurrentUserAdminOrOwner" size="small" type="primary"
+                @click="showAddMemberDialog = true">
+                <el-icon>
+                  <Plus />
+                </el-icon> 添加成员
               </el-button>
             </div>
           </div>
@@ -251,7 +202,8 @@
             <el-table-column prop="id" label="ID" min-width="180" show-overflow-tooltip />
             <el-table-column label="角色" width="100" align="center">
               <template #default="{ row }">
-                <el-tag :type="row.admin === 'superadmin' ? 'danger' : row.admin === 'admin' ? 'warning' : 'info'" size="small">
+                <el-tag :type="row.admin === 'superadmin' ? 'danger' : row.admin === 'admin' ? 'warning' : 'info'"
+                  size="small">
                   {{ row.admin === 'superadmin' ? '👑 群主' : row.admin === 'admin' ? '🔑 管理员' : '👤 成员' }}
                 </el-tag>
               </template>
@@ -259,43 +211,24 @@
             <el-table-column label="操作" width="180" align="center">
               <template #default="{ row }">
                 <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <!-- 只有当前账号是管理员或群主，且不是自己，才显示操作按钮 -->
                   <template v-if="isCurrentUserAdminOrOwner && getPurePhone(row.phoneNumber) !== selectedAccount">
-                    <!-- 不能操作群主 -->
                     <template v-if="row.admin !== 'superadmin'">
-                      <!-- 提拔（仅对普通成员） -->
-                      <el-button
-                        v-if="row.admin !== 'admin'"
-                        size="small"
-                        type="warning"
-                        plain
-                        @click="handlePromote(row)"
-                      >
+                      <el-button v-if="row.admin !== 'admin'" size="small" type="warning" plain
+                        @click="handlePromote(row)">
                         提拔
                       </el-button>
-                      <!-- 降级（仅对管理员） -->
-                      <el-button
-                        v-if="row.admin === 'admin'"
-                        size="small"
-                        type="danger"
-                        plain
-                        @click="handleDemote(row)"
-                      >
+                      <el-button v-if="row.admin === 'admin'" size="small" type="danger" plain
+                        @click="handleDemote(row)">
                         降级
                       </el-button>
-                      <!-- 移除 -->
-                      <el-button
-                        size="small"
-                        type="danger"
-                        plain
-                        @click="handleRemove(row)"
-                      >
+                      <el-button size="small" type="danger" plain @click="handleRemove(row)">
                         移除
                       </el-button>
                     </template>
                     <span v-else style="color:#999;font-size:12px;">群主</span>
                   </template>
-                  <span v-else-if="getPurePhone(row.phoneNumber) === selectedAccount" style="color:#999;font-size:12px;">自己</span>
+                  <span v-else-if="getPurePhone(row.phoneNumber) === selectedAccount"
+                    style="color:#999;font-size:12px;">自己</span>
                   <span v-else style="color:#999;font-size:12px;">-</span>
                 </div>
               </template>
@@ -315,20 +248,11 @@
     <!-- ========================================== -->
     <!-- 添加成员对话框 -->
     <!-- ========================================== -->
-    <el-dialog
-      v-model="showAddMemberDialog"
-      title="添加群成员"
-      width="500px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showAddMemberDialog" title="添加群成员" width="500px" :close-on-click-modal="false">
       <el-form label-width="80px">
         <el-form-item label="手机号">
-          <el-input
-            v-model="memberPhoneInput"
-            type="textarea"
-            :rows="6"
-            placeholder="每行输入一个手机号，不带 @s.whatsapp.net 后缀"
-          />
+          <el-input v-model="memberPhoneInput" type="textarea" :rows="6"
+            placeholder="每行输入一个手机号，不带 @s.whatsapp.net 后缀" />
           <div style="font-size:12px;color:#999;margin-top:4px;">
             示例：<br>
             8613298371785<br>
@@ -347,12 +271,7 @@
     <!-- ========================================== -->
     <!-- 创建群组对话框 -->
     <!-- ========================================== -->
-    <el-dialog
-      v-model="showCreateGroupDialogVisible"
-      title="创建群组"
-      width="550px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="showCreateGroupDialogVisible" title="创建群组" width="550px" :close-on-click-modal="false">
       <el-form :model="createGroupForm" label-width="100px">
         <el-form-item label="所属账号">
           <span>{{ createGroupForm.account }}</span>
@@ -361,18 +280,9 @@
           <el-input v-model="createGroupForm.subject" placeholder="请输入群名称" />
         </el-form-item>
         <el-form-item label="邀请成员">
-          <el-select
-            v-model="createGroupForm.participants"
-            multiple
-            placeholder="选择要邀请的账号"
-            style="width:100%"
-          >
-            <el-option
-              v-for="item in availableAccounts"
-              :key="item.account"
-              :label="item.account"
-              :value="item.account"
-            />
+          <el-select v-model="createGroupForm.participants" multiple placeholder="选择要邀请的账号" style="width:100%">
+            <el-option v-for="item in availableAccounts" :key="item.account" :label="item.account"
+              :value="item.account" />
           </el-select>
           <div style="font-size:12px;color:#999;margin-top:4px;">
             至少选择1个成员（群主自动加入）
@@ -399,7 +309,6 @@ import dayjs from 'dayjs'
 
 // ============ 状态 ============
 const accounts = ref([])
-const filteredAccounts = ref([])
 const groupList = ref([])
 const groupCache = ref({})
 const accountGroups = ref([])
@@ -471,7 +380,7 @@ const getPurePhone = (phone) => {
   return phone.split('@')[0]
 }
 
-// ============ 可用账号（创建群时排除当前账号） ============
+// ============ 可用账号 ============
 const availableAccounts = computed(() => {
   return accounts.value.filter(a => a.account !== createGroupForm.account)
 })
@@ -498,21 +407,17 @@ const handleSetAnnounce = async (value) => {
     })
     if (res.code === 0) {
       ElMessage.success(res.message || (value ? '已开启全员禁言' : '已关闭全员禁言'))
-      // 同步更新本地数据
       groupDetail.value.announce = value
-      // 更新群组列表中的状态
       const groupIndex = groupList.value.findIndex(g => g.groupId === currentGroupRow.value.groupId)
       if (groupIndex !== -1) {
         groupList.value[groupIndex].announce = value
         groupCache.value[selectedAccount.value] = groupList.value
       }
     } else {
-      // 开关回退
       groupDetail.value.announce = !value
       ElMessage.error(res.message || '设置失败')
     }
   } catch (error) {
-    // 开关回退
     groupDetail.value.announce = !value
     ElMessage.error('设置失败: ' + (error.message || ''))
   } finally {
@@ -527,23 +432,29 @@ const fetchAccountGroups = async () => {
     if (res.code === 0) {
       accountGroups.value = res.data || []
     }
-  } catch (error) {
-    // ignore
-  }
+  } catch (error) { }
 }
 
 const fetchAccounts = async () => {
   loading.value = true
   try {
-    const res = await whatsapp.getAccounts()
+    const params = {
+      page: page.value,
+      page_size: pageSize.value
+    }
+    if (filterGroup.value) params.group = filterGroup.value
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+
+    const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
-      let data = res.data
-      if (data && data.data && Array.isArray(data.data)) {
-        data = data.data
+      const result = res.data
+      if (Array.isArray(result)) {
+        accounts.value = result
+        total.value = result.length
+      } else {
+        accounts.value = result.data || []
+        total.value = result.total || 0
       }
-      accounts.value = data || []
-      applyFilters()
-      total.value = filteredAccounts.value.length
     }
   } catch (error) {
     ElMessage.error('获取账号列表失败')
@@ -553,22 +464,9 @@ const fetchAccounts = async () => {
 }
 
 // ============ 筛选 ============
-const applyFilters = () => {
-  let list = [...accounts.value]
-  if (searchKeyword.value) {
-    const kw = searchKeyword.value.toLowerCase()
-    list = list.filter(a => a.account.includes(kw))
-  }
-  if (filterGroup.value) {
-    list = list.filter(a => a.group === filterGroup.value)
-  }
-  filteredAccounts.value = list
-}
-
 const handleSearch = () => {
   page.value = 1
-  applyFilters()
-  total.value = filteredAccounts.value.length
+  fetchAccounts()
 }
 
 // ============ 选中账号 ============
@@ -676,7 +574,7 @@ const syncAccount = async (account) => {
 }
 
 // ==========================================
-// 群组详情（弹窗）
+// 群组详情
 // ==========================================
 
 const viewGroupDetail = async (row) => {
@@ -833,7 +731,6 @@ const handleAddMembers = async () => {
     return
   }
 
-  // 添加 @s.whatsapp.net 后缀
   const participants = phones.map(p => {
     if (p.includes('@')) {
       return p
