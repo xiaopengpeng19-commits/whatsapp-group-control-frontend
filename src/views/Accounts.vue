@@ -94,6 +94,13 @@
               <Delete />
             </el-icon> 清空重连队列
           </el-button>
+          <!-- ✅ 新增：批量删除 -->
+          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedAccounts.length === 0"
+            :loading="batchDeleteLoading" size="default">
+            <el-icon>
+              <Delete />
+            </el-icon> 批量删除
+          </el-button>
         </div>
       </div>
     </div>
@@ -536,7 +543,65 @@ const fetchAccounts = async () => {
     loading.value = false
   }
 }
+// ============ 批量删除 ============
+const batchDeleteLoading = ref(false)
 
+const handleBatchDelete = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择要删除的账号')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedAccounts.value.length} 个账号吗？\n此操作不可恢复！`,
+      '批量删除确认',
+      { type: 'error', confirmButtonText: '确定删除', cancelButtonText: '取消' }
+    )
+
+    batchDeleteLoading.value = true
+    let successCount = 0
+    let failCount = 0
+    const failedAccounts = []
+
+    for (const account of selectedAccounts.value) {
+      try {
+        const res = await whatsapp.deleteAccount(account)
+        if (res.code === 0) {
+          successCount++
+        } else {
+          failCount++
+          failedAccounts.push(account + ': ' + res.message)
+        }
+      } catch (error) {
+        failCount++
+        failedAccounts.push(account + ': ' + (error.message || '未知错误'))
+      }
+      // 间隔50ms，避免请求过快
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+
+    if (failCount === 0) {
+      ElMessage.success(`成功删除 ${successCount} 个账号`)
+    } else {
+      ElMessage.warning(`成功删除 ${successCount} 个，失败 ${failCount} 个`)
+      if (failedAccounts.length > 0) {
+        console.log('删除失败列表:', failedAccounts)
+        ElMessage.error('部分账号删除失败: ' + failedAccounts.join('; '))
+      }
+    }
+
+    selectedAccounts.value = []
+    fetchAccounts()
+    fetchAccountGroups()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('批量删除失败: ' + (error.message || ''))
+    }
+  } finally {
+    batchDeleteLoading.value = false
+  }
+}
 // ============ 选中账号 ============
 const handleSelectionChange = (selection) => {
   selectedAccounts.value = selection.map(item => item.account)
