@@ -780,10 +780,15 @@ const handleGroupOffline = async () => {
 
 // ============ 删除账号 ============
 const handleDelete = async (account) => {
+  // 不再检查 isLogin
   try {
     await ElMessageBox.confirm(`确定要删除账号 ${account} 吗？`, '提示', { type: 'warning' })
     const res = await whatsapp.deleteAccount(account)
-    if (res.code === 0) { ElMessage.success('删除成功'); fetchAccounts(); fetchAccountGroups() }
+    if (res.code === 0) {
+      ElMessage.success('删除成功')
+      fetchAccounts()
+      fetchAccountGroups()
+    }
   } catch { }
 }
 
