@@ -191,18 +191,18 @@
                     </div>
                     <el-form-item label="养号冷却">
                         <div class="range-wrapper">
-                            <el-input-number v-model="createForm.nurtureCooldownMin" :min="1" :max="120" size="large" />
+                            <el-input-number v-model="createForm.nurtureCooldownMin" :min="1" :max="999" size="large" />
                             <span class="range-sep">~</span>
-                            <el-input-number v-model="createForm.nurtureCooldownMax" :min="2" :max="180" size="large" />
+                            <el-input-number v-model="createForm.nurtureCooldownMax" :min="2" :max="999" size="large" />
                             <span class="range-unit">分钟</span>
                         </div>
                         <div class="form-tip">养号账号配对后的冷却时间，冷却期间不再参与配对</div>
                     </el-form-item>
                     <el-form-item label="新号冷却">
                         <div class="range-wrapper">
-                            <el-input-number v-model="createForm.newCooldownMin" :min="1" :max="120" size="large" />
+                            <el-input-number v-model="createForm.newCooldownMin" :min="1" :max="999" size="large" />
                             <span class="range-sep">~</span>
-                            <el-input-number v-model="createForm.newCooldownMax" :min="2" :max="180" size="large" />
+                            <el-input-number v-model="createForm.newCooldownMax" :min="2" :max="999" size="large" />
                             <span class="range-unit">分钟</span>
                         </div>
                         <div class="form-tip">新号账号配对后的冷却时间，冷却期间不再参与配对（建议比养号长）</div>
