@@ -146,13 +146,16 @@
           <span v-else style="color:#999;font-size:12px;">未分配</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column prop="status" label="状态" width="130">
         <template #default="{ row }">
-          <el-tag v-if="row.status === 'requesting_pair_code'" type="warning" size="small">请求中...</el-tag>
-          <el-tag v-else-if="row.status === 'waiting_pair_code'" type="warning" size="small">等待配对码</el-tag>
-          <el-tag v-else :type="getStatusType(row.status)" size="small">
-            {{ getStatusText(row.status) }}
-          </el-tag>
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+            <el-tag v-if="row.status === 'banned' && row.errCode" type="danger" size="small" style="font-size:10px;">
+              {{ row.errCode }}
+            </el-tag>
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="isLogin" label="登录" width="80">
