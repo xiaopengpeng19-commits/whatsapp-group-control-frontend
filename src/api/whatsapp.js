@@ -6,7 +6,7 @@ export default {
     api.get("/whatsapp/accounts/list", {
       params: { page: 1, page_size: 1000 },
     }),
-  addAccount: (data) => api.post("/whatsapp/accounts/add", data),
+  batchAddAccounts: (data) => api.post("/whatsapp/accounts/batch/add", data),
   deleteAccount: (account) => api.post(`/whatsapp/accounts/${account}/del`),
   online: (account) => api.post(`/whatsapp/accounts/${account}/online`),
   offline: (account) => api.post(`/whatsapp/accounts/${account}/offline`),

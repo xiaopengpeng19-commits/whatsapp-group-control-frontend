@@ -54,10 +54,10 @@
           </el-button>
 
           <!-- 其他操作 -->
-          <el-button type="primary" @click="showAddDialog = true" size="default">
+          <el-button type="primary" @click="showBatchAddDialog = true" size="default">
             <el-icon>
               <Plus />
-            </el-icon> 添加账号
+            </el-icon> 批量添加
           </el-button>
           <el-button type="success" @click="showImportDialog = true" size="default">
             <el-icon>
@@ -223,33 +223,30 @@
         @current-change="fetchAccounts" />
     </div>
 
-    <!-- ========================================== -->
-    <!-- 添加账号对话框 -->
-    <!-- ========================================== -->
-    <el-dialog v-model="showAddDialog" title="添加账号" width="500px">
-      <el-form :model="addForm" label-width="100px">
-        <el-form-item label="手机号" required>
-          <el-input v-model="addForm.account" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="昵称">
-          <el-input v-model="addForm.nickname" placeholder="请输入昵称（可选）" />
+    <!-- 批量添加账号对话框 -->
+    <el-dialog v-model="showBatchAddDialog" title="批量添加账号" width="600px">
+      <el-form :model="batchAddForm" label-width="100px">
+        <el-form-item label="账号列表" required>
+          <el-input v-model="batchAddForm.accountsText" type="textarea" :rows="10" placeholder="每行一个手机号" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            示例:<br>
+            8612345678901<br>
+            8612345678902
+          </div>
         </el-form-item>
         <el-form-item label="账号分组">
-          <el-input v-model="addForm.group" placeholder="请输入分组名称（可选）" />
+          <el-input v-model="batchAddForm.group" placeholder="请输入分组名称（可选）" />
         </el-form-item>
         <el-form-item label="代理分组" required>
-          <el-select v-model="addForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
+          <el-select v-model="batchAddForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
             <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
               :value="item.name" />
           </el-select>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            选择后自动分配该分组中使用最少的代理IP
-          </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleAdd">确定</el-button>
+        <el-button @click="showBatchAddDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchAdd" :loading="batchAddLoading">确定</el-button>
       </template>
     </el-dialog>
 
@@ -462,6 +459,55 @@ const batchProxyLoading = ref(false)
 // ============ 批量上线/下线 ============
 const batchOnlineLoading = ref(false)
 const batchOfflineLoading = ref(false)
+
+// ============ 批量添加账号 ============
+const showBatchAddDialog = ref(false)
+const batchAddLoading = ref(false)
+const batchAddForm = reactive({
+  accountsText: '',
+  group: '',
+  proxyGroup: ''
+})
+
+const handleBatchAdd = async () => {
+  const accounts = batchAddForm.accountsText.split('\n')
+    .map(a => a.trim())
+    .filter(a => a !== '')
+
+  if (accounts.length === 0) {
+    ElMessage.warning('请输入至少一个手机号')
+    return
+  }
+
+  if (!batchAddForm.proxyGroup) {
+    ElMessage.warning('请选择代理分组')
+    return
+  }
+
+  batchAddLoading.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/batch/add', {
+      accounts: accounts,
+      group: batchAddForm.group || '',
+      proxyGroup: batchAddForm.proxyGroup
+    })
+    if (res.code === 0) {
+      const { success, failed, duplicate, total } = res.data
+      ElMessage.success(`添加完成：成功 ${success} 个，失败 ${failed} 个，重复 ${duplicate} 个，共 ${total} 个`)
+      showBatchAddDialog.value = false
+      batchAddForm.accountsText = ''
+      batchAddForm.group = ''
+      batchAddForm.proxyGroup = ''
+      fetchAccounts()
+      fetchAccountGroups()
+      fetchProxyGroups()
+    }
+  } catch (error) {
+    ElMessage.error('批量添加失败: ' + (error.message || ''))
+  } finally {
+    batchAddLoading.value = false
+  }
+}
 
 // ============ 表单 ============
 const addForm = reactive({
