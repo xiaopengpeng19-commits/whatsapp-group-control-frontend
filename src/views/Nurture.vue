@@ -25,63 +25,70 @@
             </el-select>
         </div>
 
-        <!-- 任务列表 -->
         <el-table :data="tasks" v-loading="loading" border>
-            <el-table-column prop="name" label="任务名称" width="140" />
-            <el-table-column prop="nurtureGroup" label="养号分组" width="120">
+            <!-- 任务名称 -->
+            <el-table-column prop="name" label="任务名称" width="100" />
+
+            <!-- 分组 -->
+            <el-table-column label="分组" width="140">
                 <template #default="{ row }">
                     <el-tag size="small" type="success">{{ row.nurtureGroup }}</el-tag>
+                    <el-tag size="small" type="warning" style="margin-left:4px;">{{ row.newGroup }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="newGroup" label="新号分组" width="120">
-                <template #default="{ row }">
-                    <el-tag size="small" type="warning">{{ row.newGroup }}</el-tag>
-                </template>
-            </el-table-column>
-            <!-- ✅ 新增配对统计列 -->
-            <el-table-column label="配对" width="200" align="center">
-                <template #default="{ row }">
-                    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
-                        <el-tag size="small" type="info">总 {{ row.pairStats?.total || 0 }}</el-tag>
-                        <el-tag size="small" type="warning">剩余 {{ row.pairStats?.remaining || 0 }}</el-tag>
-                        <el-tag size="small" type="success">完成 {{ row.pairStats?.completed || 0 }}</el-tag>
-                        <el-tag size="small" type="danger">封禁 {{ row.pairStats?.banned || 0 }}</el-tag>
-                    </div>
-                </template>
-            </el-table-column>
-            <el-table-column label="轮数" width="90" align="center">
+
+            <!-- 配对 -->
+            <el-table-column label="配对" width="150">
                 <template #default="{ row }">
                     <span style="font-size:13px;">
-                        {{ row.minRounds || 2 }}~{{ row.maxRounds || 6 }}
+                        总 <el-tag size="small" type="info">{{ row.pairStats?.total || 0 }}</el-tag>
+                        剩 <el-tag size="small" type="warning">{{ row.pairStats?.remaining || 0 }}</el-tag>
+                        完 <el-tag size="small" type="success">{{ row.pairStats?.completed || 0 }}</el-tag>
                     </span>
                 </template>
             </el-table-column>
-            <el-table-column prop="replyRate" label="回复率" width="80" align="center">
+
+            <!-- 轮数 -->
+            <el-table-column label="轮数" width="70">
                 <template #default="{ row }">
-                    {{ row.replyRate || 80 }}%
+                    <span style="font-size:13px;">{{ row.minRounds || 2 }}-{{ row.maxRounds || 6 }}</span>
                 </template>
             </el-table-column>
-            <el-table-column label="进度" width="130">
+
+            <!-- 回复率 -->
+            <el-table-column prop="replyRate" label="回复率" width="70" align="center">
+                <template #default="{ row }">{{ row.replyRate || 80 }}%</template>
+            </el-table-column>
+
+            <!-- 进度 -->
+            <el-table-column label="进度" width="120">
                 <template #default="{ row }">
-                    <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6"
-                        style="width:100px" />
+                    <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6" />
                 </template>
             </el-table-column>
-            <el-table-column prop="activeSessions" label="会话" width="70" align="center" />
-            <el-table-column prop="totalMessages" label="消息" width="70" align="center" />
-            <el-table-column prop="status" label="状态" width="90">
+
+            <!-- 会话/消息 -->
+            <el-table-column label="会话消息" width="85" align="center">
+                <template #default="{ row }">{{ row.totalMessages || 0 }}</template>
+            </el-table-column>
+            <el-table-column label="复活消息" width="85" align="center">
+                <template #default="{ row }">{{ row.repeatCount || 0 }}</template>
+            </el-table-column>
+
+            <!-- 状态 -->
+            <el-table-column prop="status" label="状态" width="80">
                 <template #default="{ row }">
-                    <el-tag :type="getStatusType(row.status)" size="small">
-                        {{ getStatusLabel(row.status) }}
-                    </el-tag>
+                    <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusLabel(row.status) }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="createdAt" label="创建时间" width="150">
-                <template #default="{ row }">
-                    {{ formatTime(row.createdAt) }}
-                </template>
+
+            <!-- 创建时间 -->
+            <el-table-column prop="createdAt" label="创建时间" width="140">
+                <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="300" fixed="right">
+
+            <!-- 操作 -->
+            <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" @click="showTaskDetail(row)">详情</el-button>
                     <el-button v-if="row.status === 'pending' || row.status === 'paused'" size="small" type="success"
