@@ -72,7 +72,7 @@
                 <template #default="{ row }">{{ row.totalMessages || 0 }}</template>
             </el-table-column>
             <el-table-column label="复活消息" width="85" align="center">
-                <template #default="{ row }">{{ row.repeatTotal || 0 }}</template>
+                <template #default="{ row }">{{ row.repeatMessages || 0 }}</template>
             </el-table-column>
 
             <!-- 状态 -->
