@@ -247,14 +247,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -274,7 +274,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -283,7 +283,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                            }})</span>
+                        }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -448,9 +448,9 @@
                                     <el-option label="失败" value="failed" />
                                 </el-select>
                                 <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                                }}</el-tag>
+                                    }}</el-tag>
                                 <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                                }}</el-tag>
+                                    }}</el-tag>
                             </div>
                         </div>
 
@@ -468,7 +468,7 @@
                                         <span>→</span>
                                         <span>{{ msg.toAccount }}</span>
                                         <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round
-                                        }}轮</el-tag>
+                                            }}轮</el-tag>
                                         <el-tag v-if="msg.isSimulated" type="warning" size="small"
                                             style="font-size:10px;padding:0 6px;">模拟</el-tag>
                                         <el-tag :type="getMessageStatusType(msg.status)" size="small"
@@ -477,7 +477,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         <span v-if="msg.isSimulated"
@@ -536,7 +536,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
@@ -710,9 +710,14 @@ const formatCooldown = (cooldownAt) => {
 
 // ============ 进度 ============
 const getProgress = (row) => {
-    if (!row.totalPairs || row.totalPairs === 0) return 0
-    const completed = Object.values(row.sessionStatus || {}).filter(s => s === 'completed' || s === 'failed').length
-    return Math.round((completed / row.totalPairs) * 100)
+    // ✅ 基于配对完成率
+    const pairStats = row.pairStats || {}
+    const total = pairStats.total || 0
+    const completed = pairStats.completed || 0
+    const banned = pairStats.banned || 0
+    if (total === 0) return 0
+    // 完成 + 封禁 = 已结束的配对
+    return Math.round(((completed + banned) / total) * 100)
 }
 
 const getProgressColor = (row) => {
