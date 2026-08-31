@@ -370,10 +370,6 @@
                             @click="sessionFilterStatus = ''; onSessionFilterChange()">
                             全部
                         </el-button>
-                        <el-button :type="sessionFilterStatus === 'pending' ? 'primary' : ''" size="small"
-                            @click="sessionFilterStatus = 'pending'; onSessionFilterChange()">
-                            待进行
-                        </el-button>
                         <el-button :type="sessionFilterStatus === 'active' ? 'primary' : ''" size="small"
                             @click="sessionFilterStatus = 'active'; onSessionFilterChange()">
                             进行中
