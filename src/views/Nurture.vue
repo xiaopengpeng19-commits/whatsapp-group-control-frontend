@@ -38,11 +38,15 @@
                     <el-tag size="small" type="warning">{{ row.newGroup }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="配对" width="100" align="center">
+            <!-- ✅ 新增配对统计列 -->
+            <el-table-column label="配对" width="200" align="center">
                 <template #default="{ row }">
-                    <span style="font-size:13px;">
-                        {{ Object.keys(row.pairMap || {}).length }} 对
-                    </span>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+                        <el-tag size="small" type="info">总 {{ row.pairStats?.total || 0 }}</el-tag>
+                        <el-tag size="small" type="warning">剩余 {{ row.pairStats?.remaining || 0 }}</el-tag>
+                        <el-tag size="small" type="success">完成 {{ row.pairStats?.completed || 0 }}</el-tag>
+                        <el-tag size="small" type="danger">封禁 {{ row.pairStats?.banned || 0 }}</el-tag>
+                    </div>
                 </template>
             </el-table-column>
             <el-table-column label="轮数" width="90" align="center">
@@ -243,22 +247,34 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                    }}分钟</el-descriptions-item>
+                        }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
+                    <el-descriptions-item label="总配对">
+                        <el-tag type="info" size="small">{{ pairStats.total || 0 }}</el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="剩余">
+                        <el-tag type="warning" size="small">{{ pairStats.remaining || 0 }}</el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="已完成">
+                        <el-tag type="success" size="small">{{ pairStats.completed || 0 }}</el-tag>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="封禁">
+                        <el-tag type="danger" size="small">{{ pairStats.banned || 0 }}</el-tag>
+                    </el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -267,7 +283,7 @@
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
                             {}).length
-                        }})</span>
+                            }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
@@ -432,9 +448,9 @@
                                     <el-option label="失败" value="failed" />
                                 </el-select>
                                 <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                                    }}</el-tag>
+                                }}</el-tag>
                                 <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                                    }}</el-tag>
+                                }}</el-tag>
                             </div>
                         </div>
 
@@ -452,7 +468,7 @@
                                         <span>→</span>
                                         <span>{{ msg.toAccount }}</span>
                                         <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round
-                                            }}轮</el-tag>
+                                        }}轮</el-tag>
                                         <el-tag v-if="msg.isSimulated" type="warning" size="small"
                                             style="font-size:10px;padding:0 6px;">模拟</el-tag>
                                         <el-tag :type="getMessageStatusType(msg.status)" size="small"
@@ -461,7 +477,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         <span v-if="msg.isSimulated"
@@ -520,7 +536,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
@@ -565,6 +581,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const filterStatus = ref('')
 const creating = ref(false)
+const pairStats = ref({})
 
 const showCreateDialog = ref(false)
 const createForm = reactive({
@@ -815,7 +832,6 @@ const fetchTaskDetail = async () => {
             page_size: messagePageSize.value,
             session_page: sessionPage.value,
             session_page_size: sessionPageSize.value,
-            // ✅ 加上复活消息分页参数
             repeat_page: repeatPage.value,
             repeat_page_size: repeatPageSize.value,
         }
@@ -840,9 +856,10 @@ const fetchTaskDetail = async () => {
             sessionStats.value = res.data.session_stats || { active: 0, completed: 0, failed: 0 }
             detailMessages.value = res.data.messages || []
             messageTotal.value = res.data.total || 0
-            // ✅ 赋值复活消息
             repeatMessages.value = res.data.repeat_messages || []
             repeatTotal.value = res.data.repeat_total || 0
+            // ✅ 接收配对统计
+            pairStats.value = res.data.pair_stats || {}
         }
     } catch (error) {
         console.error('获取详情失败:', error)
