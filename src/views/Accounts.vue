@@ -19,7 +19,11 @@
           <el-option label="请求配对码" value="requesting_pair_code" />
           <el-option label="等待配对码" value="waiting_pair_code" />
         </el-select>
-
+        <el-select v-model="filterIsLogin" placeholder="登录状态" clearable @change="fetchAccounts" style="width:120px">
+          <el-option label="全部" value="" />
+          <el-option label="已登录" value="true" />
+          <el-option label="未登录" value="false" />
+        </el-select>
         <el-select v-model="filterGroup" placeholder="全部分组" clearable @change="fetchAccounts" style="width:140px">
           <el-option label="全部分组" value="" />
           <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
@@ -434,6 +438,7 @@ import api from '@/api'
 import dayjs from 'dayjs'
 
 // ============ 状态 ============
+const filterIsLogin = ref('')
 const accounts = ref([])
 const accountGroups = ref([])
 const proxyGroups = ref([])
@@ -624,6 +629,7 @@ const fetchAccounts = async () => {
     if (filterGroup.value) params.group = filterGroup.value
     if (filterStatus.value) params.status = filterStatus.value
     if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (filterIsLogin.value !== '') params.is_login = filterIsLogin.value  // ✅ 新增
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
       const result = res.data
