@@ -389,15 +389,30 @@
       </template>
     </el-dialog>
 
-    <!-- ========================================== -->
     <!-- 二维码对话框 -->
-    <!-- ========================================== -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
       <div class="qr-container" v-loading="qrLoading">
         <div v-if="qrCode" class="qr-image-wrapper">
           <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCode)"
             alt="二维码" />
           <p class="qr-tip">请使用 WhatsApp 扫描二维码登录</p>
+
+          <!-- ✅ 新增：显示链接 -->
+          <div style="margin-top:12px;width:100%;">
+            <div style="display:flex;gap:8px;align-items:center;background:#f5f7fa;padding:8px 12px;border-radius:4px;">
+              <el-input v-model="qrCode" readonly size="small" style="flex:1;font-size:12px;" @click="copyQRCode" />
+              <el-button size="small" type="primary" @click="copyQRCode">
+                <el-icon>
+                  <CopyDocument />
+                </el-icon> 复制
+              </el-button>
+            </div>
+            <div style="font-size:12px;color:#999;margin-top:4px;text-align:center;">
+              <a :href="'https://wa.me/' + qrCode" target="_blank" style="color:#409eff;">
+                https://wa.me/{{ qrCode }}
+              </a>
+            </div>
+          </div>
         </div>
         <div v-else-if="!qrLoading" class="qr-empty">
           <el-icon :size="48">
@@ -413,6 +428,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { CopyDocument } from '@element-plus/icons-vue'
 import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, SwitchButton, Connection, Download, Delete } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
@@ -468,7 +484,24 @@ const batchAddForm = reactive({
   group: '',
   proxyGroup: ''
 })
-
+const copyQRCode = () => {
+  if (!qrCode.value) {
+    ElMessage.warning('没有可复制的内容')
+    return
+  }
+  navigator.clipboard.writeText(qrCode.value).then(() => {
+    ElMessage.success('已复制链接')
+  }).catch(() => {
+    // 降级方案
+    const input = document.createElement('input')
+    input.value = qrCode.value
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    ElMessage.success('已复制链接')
+  })
+}
 const handleBatchAdd = async () => {
   const accounts = batchAddForm.accountsText.split('\n')
     .map(a => a.trim())
