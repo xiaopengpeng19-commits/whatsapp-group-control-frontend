@@ -288,19 +288,16 @@
                 <!-- 配对列表 -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">配对列表 ({{ Object.keys(detailTask.pairMap ||
-                            {}).length
-                        }})</span>
+                        <span style="font-weight:bold;font-size:13px;">进行中配对 ({{ runningPairs.length }})</span>
                     </div>
                     <div
                         style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;">
-                        <template v-for="(newAcc, nurtureAcc) in detailTask.pairMap" :key="nurtureAcc">
-                            <el-tag size="small" style="margin:2px;">
-                                {{ nurtureAcc }} ↔ {{ newAcc }}
+                        <template v-for="pair in runningPairs" :key="pair.nurtureAcc + pair.newAcc">
+                            <el-tag size="small" type="warning" style="margin:2px;">
+                                {{ pair.nurtureAcc }} ↔ {{ pair.newAcc }}
                             </el-tag>
                         </template>
-                        <span v-if="Object.keys(detailTask.pairMap || {}).length === 0"
-                            style="color:#999;font-size:13px;">暂无配对</span>
+                        <span v-if="runningPairs.length === 0" style="color:#999;font-size:13px;">暂无进行中的配对</span>
                     </div>
                 </div>
 
@@ -686,6 +683,12 @@ const statusTypeMap = {
     completed: 'success',
     stopped: 'danger'
 }
+
+// 过滤出 running 状态的配对
+const runningPairs = computed(() => {
+    if (!detailTask.value?.pairList) return []
+    return detailTask.value.pairList.filter(p => p.status === 'running')
+})
 
 const getStatusLabel = (status) => statusMap[status] || status
 const getStatusType = (status) => statusTypeMap[status] || 'info'
