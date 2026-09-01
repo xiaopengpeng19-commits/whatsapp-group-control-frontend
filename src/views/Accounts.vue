@@ -407,10 +407,9 @@
                 </el-icon> 复制
               </el-button>
             </div>
-            <div style="font-size:12px;color:#999;margin-top:4px;text-align:center;">
-              <a :href="'https://wa.me/' + qrCode" target="_blank" style="color:#409eff;">
-                https://wa.me/{{ qrCode }}
-              </a>
+            <!-- 简短提示 -->
+            <div style="font-size:12px;color:#999;margin-top:4px;text-align:center;word-break:break-all;">
+              点击输入框或复制按钮即可复制完整链接
             </div>
           </div>
         </div>
@@ -489,18 +488,35 @@ const copyQRCode = () => {
     ElMessage.warning('没有可复制的内容')
     return
   }
-  navigator.clipboard.writeText(qrCode.value).then(() => {
-    ElMessage.success('已复制链接')
-  }).catch(() => {
-    // 降级方案
-    const input = document.createElement('input')
-    input.value = qrCode.value
-    document.body.appendChild(input)
-    input.select()
+
+  // 优先使用 Clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(qrCode.value).then(() => {
+      ElMessage.success('已复制链接')
+    }).catch(() => {
+      fallbackCopy(qrCode.value)
+    })
+  } else {
+    fallbackCopy(qrCode.value)
+  }
+}
+
+const fallbackCopy = (text) => {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  textarea.style.top = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  try {
     document.execCommand('copy')
-    document.body.removeChild(input)
     ElMessage.success('已复制链接')
-  })
+  } catch (err) {
+    ElMessage.error('复制失败，请手动复制')
+  }
+  document.body.removeChild(textarea)
 }
 const handleBatchAdd = async () => {
   const accounts = batchAddForm.accountsText.split('\n')
