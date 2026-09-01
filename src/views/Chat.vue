@@ -114,11 +114,11 @@
             <el-input v-model="createForm.name" placeholder="请输入任务名称" size="large" />
           </el-form-item>
           <el-form-item label="账号分组" required>
-            <el-select v-model="createForm.accountGroup" placeholder="选择账号分组" style="width:100%" size="large">
+            <el-select v-model="createForm.accountGroups" multiple placeholder="选择账号分组" style="width:100%" size="large">
               <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
                 :value="item.name" />
             </el-select>
-            <div class="form-tip">选择分组后，该分组下所有账号将参与互聊</div>
+            <div class="form-tip">可选择多个分组，所有账号合并参与互聊</div>
           </el-form-item>
           <el-form-item label="消息语言">
             <el-radio-group v-model="createForm.language" size="large">
@@ -415,7 +415,7 @@ const messageTotal = ref(0)
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
-  accountGroup: '',
+  accountGroups: [],  // ✅ 改为数组
   language: 'pt',
   initiateRate: 60,
   minDelay: 3,
@@ -607,20 +607,39 @@ const fetchTasks = async () => {
 
 // ============ 创建任务 ============
 const handleCreate = async () => {
-  if (!createForm.name) { ElMessage.warning('请输入任务名称'); return }
-  if (!createForm.accountGroup) { ElMessage.warning('请选择账号分组'); return }
-  if (createForm.minDelay > createForm.maxDelay) { ElMessage.warning('最小消息间隔不能大于最大间隔'); return }
-  if (createForm.minRounds > createForm.maxRounds) { ElMessage.warning('最少轮数不能大于最多轮数'); return }
-  if (createForm.pairIntervalMin > createForm.pairIntervalMax) { ElMessage.warning('最小配对间隔不能大于最大间隔'); return }
+  if (!createForm.name) {
+    ElMessage.warning('请输入任务名称')
+    return
+  }
+  if (!createForm.accountGroups || createForm.accountGroups.length === 0) {
+    ElMessage.warning('请选择账号分组')
+    return
+  }
+  if (createForm.minDelay > createForm.maxDelay) {
+    ElMessage.warning('最小消息间隔不能大于最大间隔')
+    return
+  }
+  if (createForm.minRounds > createForm.maxRounds) {
+    ElMessage.warning('最少轮数不能大于最多轮数')
+    return
+  }
+  if (createForm.pairIntervalMin > createForm.pairIntervalMax) {
+    ElMessage.warning('最小配对间隔不能大于最大间隔')
+    return
+  }
 
   creating.value = true
   try {
-    const res = await api.post('/chat/tasks', createForm)
+    // ✅ 多个分组用逗号连接
+    const res = await api.post('/chat/tasks', {
+      ...createForm,
+      accountGroup: createForm.accountGroups.join(',')
+    })
     if (res.code === 0) {
       ElMessage.success('任务创建成功')
       showCreateDialog.value = false
       createForm.name = ''
-      createForm.accountGroup = ''
+      createForm.accountGroups = []
       fetchTasks()
     }
   } catch (error) {
