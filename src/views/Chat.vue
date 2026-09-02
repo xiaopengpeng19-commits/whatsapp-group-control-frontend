@@ -127,6 +127,10 @@
               <el-radio-button value="pt">Português</el-radio-button>
             </el-radio-group>
           </el-form-item>
+          <el-form-item label="同国家配对">
+            <el-switch v-model="createForm.allowSameCountry" active-text="开启" inactive-text="关闭" />
+            <div class="form-tip">开启后，同一国家的账号可直接配对，无需互为联系人</div>
+          </el-form-item>
         </div>
 
         <!-- 对话参数 -->
@@ -425,7 +429,8 @@ const createForm = reactive({
   replyRate: 80,
   maxConcurrent: 2,
   pairIntervalMin: 30,
-  pairIntervalMax: 99
+  pairIntervalMax: 99,
+  allowSameCountry: false
 })
 
 // ============ 计算属性 ============
