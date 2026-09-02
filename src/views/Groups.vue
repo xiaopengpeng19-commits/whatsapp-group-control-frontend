@@ -62,6 +62,11 @@
             <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
               创建
             </el-button>
+            <el-button type="success" @click="showJoinGroupDialog = true">
+              <el-icon>
+                <Plus />
+              </el-icon> 加入群组
+            </el-button>
           </div>
         </template>
       </el-table-column>
@@ -73,7 +78,25 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
-
+    <el-dialog v-model="showJoinGroupDialog" title="通过邀请码加入群组" width="500px">
+      <el-form :model="joinGroupForm" label-width="100px">
+        <el-form-item label="账号" required>
+          <el-select v-model="joinGroupForm.account" placeholder="选择账号" style="width:100%">
+            <el-option v-for="item in accounts" :key="item.account" :label="item.account" :value="item.account" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="邀请码" required>
+          <el-input v-model="joinGroupForm.inviteCode" placeholder="粘贴群组邀请码" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            邀请码格式: 2@EQI2DmfLkYPXAzfc...（从邀请链接中获取）
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showJoinGroupDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleJoinGroup" :loading="joining">加入</el-button>
+      </template>
+    </el-dialog>
     <!-- ========================================== -->
     <!-- 群组列表对话框 -->
     <!-- ========================================== -->
@@ -152,7 +175,7 @@
           <el-descriptions-item label="群名称">{{ groupDetail.subject || '未命名' }}</el-descriptions-item>
           <el-descriptions-item label="群主">{{ groupDetail.owner || '-' }}</el-descriptions-item>
           <el-descriptions-item label="成员数">{{ groupDetail.size || groupDetail.participants?.length || 0
-            }}</el-descriptions-item>
+          }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">
             {{ groupDetail.creation ? formatTime(groupDetail.creation * 1000) : '-' }}
           </el-descriptions-item>
@@ -384,7 +407,46 @@ const getPurePhone = (phone) => {
 const availableAccounts = computed(() => {
   return accounts.value.filter(a => a.account !== createGroupForm.account)
 })
+const showJoinGroupDialog = ref(false)
+const joining = ref(false)
+const joinGroupForm = reactive({
+  account: '',
+  inviteCode: ''
+})
 
+const handleJoinGroup = async () => {
+  if (!joinGroupForm.account) {
+    ElMessage.warning('请选择账号')
+    return
+  }
+  if (!joinGroupForm.inviteCode) {
+    ElMessage.warning('请输入邀请码')
+    return
+  }
+
+  joining.value = true
+  try {
+    const res = await api.post('/groups/join', {
+      account: joinGroupForm.account,
+      inviteCode: joinGroupForm.inviteCode
+    })
+    if (res.code === 0) {
+      ElMessage.success('加入群组成功')
+      showJoinGroupDialog.value = false
+      joinGroupForm.account = ''
+      joinGroupForm.inviteCode = ''
+      // 刷新群组列表
+      fetchGroups(selectedAccount.value)
+      fetchAccounts()
+    } else {
+      ElMessage.error(res.message || '加入失败')
+    }
+  } catch (error) {
+    ElMessage.error('加入群组失败: ' + (error.message || ''))
+  } finally {
+    joining.value = false
+  }
+}
 // ============ 判断当前账号是否是群主或管理员 ============
 const isCurrentUserAdminOrOwner = computed(() => {
   if (!groupDetail.value || !groupDetail.value.participants) return false
