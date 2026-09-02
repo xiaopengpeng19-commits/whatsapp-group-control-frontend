@@ -20,16 +20,6 @@
         </div>
 
         <div style="margin-left:auto;display:flex;gap:6px;">
-          <el-button type="primary" size="small" @click="showAddDialog = true">
-            <el-icon>
-              <Plus />
-            </el-icon> 添加
-          </el-button>
-          <el-button type="success" size="small" @click="showBatchDialog = true">
-            <el-icon>
-              <DocumentAdd />
-            </el-icon> 批量
-          </el-button>
           <el-button size="small" @click="fetchAccounts">
             <el-icon>
               <Refresh />
@@ -58,11 +48,16 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="200">
         <template #default="{ row }">
-          <el-button size="small" type="primary" @click="viewContacts(row.account)">
-            查看联系人
-          </el-button>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <el-button size="small" type="primary" @click="viewContacts(row.account)">
+              查看联系人
+            </el-button>
+            <el-button size="small" type="success" @click="openAddContact(row.account)">
+              添加联系人
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -183,6 +178,13 @@ const searchAccount = ref('')
 const currentViewAccount = ref('')
 
 // ============ 添加表单 ============
+const openAddContact = (account) => {
+  addForm.account = account
+  addForm.jid = ''
+  addForm.phone = ''
+  addForm.name = ''
+  showAddDialog.value = true
+}
 const addForm = reactive({
   account: '',
   jid: '',
