@@ -50,7 +50,7 @@
           <el-tag type="info" size="small">{{ row.groupCount || 0 }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="240" fixed="right">
+      <el-table-column label="操作" width="340" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             <el-button size="small" type="primary" @click="viewGroups(row.account)">
