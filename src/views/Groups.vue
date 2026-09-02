@@ -62,10 +62,8 @@
             <el-button size="small" type="warning" plain @click="showCreateGroupDialog(row.account)">
               创建
             </el-button>
-            <el-button type="success" @click="showJoinGroupDialog = true">
-              <el-icon>
-                <Plus />
-              </el-icon> 加入群组
+            <el-button size="small" type="success" @click="openJoinGroup(row.account)">
+              加入群组
             </el-button>
           </div>
         </template>
@@ -78,17 +76,16 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- 加入群组对话框 -->
     <el-dialog v-model="showJoinGroupDialog" title="通过邀请码加入群组" width="500px">
       <el-form :model="joinGroupForm" label-width="100px">
-        <el-form-item label="账号" required>
-          <el-select v-model="joinGroupForm.account" placeholder="选择账号" style="width:100%">
-            <el-option v-for="item in accounts" :key="item.account" :label="item.account" :value="item.account" />
-          </el-select>
+        <el-form-item label="账号">
+          <span>{{ joinGroupForm.account }}</span>
         </el-form-item>
         <el-form-item label="邀请码" required>
           <el-input v-model="joinGroupForm.inviteCode" placeholder="粘贴群组邀请码" />
           <div style="font-size:12px;color:#999;margin-top:4px;">
-            邀请码格式: 2@EQI2DmfLkYPXAzfc...（从邀请链接中获取）
+            邀请码格式: 2EQI2DmfLkYPXAzfc...（从邀请链接中获取）
           </div>
         </el-form-item>
       </el-form>
@@ -486,7 +483,11 @@ const handleSetAnnounce = async (value) => {
     settingAnnounce.value = false
   }
 }
-
+const openJoinGroup = (account) => {
+  joinGroupForm.account = account
+  joinGroupForm.inviteCode = ''
+  showJoinGroupDialog.value = true
+}
 // ============ 数据获取 ============
 const fetchAccountGroups = async () => {
   try {
