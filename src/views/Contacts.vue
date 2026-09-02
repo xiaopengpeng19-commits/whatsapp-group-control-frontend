@@ -48,7 +48,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200">
+      <el-table-column label="操作" width="500">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             <el-button size="small" type="primary" @click="viewContacts(row.account)">
