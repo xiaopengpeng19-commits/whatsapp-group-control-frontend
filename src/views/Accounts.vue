@@ -257,37 +257,33 @@
     <!-- ========================================== -->
     <!-- 批量导入对话框 -->
     <!-- ========================================== -->
-    <el-dialog v-model="showImportDialog" title="批量导入账号" width="600px">
+    <el-dialog v-model="showImportDialog" title="批量添加账号" width="600px">
       <el-form :model="importForm" label-width="100px">
-        <el-form-item label="凭证文件" required>
-          <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json" :limit="200"
+        <el-form-item label="账号文件" required>
+          <el-upload ref="uploadRef" :auto-upload="false" multiple accept=".json,.txt" :limit="200"
             :on-change="handleFileChange" :on-remove="handleFileRemove" :on-exceed="handleExceed">
             <el-button type="primary" plain>
               <el-icon>
                 <FolderOpened />
-              </el-icon> 选择凭证文件（可多选）
+              </el-icon> 选择账号文件（支持 .json / .txt）
             </el-button>
             <template #tip>
               <div style="font-size:12px;color:#999;margin-top:4px;">
-                支持 .json 格式的凭证文件，最多200个，可一次选择多个文件批量导入
+                支持格式：<br>
+                1. .txt 每行一个手机号，或 手机号,凭证...（自动提取手机号）<br>
+                2. .json 格式的凭证文件（自动提取手机号）
               </div>
             </template>
           </el-upload>
         </el-form-item>
         <el-form-item label="账号分组">
           <el-input v-model="importForm.accountGroup" placeholder="请输入分组名称（可选）" />
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            所有导入账号将分配到该分组
-          </div>
         </el-form-item>
-        <el-form-item label="代理分组">
+        <el-form-item label="代理分组" required>
           <el-select v-model="importForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
             <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
               :value="item.name" />
           </el-select>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            选择后自动分配该分组中使用最少的代理IP
-          </div>
         </el-form-item>
         <el-form-item v-if="importFiles.length > 0" label="已选文件">
           <div style="display:flex;flex-wrap:wrap;gap:4px;">
@@ -299,8 +295,8 @@
       </el-form>
       <template #footer>
         <el-button @click="showImportDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleBatchImport" :loading="importing">
-          {{ importing ? '导入中...' : '批量导入' }}
+        <el-button type="primary" @click="handleFileImport" :loading="importing">
+          {{ importing ? '导入中...' : '批量添加' }}
         </el-button>
       </template>
     </el-dialog>
@@ -747,11 +743,22 @@ const handleFileRemove = (file) => {
 const removeFile = (index) => { importFiles.value.splice(index, 1) }
 const handleExceed = () => { ElMessage.warning('最多只能选择200个文件') }
 
-const handleBatchImport = async () => {
-  if (importFiles.value.length === 0) { ElMessage.warning('请选择凭证文件'); return }
+// ============ 从文件导入手机号 ============
+const handleFileImport = async () => {
+  if (importFiles.value.length === 0) {
+    ElMessage.warning('请选择账号文件')
+    return
+  }
+
+  if (!importForm.proxyGroup) {
+    ElMessage.warning('请选择代理分组')
+    return
+  }
+
   importing.value = true
   try {
-    const credsContents = []
+    const allPhones = []
+
     for (const file of importFiles.value) {
       const content = await new Promise((resolve, reject) => {
         const reader = new FileReader()
@@ -759,21 +766,81 @@ const handleBatchImport = async () => {
         reader.onerror = reject
         reader.readAsText(file.raw)
       })
-      credsContents.push(content)
-    }
-    if (credsContents.length === 0) { ElMessage.warning('没有有效的凭证文件'); importing.value = false; return }
-    const res = await whatsapp.batchImportAccount({
-      credsFiles: credsContents,
-      proxyGroup: importForm.proxyGroup || '',
-      accountGroup: importForm.accountGroup || ''
-    })
-    if (res.code === 0) {
-      const { total, success, failed } = res.data
-      ElMessage.success(`导入完成：成功 ${success} 个，失败 ${failed} 个，共 ${total} 个`)
-      if (failed > 0) {
-        const failedList = res.data.results.filter(r => !r.success).map(r => `${r.phone || '未知'}: ${r.message}`).join('\n')
-        ElMessage.warning({ message: `失败详情：\n${failedList}`, duration: 0, showClose: true })
+
+      const trimmed = content.trim()
+      let phones = []
+
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        // JSON格式：提取所有手机号
+        try {
+          const jsonData = JSON.parse(trimmed)
+          // 尝试多种路径提取手机号
+          if (jsonData.Phone) {
+            phones.push(jsonData.Phone)
+          } else if (jsonData.data && jsonData.data.Phone) {
+            phones.push(jsonData.data.Phone)
+          } else if (jsonData.me && jsonData.me.id) {
+            const id = jsonData.me.id
+            const phone = id.split('@')[0].split(':')[0]
+            phones.push(phone)
+          } else if (Array.isArray(jsonData)) {
+            jsonData.forEach(item => {
+              if (item.Phone) phones.push(item.Phone)
+              else if (item.data && item.data.Phone) phones.push(item.data.Phone)
+            })
+          }
+          // 如果还是没提取到，尝试正则匹配手机号
+          if (phones.length === 0) {
+            const matches = trimmed.match(/\d{10,15}/g)
+            phones = matches || []
+          }
+        } catch (e) {
+          // JSON解析失败，尝试正则匹配
+          const matches = trimmed.match(/\d{10,15}/g)
+          phones = matches || []
+        }
+      } else {
+        // TXT格式：每行解析
+        const lines = trimmed.split('\n').filter(line => line.trim())
+        for (const line of lines) {
+          // 尝试逗号分隔，取第一段
+          const parts = line.split(',').map(s => s.trim())
+          const firstPart = parts[0]
+          // 如果第一段是手机号（10-15位数字）
+          if (/^\d{10,15}$/.test(firstPart)) {
+            phones.push(firstPart)
+          } else {
+            // 尝试从整行提取手机号
+            const matches = line.match(/\d{10,15}/)
+            if (matches) {
+              phones.push(matches[0])
+            }
+          }
+        }
       }
+
+      allPhones.push(...phones)
+    }
+
+    // 去重
+    const uniquePhones = [...new Set(allPhones)]
+
+    if (uniquePhones.length === 0) {
+      ElMessage.warning('未能从文件中提取到手机号')
+      importing.value = false
+      return
+    }
+
+    // 调用批量添加接口
+    const res = await api.post('/whatsapp/accounts/batch/add', {
+      accounts: uniquePhones,
+      group: importForm.accountGroup || '',
+      proxyGroup: importForm.proxyGroup
+    })
+
+    if (res.code === 0) {
+      const { success, failed, duplicate, total } = res.data
+      ElMessage.success(`添加完成：成功 ${success} 个，失败 ${failed} 个，重复 ${duplicate} 个，共 ${total} 个`)
       showImportDialog.value = false
       importFiles.value = []
       importForm.accountGroup = ''
@@ -782,10 +849,10 @@ const handleBatchImport = async () => {
       fetchAccountGroups()
       fetchProxyGroups()
     } else {
-      ElMessage.error(res.message || '批量导入失败')
+      ElMessage.error(res.message || '批量添加失败')
     }
   } catch (error) {
-    ElMessage.error('批量导入失败: ' + (error.message || ''))
+    ElMessage.error('批量添加失败: ' + (error.message || ''))
   } finally {
     importing.value = false
   }
