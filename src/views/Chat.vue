@@ -183,11 +183,13 @@
             <span class="section-line"></span>
             配对间隔
           </div>
-          <el-form-item label="间隔范围">
+          <el-form-item label="配对间隔">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="999" size="large" style="width: 110px;"/>
+              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="999" size="large"
+                controls-position="right" style="width: 130px;" />
               <span class="range-sep">~</span>
-              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="999" size="large" style="width: 110px;"/>
+              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="999" size="large"
+                controls-position="right" style="width: 130px;" />
               <span class="range-unit">分钟</span>
             </div>
             <div class="form-tip">账号完成对话后，在此范围内随机冷却，冷却结束后可再次配对</div>
