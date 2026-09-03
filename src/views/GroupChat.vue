@@ -69,9 +69,10 @@
             <el-table-column prop="createdAt" label="创建时间" width="150">
                 <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="260" fixed="right">
+            <el-table-column label="操作" width="330" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" @click="showTaskDetail(row)">详情</el-button>
+                    <el-button size="small" type="warning" @click="openEditInterval(row)">修改间隔</el-button>
                     <el-button v-if="row.status === 'pending' || row.status === 'paused'" size="small" type="success"
                         @click="handleStart(row)">启动</el-button>
                     <el-button v-if="row.status === 'running'" size="small" type="warning"
@@ -87,7 +88,30 @@
                 :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks"
                 @current-change="fetchTasks" />
         </div>
-
+        <!-- 修改间隔对话框 -->
+        <el-dialog v-model="showEditIntervalDialog" title="修改间隔" width="450px">
+            <el-form :model="editIntervalForm" label-width="120px">
+                <el-form-item label="任务名称">
+                    <span>{{ editIntervalForm.name }}</span>
+                </el-form-item>
+                <el-form-item label="进群间隔">
+                    <el-input-number v-model="editIntervalForm.joinInterval" :min="1" :max="999" size="large"
+                        style="width:130px;" />
+                    <span style="margin-left:8px;color:#86909c;">秒</span>
+                </el-form-item>
+                <el-form-item label="发消息间隔">
+                    <el-input-number v-model="editIntervalForm.sendInterval" :min="1" :max="999" size="large"
+                        style="width:130px;" />
+                    <span style="margin-left:8px;color:#86909c;">秒</span>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showEditIntervalDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleUpdateInterval" :loading="updatingInterval">
+                    {{ updatingInterval ? '更新中...' : '确定' }}
+                </el-button>
+            </template>
+        </el-dialog>
         <!-- ========================================== -->
         <!-- 创建任务对话框 -->
         <!-- ========================================== -->
@@ -166,7 +190,7 @@
                     </el-form-item>
                 </div>
 
-                
+
             </el-form>
 
             <template #footer>
@@ -286,7 +310,44 @@ const page = ref(1)
 const pageSize = ref(20)
 const filterStatus = ref('')
 const creating = ref(false)
+// ============ 修改间隔 ============
+const showEditIntervalDialog = ref(false)
+const updatingInterval = ref(false)
+const editIntervalForm = reactive({
+    id: '',
+    name: '',
+    joinInterval: 30,
+    sendInterval: 60
+})
 
+const openEditInterval = (row) => {
+    editIntervalForm.id = row.id
+    editIntervalForm.name = row.name
+    editIntervalForm.joinInterval = row.joinInterval || 30
+    editIntervalForm.sendInterval = row.sendInterval || 60
+    showEditIntervalDialog.value = true
+}
+
+const handleUpdateInterval = async () => {
+    updatingInterval.value = true
+    try {
+        const res = await api.put(`/group-chat/tasks/${editIntervalForm.id}`, {
+            joinInterval: editIntervalForm.joinInterval,
+            sendInterval: editIntervalForm.sendInterval
+        })
+        if (res.code === 0) {
+            ElMessage.success(res.data.message || '修改成功')
+            showEditIntervalDialog.value = false
+            fetchTasks()
+        } else {
+            ElMessage.error(res.message || '修改失败')
+        }
+    } catch (error) {
+        ElMessage.error('修改失败: ' + (error.message || ''))
+    } finally {
+        updatingInterval.value = false
+    }
+}
 // ============ 创建表单 ============
 const showCreateDialog = ref(false)
 const createForm = reactive({
@@ -379,6 +440,18 @@ const fetchTasks = async () => {
 }
 
 // ============ 创建任务 ============
+const updateSendInterval = async (taskId, newInterval) => {
+    try {
+        const res = await api.put(`/group-chat/tasks/${taskId}`, {
+            sendInterval: newInterval
+        })
+        if (res.code === 0) {
+            ElMessage.success(`修改成功，${res.data.was_running ? '任务已自动恢复' : '任务已更新'}`)
+        }
+    } catch (error) {
+        ElMessage.error('修改失败: ' + error.message)
+    }
+}
 const handleCreate = async () => {
     if (!createForm.name) { ElMessage.warning('请输入任务名称'); return }
     if (!createForm.groupLink) { ElMessage.warning('请输入群组链接'); return }
