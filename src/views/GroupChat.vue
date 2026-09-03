@@ -188,7 +188,7 @@
         <!-- ========================================== -->
         <!-- 任务详情对话框 -->
         <!-- ========================================== -->
-        <el-dialog v-model="showDetailDialog" :title="`群聊任务 - ${detailTask?.name || ''}`" width="900px"
+        <el-dialog v-model="showDetailDialog" :title="'群聊任务 - ' + (detailTask?.name || '')" width="900px"
             :close-on-click-modal="false">
             <div v-if="detailTask" v-loading="detailLoading">
                 <!-- 基本信息 -->
@@ -232,15 +232,12 @@
                 </div>
 
                 <!-- 进群失败账号 -->
-                <div style="margin-top:12px;"
-                    v-if="detailTask.failedAccounts && Object.keys(detailTask.failedAccounts).length > 0">
+                <div style="margin-top:12px;" v-if="failedAccountCount > 0">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">进群失败 ({{
-                            Object.keys(detailTask.failedAccounts).filter(k
-                            => !k.endsWith('_time')).length }})</span>
+                        <span style="font-weight:bold;font-size:13px;">进群失败 ({{ failedAccountCount }})</span>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
-                        <el-tag v-for="(retry, acc) in detailTask.failedAccounts" :key="acc" size="small" type="danger"
+                        <el-tag v-for="(retry, acc) in failedAccountList" :key="acc" size="small" type="danger"
                             style="margin:2px;">
                             {{ acc }} (重试 {{ retry }}/3)
                         </el-tag>
@@ -281,7 +278,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import groupChatApi from '@/api/groupChat'
@@ -322,6 +319,23 @@ const messageTotal = ref(0)
 const msgPage = ref(1)
 const msgPageSize = ref(20)
 const detailTimer = ref(null)
+
+// ============ 计算属性 ============
+const failedAccountCount = computed(() => {
+    if (!detailTask.value?.failedAccounts) return 0
+    return Object.keys(detailTask.value.failedAccounts).filter(k => !k.endsWith('_time')).length
+})
+
+const failedAccountList = computed(() => {
+    if (!detailTask.value?.failedAccounts) return {}
+    const result = {}
+    for (const [key, value] of Object.entries(detailTask.value.failedAccounts)) {
+        if (!key.endsWith('_time')) {
+            result[key] = value
+        }
+    }
+    return result
+})
 
 // ============ 状态映射 ============
 const statusMap = {
@@ -420,7 +434,7 @@ const handleCreate = async () => {
 // ============ 任务操作 ============
 const handleStart = async (row) => {
     try {
-        await ElMessageBox.confirm(`确定要启动任务 "${row.name}" 吗？`, '提示', { type: 'info' })
+        await ElMessageBox.confirm('确定要启动任务 "' + row.name + '" 吗？', '提示', { type: 'info' })
         const res = await groupChatApi.startTask(row.id)
         if (res.code === 0) { ElMessage.success('任务已启动'); fetchTasks() }
     } catch (error) {
@@ -430,7 +444,7 @@ const handleStart = async (row) => {
 
 const handlePause = async (row) => {
     try {
-        await ElMessageBox.confirm(`确定要暂停任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
+        await ElMessageBox.confirm('确定要暂停任务 "' + row.name + '" 吗？', '提示', { type: 'warning' })
         const res = await groupChatApi.pauseTask(row.id)
         if (res.code === 0) { ElMessage.success('任务已暂停'); fetchTasks() }
     } catch (error) {
@@ -440,7 +454,7 @@ const handlePause = async (row) => {
 
 const handleDelete = async (row) => {
     try {
-        await ElMessageBox.confirm(`确定要删除任务 "${row.name}" 吗？`, '提示', { type: 'warning' })
+        await ElMessageBox.confirm('确定要删除任务 "' + row.name + '" 吗？', '提示', { type: 'warning' })
         const res = await groupChatApi.deleteTask(row.id)
         if (res.code === 0) { ElMessage.success('删除成功'); fetchTasks() }
     } catch (error) {
@@ -452,7 +466,7 @@ const handleDelete = async (row) => {
 const fetchMessages = async () => {
     if (!detailTask.value) return
     try {
-        const res = await api.get(`/group-chat/tasks/${detailTask.value.id}`, {
+        const res = await api.get('/group-chat/tasks/' + detailTask.value.id, {
             params: { page: msgPage.value, page_size: msgPageSize.value }
         })
         if (res.code === 0) {
@@ -469,7 +483,7 @@ const showTaskDetail = async (row) => {
     msgPage.value = 1
 
     try {
-        const res = await api.get(`/group-chat/tasks/${row.id}`)
+        const res = await api.get('/group-chat/tasks/' + row.id)
         if (res.code === 0) {
             detailTask.value = res.data.task
             detailMessages.value = res.data.messages || []
@@ -492,7 +506,7 @@ const showTaskDetail = async (row) => {
 const refreshDetail = async () => {
     if (!detailTask.value) return
     try {
-        const res = await api.get(`/group-chat/tasks/${detailTask.value.id}`, {
+        const res = await api.get('/group-chat/tasks/' + detailTask.value.id, {
             params: { page: msgPage.value, page_size: msgPageSize.value }
         })
         if (res.code === 0) {
