@@ -213,12 +213,12 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                        }}</el-tag>
+                            }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="群组链接">
                         <span style="font-size:12px;word-break:break-all;">{{ detailTask.groupLink ||
                             detailTask.inviteCode
-                        }}</span>
+                            }}</span>
                     </el-descriptions-item>
                     <el-descriptions-item label="进群间隔">{{ detailTask.joinInterval || 30 }}秒</el-descriptions-item>
                     <el-descriptions-item label="发消息间隔">{{ detailTask.sendInterval || 60 }}秒</el-descriptions-item>
@@ -226,7 +226,7 @@
                         {{ detailTask.restStart || '-' }} ~ {{ detailTask.restEnd || '-' }}
                     </el-descriptions-item>
                     <el-descriptions-item label="已进群">{{ detailTask.joinedAccounts?.length || 0
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="已发送">{{ detailTask.totalSent || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                 </el-descriptions>
@@ -235,7 +235,7 @@
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">已进群账号 ({{ detailTask.joinedAccounts?.length || 0
-                        }})</span>
+                            }})</span>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
                         <el-tag v-for="acc in detailTask.joinedAccounts" :key="acc" size="small" type="success"
@@ -256,6 +256,10 @@
                         <el-tag v-for="(retry, acc) in failedAccountList" :key="acc" size="small" type="danger"
                             style="margin:2px;">
                             {{ acc }} (重试 {{ retry }}/3)
+                            <el-button size="small" type="primary" link @click="resetRetry(acc)"
+                                style="margin-left:4px;">
+                                重置
+                            </el-button>
                         </el-tag>
                     </div>
                 </div>
@@ -319,7 +323,19 @@ const editIntervalForm = reactive({
     joinInterval: 30,
     sendInterval: 60
 })
-
+const resetRetry = async (account) => {
+    try {
+        const res = await api.post(`/group-chat/tasks/${detailTask.value.id}/reset-retry`, {
+            account: account
+        })
+        if (res.code === 0) {
+            ElMessage.success('已重置，账号将重新尝试进群')
+            refreshDetail()
+        }
+    } catch (error) {
+        ElMessage.error('重置失败')
+    }
+}
 const openEditInterval = (row) => {
     editIntervalForm.id = row.id
     editIntervalForm.name = row.name
