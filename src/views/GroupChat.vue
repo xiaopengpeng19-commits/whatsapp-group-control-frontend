@@ -103,6 +103,14 @@
                         <el-input v-model="createForm.groupLink" placeholder="粘贴群组邀请链接" size="large" />
                         <div class="form-tip">支持格式: https://chat.whatsapp.com/xxx 或直接粘贴邀请码</div>
                     </el-form-item>
+                    <el-form-item label="消息语言">
+                        <el-radio-group v-model="createForm.language" size="large">
+                            <el-radio-button value="zh">中文</el-radio-button>
+                            <el-radio-button value="en">English</el-radio-button>
+                            <el-radio-button value="pt">Português</el-radio-button>
+                        </el-radio-group>
+                        <div class="form-tip">群聊消息将从对应语言的消息池中随机选取</div>
+                    </el-form-item>
                 </div>
 
                 <!-- 账号分组 -->
@@ -158,23 +166,7 @@
                     </el-form-item>
                 </div>
 
-                <!-- 消息池 -->
-                <div class="form-section">
-                    <div class="section-title"><span class="section-line"></span>消息池</div>
-                    <el-form-item label="随机消息">
-                        <el-input v-model="createForm.messageInput" placeholder="输入消息，回车添加" size="large"
-                            @keyup.enter="addMessage" />
-                        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-                            <el-tag v-for="(msg, index) in createForm.messages" :key="index" closable
-                                @close="removeMessage(index)" style="margin:2px;max-width:300px;">
-                                {{ msg }}
-                            </el-tag>
-                            <el-tag v-if="createForm.messages.length === 0" type="info"
-                                style="color:#999;">暂无消息，请添加</el-tag>
-                        </div>
-                        <div class="form-tip">至少添加1条消息，发送时随机选取</div>
-                    </el-form-item>
-                </div>
+                
             </el-form>
 
             <template #footer>
@@ -197,12 +189,12 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="群组链接">
                         <span style="font-size:12px;word-break:break-all;">{{ detailTask.groupLink ||
                             detailTask.inviteCode
-                            }}</span>
+                        }}</span>
                     </el-descriptions-item>
                     <el-descriptions-item label="进群间隔">{{ detailTask.joinInterval || 30 }}秒</el-descriptions-item>
                     <el-descriptions-item label="发消息间隔">{{ detailTask.sendInterval || 60 }}秒</el-descriptions-item>
@@ -210,7 +202,7 @@
                         {{ detailTask.restStart || '-' }} ~ {{ detailTask.restEnd || '-' }}
                     </el-descriptions-item>
                     <el-descriptions-item label="已进群">{{ detailTask.joinedAccounts?.length || 0
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="已发送">{{ detailTask.totalSent || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                 </el-descriptions>
@@ -219,7 +211,7 @@
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">已进群账号 ({{ detailTask.joinedAccounts?.length || 0
-                            }})</span>
+                        }})</span>
                     </div>
                     <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
                         <el-tag v-for="acc in detailTask.joinedAccounts" :key="acc" size="small" type="success"
@@ -306,8 +298,7 @@ const createForm = reactive({
     sendInterval: 60,
     restStart: '',
     restEnd: '',
-    messages: ['Hello!', 'Hi there!', 'Good morning!'],
-    messageInput: ''
+    language: 'pt'  // ✅ 默认葡萄牙语
 })
 
 // ============ 详情 ============
@@ -361,15 +352,6 @@ const getMsgStatusLabel = (s) => msgStatusMap[s] || s
 const getMsgStatusType = (s) => msgStatusTypeMap[s] || 'info'
 
 const formatTime = (t) => t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-'
-
-// ============ 消息池操作 ============
-const addMessage = () => {
-    const text = createForm.messageInput.trim()
-    if (!text) return
-    createForm.messages.push(text)
-    createForm.messageInput = ''
-}
-const removeMessage = (index) => { createForm.messages.splice(index, 1) }
 
 // ============ 数据获取 ============
 const fetchAccountGroups = async () => {
