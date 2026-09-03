@@ -78,6 +78,12 @@
           </el-icon>
           <span>群组管理</span>
         </el-menu-item>
+        <el-menu-item index="/group-chat">
+          <el-icon>
+            <ChatDotRound />
+          </el-icon>
+          <span>群聊任务</span>
+        </el-menu-item>
         <el-menu-item index="/pairing-code">
           <el-icon>
             <Key />

@@ -95,6 +95,12 @@ const routes = [
         meta: { title: "群组管理" },
       },
       {
+        path: "group-chat",
+        name: "GroupChat",
+        component: () => import("@/views/GroupChat.vue"),
+        meta: { title: "群聊任务" },
+      },
+      {
         path: "pairing-code",
         name: "PairingCode",
         component: () => import("@/views/PairingCode.vue"),
