@@ -386,8 +386,6 @@ const handleCreate = async () => {
         ElMessage.warning('请至少选择一个分组')
         return
     }
-    if (createForm.messages.length === 0) { ElMessage.warning('请至少添加一条消息'); return }
-
     creating.value = true
     try {
         const data = {
