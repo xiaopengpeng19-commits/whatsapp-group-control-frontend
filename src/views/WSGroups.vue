@@ -41,6 +41,27 @@
                         style="width:180px" @input="fetchGroups" />
                 </div>
             </div>
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <el-select v-model="filterExists" placeholder="全部状态" clearable @change="fetchGroups"
+                    style="width:120px">
+                    <el-option label="全部" value="" />
+                    <el-option label="存在" value="true" />
+                    <el-option label="不存在" value="false" />
+                </el-select>
+                <!-- ✅ 新增：消息数筛选 -->
+                <el-input-number v-model="filterMessageCount" :min="0" placeholder="消息数" controls-position="right"
+                    style="width:140px" />
+                <el-button size="default" type="primary" @click="fetchGroups">
+                    <el-icon>
+                        <Search />
+                    </el-icon> 筛选
+                </el-button>
+                <el-button size="default" @click="resetFilter">
+                    重置
+                </el-button>
+                <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search" style="width:180px"
+                    @input="fetchGroups" />
+            </div>
         </div>
 
         <!-- 统计卡片 -->
@@ -367,7 +388,16 @@ const fetchAccountGroups = async () => {
         }
     } catch (error) { }
 }
+// ============ 状态 ============
+const filterMessageCount = ref(0)
 
+// 重置筛选
+const resetFilter = () => {
+    filterExists.value = ''
+    filterMessageCount.value = 0
+    searchKeyword.value = ''
+    fetchGroups()
+}
 const fetchGroups = async () => {
     loading.value = true
     try {
@@ -378,6 +408,9 @@ const fetchGroups = async () => {
         if (filterExists.value !== '') {
             params.is_exists = filterExists.value
         }
+        if (filterMessageCount.value > 0) {
+            params.message_count_gt = filterMessageCount.value
+        }
         if (searchKeyword.value) {
             params.keyword = searchKeyword.value
         }
@@ -387,7 +420,6 @@ const fetchGroups = async () => {
             total.value = res.data.total || 0
             stats.value = res.data.stats || { total: 0, exists: 0, not_exists: 0 }
             stats.value.total = total.value
-            // 计算待处理数量（group_jid为空 且 join_failed=0 且 is_exists=true）
             pendingCount.value = groups.value.filter(g => g.isExists && !g.groupJID && g.joinFailed === 0).length
         }
     } catch (error) {
