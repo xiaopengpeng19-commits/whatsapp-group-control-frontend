@@ -30,17 +30,27 @@
                     </el-icon> 刷新
                 </el-button>
 
-
-            </div>
-            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
-                <el-select v-model="filterExists" placeholder="全部状态" clearable @change="fetchGroups"
-                    style="width:120px">
-                    <el-option label="全部" value="" />
-                    <el-option label="存在" value="true" />
-                    <el-option label="不存在" value="false" />
-                </el-select>
-                <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search" style="width:180px"
-                    @input="fetchGroups" />
+                <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <el-select v-model="filterExists" placeholder="全部状态" clearable @change="fetchGroups"
+                        style="width:120px">
+                        <el-option label="全部" value="" />
+                        <el-option label="存在" value="true" />
+                        <el-option label="不存在" value="false" />
+                    </el-select>
+                    <!-- ✅ 消息数筛选 -->
+                    <el-input-number v-model="filterMessageCount" :min="0" placeholder="消息数" controls-position="right"
+                        style="width:140px" />
+                    <el-button size="default" type="primary" @click="fetchGroups">
+                        <el-icon>
+                            <Search />
+                        </el-icon> 筛选
+                    </el-button>
+                    <el-button size="default" @click="resetFilter">
+                        重置
+                    </el-button>
+                    <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search"
+                        style="width:180px" @input="fetchGroups" />
+                </div>
             </div>
         </div>
 
@@ -159,7 +169,9 @@
                 @current-change="fetchGroups" />
         </div>
 
+        <!-- ========================================== -->
         <!-- 导入群组对话框 -->
+        <!-- ========================================== -->
         <el-dialog v-model="showImportDialog" title="导入群组" width="650px">
             <el-form :model="importForm" label-width="100px">
                 <el-form-item label="上传文件">
@@ -311,6 +323,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
 const filterExists = ref('')
+const filterMessageCount = ref(0)
 const selectedIds = ref([])
 const stats = ref({ total: 0, exists: 0, not_exists: 0 })
 const pendingCount = ref(0)
@@ -318,7 +331,12 @@ const pendingCount = ref(0)
 // ============ 导入 ============
 const showImportDialog = ref(false)
 const importing = ref(false)
-
+const uploadRef = ref(null)
+const importForm = reactive({
+    linksText: '',
+    fileName: '',
+    fileData: null
+})
 
 // ============ 批量入群 ============
 const showBatchJoinDialog = ref(false)
@@ -368,16 +386,7 @@ const fetchAccountGroups = async () => {
         }
     } catch (error) { }
 }
-// ============ 状态 ============
-const filterMessageCount = ref(0)
 
-// 重置筛选
-const resetFilter = () => {
-    filterExists.value = ''
-    filterMessageCount.value = 0
-    searchKeyword.value = ''
-    fetchGroups()
-}
 const fetchGroups = async () => {
     loading.value = true
     try {
@@ -409,23 +418,20 @@ const fetchGroups = async () => {
     }
 }
 
+// ============ 重置筛选 ============
+const resetFilter = () => {
+    filterExists.value = ''
+    filterMessageCount.value = 0
+    searchKeyword.value = ''
+    fetchGroups()
+}
+
 // ============ 选中 ============
 const handleSelectionChange = (selection) => {
     selectedIds.value = selection.map(item => item.inviteCode)
 }
 
-// ============ 导入 ============
-import * as XLSX from 'xlsx'
-
-// ============ 导入 ============
-const uploadRef = ref(null)
-const importForm = reactive({
-    linksText: '',
-    fileName: '',
-    fileData: null
-})
-
-// 文件选择
+// ============ 文件导入 ============
 const handleFileChange = (file) => {
     importForm.fileName = file.name
     importForm.fileData = file.raw
@@ -441,56 +447,33 @@ const handleExceed = () => {
     ElMessage.warning('一次只能上传一个文件')
 }
 
-// 从文件提取链接
-const extractLinksFromFile = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result)
-                const workbook = XLSX.read(data, { type: 'array' })
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
-
-                const links = []
-                for (const row of jsonData) {
-                    if (!row || row.length === 0) continue
-                    for (const cell of row) {
-                        if (!cell) continue
-                        const str = String(cell).trim()
-                        // 匹配群链接或邀请码
-                        if (str.includes('chat.whatsapp.com/') ||
-                            str.match(/^[a-zA-Z0-9_-]{20,}$/)) {
-                            links.push(str)
-                        }
-                    }
-                }
-                resolve(links)
-            } catch (error) {
-                reject(error)
-            }
-        }
-        reader.onerror = reject
-        reader.readAsArrayBuffer(file)
-    })
-}
-
-// 导入
+// ============ 导入 ============
 const handleImport = async () => {
     let allLinks = []
 
-    // 1. 从文件提取
     if (importForm.fileData) {
         try {
-            const links = await extractLinksFromFile(importForm.fileData)
-            allLinks.push(...links)
+            const content = await new Promise((resolve, reject) => {
+                const reader = new FileReader()
+                reader.onload = (e) => resolve(e.target.result)
+                reader.onerror = reject
+                reader.readAsText(importForm.fileData)
+            })
+            const lines = content.split('\n').filter(line => line.trim())
+            for (const line of lines) {
+                const parts = line.split(/[,\t]+/).map(s => s.trim())
+                for (const part of parts) {
+                    if (part.includes('chat.whatsapp.com/') || part.match(/^[a-zA-Z0-9_-]{20,}$/)) {
+                        allLinks.push(part)
+                    }
+                }
+            }
         } catch (error) {
             ElMessage.error('解析文件失败: ' + error.message)
             return
         }
     }
 
-    // 2. 从文本输入提取
     if (importForm.linksText.trim()) {
         const textLinks = importForm.linksText.split('\n')
             .map(line => line.trim())
@@ -503,7 +486,6 @@ const handleImport = async () => {
         return
     }
 
-    // 去重
     allLinks = [...new Set(allLinks)]
 
     importing.value = true
