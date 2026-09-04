@@ -30,35 +30,15 @@
                     </el-icon> 刷新
                 </el-button>
 
-                <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
-                    <el-select v-model="filterExists" placeholder="全部状态" clearable @change="fetchGroups"
-                        style="width:120px">
-                        <el-option label="全部" value="" />
-                        <el-option label="存在" value="true" />
-                        <el-option label="不存在" value="false" />
-                    </el-select>
-                    <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search"
-                        style="width:180px" @input="fetchGroups" />
-                </div>
+
             </div>
-            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
                 <el-select v-model="filterExists" placeholder="全部状态" clearable @change="fetchGroups"
                     style="width:120px">
                     <el-option label="全部" value="" />
                     <el-option label="存在" value="true" />
                     <el-option label="不存在" value="false" />
                 </el-select>
-                <!-- ✅ 新增：消息数筛选 -->
-                <el-input-number v-model="filterMessageCount" :min="0" placeholder="消息数" controls-position="right"
-                    style="width:140px" />
-                <el-button size="default" type="primary" @click="fetchGroups">
-                    <el-icon>
-                        <Search />
-                    </el-icon> 筛选
-                </el-button>
-                <el-button size="default" @click="resetFilter">
-                    重置
-                </el-button>
                 <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search" style="width:180px"
                     @input="fetchGroups" />
             </div>
