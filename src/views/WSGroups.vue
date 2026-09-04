@@ -8,10 +8,10 @@
                         <Upload />
                     </el-icon> 导入群组
                 </el-button>
-                <el-button type="success" @click="showBatchJoinDialog = true" :disabled="selectedIds.length === 0">
+                <el-button type="success" @click="showBatchJoinDialog = true">
                     <el-icon>
                         <Promotion />
-                    </el-icon> 批量入群 ({{ selectedIds.length }})
+                    </el-icon> 批量入群
                 </el-button>
                 <el-button type="warning" plain @click="showBatchUpdateDialog = true"
                     :disabled="selectedIds.length === 0">
@@ -45,7 +45,7 @@
 
         <!-- 统计卡片 -->
         <el-row :gutter="20" style="margin-bottom:20px">
-            <el-col :span="8">
+            <el-col :span="6">
                 <el-card>
                     <div style="text-align:center">
                         <div style="font-size:24px;color:#409eff">{{ stats.total || 0 }}</div>
@@ -53,7 +53,7 @@
                     </div>
                 </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
                 <el-card>
                     <div style="text-align:center">
                         <div style="font-size:24px;color:#67c23a">{{ stats.exists || 0 }}</div>
@@ -61,11 +61,19 @@
                     </div>
                 </el-card>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="6">
                 <el-card>
                     <div style="text-align:center">
                         <div style="font-size:24px;color:#909399">{{ stats.not_exists || 0 }}</div>
                         <div style="color:#999;font-size:14px">不存在</div>
+                    </div>
+                </el-card>
+            </el-col>
+            <el-col :span="6">
+                <el-card>
+                    <div style="text-align:center">
+                        <div style="font-size:24px;color:#e6a23c">{{ pendingCount || 0 }}</div>
+                        <div style="color:#999;font-size:14px">待处理</div>
                     </div>
                 </el-card>
             </el-col>
@@ -74,12 +82,12 @@
         <!-- 群组列表 -->
         <el-table :data="groups" v-loading="loading" border @selection-change="handleSelectionChange" row-key="id">
             <el-table-column type="selection" width="40" />
-            <el-table-column prop="inviteCode" label="群链接" min-width="200" show-overflow-tooltip>
+            <el-table-column prop="inviteCode" label="群链接" min-width="180" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span style="font-size:12px;font-family:monospace;">{{ row.inviteCode }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="groupJID" label="群组JID" min-width="180" show-overflow-tooltip>
+            <el-table-column prop="groupJID" label="群组JID" min-width="160" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span v-if="row.groupJID" style="font-size:12px;font-family:monospace;">{{ row.groupJID }}</span>
                     <span v-else style="color:#999;">-</span>
@@ -92,32 +100,46 @@
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="joinSuccess" label="入群成功次数" width="110" align="center" />
-            <el-table-column prop="canSpeak" label="任意成员发言" width="110" align="center">
+            <el-table-column prop="memberCount" label="成员数" width="70" align="center">
+                <template #default="{ row }">
+                    {{ row.memberCount || '-' }}
+                </template>
+            </el-table-column>
+            <el-table-column prop="messageCount" label="消息数" width="70" align="center">
+                <template #default="{ row }">
+                    {{ row.messageCount || 0 }}
+                </template>
+            </el-table-column>
+            <el-table-column prop="joinSuccess" label="入群成功" width="80" align="center">
+                <template #default="{ row }">
+                    <el-tag type="success" size="small">{{ row.joinSuccess || 0 }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="joinFailed" label="入群失败" width="80" align="center">
+                <template #default="{ row }">
+                    <el-tag type="danger" size="small">{{ row.joinFailed || 0 }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column prop="canSpeak" label="任意发言" width="80" align="center">
                 <template #default="{ row }">
                     <el-tag :type="row.canSpeak ? 'success' : 'info'" size="small">
                         {{ row.canSpeak ? '是' : '否' }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="canJoin" label="任意加入" width="100" align="center">
+            <el-table-column prop="canJoin" label="任意加入" width="80" align="center">
                 <template #default="{ row }">
                     <el-tag :type="row.canJoin ? 'success' : 'info'" size="small">
                         {{ row.canJoin ? '是' : '否' }}
                     </el-tag>
                 </template>
             </el-table-column>
-            <el-table-column prop="memberCount" label="成员数" width="80" align="center">
-                <template #default="{ row }">
-                    {{ row.memberCount || '-' }}
-                </template>
-            </el-table-column>
-            <el-table-column prop="importedAt" label="导入时间" width="160">
+            <el-table-column prop="importedAt" label="导入时间" width="150">
                 <template #default="{ row }">
                     {{ formatTime(row.importedAt) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="120" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" plain @click="editGroup(row)">
                         编辑
@@ -139,30 +161,16 @@
         <!-- ========================================== -->
         <!-- 导入群组对话框 -->
         <!-- ========================================== -->
-        <!-- 导入群组对话框 -->
         <el-dialog v-model="showImportDialog" title="导入群组" width="600px">
             <el-form :model="importForm" label-width="100px">
-                <el-form-item label="上传文件">
-                    <el-upload ref="uploadRef" :auto-upload="false" accept=".xlsx,.xls,.csv,.txt" :limit="1"
-                        :on-change="handleFileChange" :on-remove="handleFileRemove" :on-exceed="handleExceed">
-                        <el-button type="primary" plain>
-                            <el-icon>
-                                <FolderOpened />
-                            </el-icon> 选择文件（.xlsx / .xls / .csv / .txt）
-                        </el-button>
-                        <template #tip>
-                            <div style="font-size:12px;color:#999;margin-top:4px;">
-                                支持 Excel 或文本文件，自动提取第一列或所有 WhatsApp 群链接
-                            </div>
-                        </template>
-                    </el-upload>
-                </el-form-item>
-                <el-form-item v-if="importForm.fileName" label="已选文件">
-                    <el-tag size="large">{{ importForm.fileName }}</el-tag>
-                </el-form-item>
-                <el-form-item label="或手动输入">
-                    <el-input v-model="importForm.linksText" type="textarea" :rows="5"
-                        placeholder="每行一个群链接，如：&#10;https://chat.whatsapp.com/xxx&#10;JQRNmDAMcTkILZI8yBWKkm" />
+                <el-form-item label="群链接列表" required>
+                    <el-input v-model="importForm.linksText" type="textarea" :rows="10"
+                        placeholder="每行一个群链接，支持格式：&#10;https://chat.whatsapp.com/xxx&#10;xxx&#10;或直接粘贴从Excel复制的内容" />
+                    <div style="font-size:12px;color:#999;margin-top:4px;">
+                        示例：<br>
+                        https://chat.whatsapp.com/JQRNmDAMcTkILZI8yBWKkm<br>
+                        JNzaWbsHagt77xeU4kaPhy
+                    </div>
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -178,34 +186,34 @@
         <!-- ========================================== -->
         <el-dialog v-model="showBatchJoinDialog" title="批量入群" width="550px">
             <el-form :model="batchJoinForm" label-width="140px">
-                <el-form-item label="选中群组">
-                    <span>{{ selectedIds.length }} 个群组</span>
-                </el-form-item>
                 <el-form-item label="账号分组" required>
                     <el-select v-model="batchJoinForm.accountGroup" placeholder="选择账号分组" style="width:100%">
                         <el-option v-for="item in accountGroups" :key="item.name"
                             :label="item.name + ' (' + item.count + '个)'" :value="item.name" />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="最大入群次数">
-                    <el-input-number v-model="batchJoinForm.maxJoinCount" :min="1" :max="999" style="width:100%" />
-                    <div style="font-size:12px;color:#999;margin-top:4px;">入群成功次数达到此值后不再入群</div>
+                <el-form-item label="入群模式">
+                    <el-radio-group v-model="batchJoinForm.mode">
+                        <el-radio-button value="pending">待处理群</el-radio-button>
+                        <el-radio-button value="active">活跃群</el-radio-button>
+                    </el-radio-group>
+                    <div style="font-size:12px;color:#999;margin-top:4px;">
+                        待处理群：优先处理 group_jid为空 且 join_failed=0 的群
+                    </div>
                 </el-form-item>
-                <el-form-item label="任意成员发言">
-                    <el-switch v-model="batchJoinForm.canSpeak" active-text="是" inactive-text="否" />
+                <el-form-item label="活跃阈值" v-if="batchJoinForm.mode === 'active'">
+                    <el-input-number v-model="batchJoinForm.threshold" :min="1" :max="9999" style="width:100%" />
+                    <div style="font-size:12px;color:#999;margin-top:4px;">仅入群消息数大于此值的群</div>
                 </el-form-item>
-                <el-form-item label="任意加入">
-                    <el-switch v-model="batchJoinForm.canJoin" active-text="是" inactive-text="否" />
-                </el-form-item>
-                <el-form-item label="自动更新群信息">
-                    <el-switch v-model="batchJoinForm.autoUpdateInfo" active-text="是" inactive-text="否" />
-                    <div style="font-size:12px;color:#999;margin-top:4px;">入群后自动获取群JID、成员数等信息</div>
+                <el-form-item label="最大处理数量">
+                    <el-input-number v-model="batchJoinForm.maxCount" :min="1" :max="999" style="width:100%" />
+                    <div style="font-size:12px;color:#999;margin-top:4px;">单次最多处理的群数量</div>
                 </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="showBatchJoinDialog = false">取消</el-button>
                 <el-button type="primary" @click="handleBatchJoin" :loading="batchJoining">
-                    {{ batchJoining ? '提交中...' : '提交入群' }}
+                    {{ batchJoining ? '执行中...' : '执行入群' }}
                 </el-button>
             </template>
         </el-dialog>
@@ -250,14 +258,20 @@
                 <el-form-item label="入群成功次数">
                     <el-input-number v-model="editForm.joinSuccess" :min="0" style="width:100%" />
                 </el-form-item>
+                <el-form-item label="入群失败次数">
+                    <el-input-number v-model="editForm.joinFailed" :min="0" style="width:100%" />
+                </el-form-item>
+                <el-form-item label="成员数量">
+                    <el-input-number v-model="editForm.memberCount" :min="0" style="width:100%" />
+                </el-form-item>
+                <el-form-item label="消息数量">
+                    <el-input-number v-model="editForm.messageCount" :min="0" style="width:100%" />
+                </el-form-item>
                 <el-form-item label="任意成员发言">
                     <el-switch v-model="editForm.canSpeak" active-text="是" inactive-text="否" />
                 </el-form-item>
                 <el-form-item label="任意加入">
                     <el-switch v-model="editForm.canJoin" active-text="是" inactive-text="否" />
-                </el-form-item>
-                <el-form-item label="成员数量">
-                    <el-input-number v-model="editForm.memberCount" :min="0" style="width:100%" />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -286,75 +300,23 @@ const searchKeyword = ref('')
 const filterExists = ref('')
 const selectedIds = ref([])
 const stats = ref({ total: 0, exists: 0, not_exists: 0 })
-
-import * as XLSX from 'xlsx'
+const pendingCount = ref(0)
 
 // ============ 导入 ============
 const showImportDialog = ref(false)
 const importing = ref(false)
-const uploadRef = ref(null)
 const importForm = reactive({
-    linksText: '',
-    fileName: '',
-    fileData: null
+    linksText: ''
 })
-// 文件选择
-const handleFileChange = (file) => {
-    importForm.fileName = file.name
-    importForm.fileData = file.raw
-}
 
-const handleFileRemove = () => {
-    importForm.fileName = ''
-    importForm.fileData = null
-}
-
-const handleExceed = () => {
-    ElMessage.warning('一次只能上传一个文件')
-}
-const extractLinksFromFile = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result)
-                const workbook = XLSX.read(data, { type: 'array' })
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
-
-                const links = []
-                // 遍历所有行
-                for (const row of jsonData) {
-                    if (!row || row.length === 0) continue
-                    // 遍历所有列，查找 WhatsApp 链接
-                    for (const cell of row) {
-                        if (!cell) continue
-                        const str = String(cell).trim()
-                        // 匹配群链接
-                        if (str.includes('chat.whatsapp.com/') ||
-                            str.match(/^[a-zA-Z0-9_-]{20,}$/)) {
-                            links.push(str)
-                        }
-                    }
-                }
-                resolve(links)
-            } catch (error) {
-                reject(error)
-            }
-        }
-        reader.onerror = reject
-        reader.readAsArrayBuffer(file)
-    })
-}
 // ============ 批量入群 ============
 const showBatchJoinDialog = ref(false)
 const batchJoining = ref(false)
 const batchJoinForm = reactive({
     accountGroup: '',
-    maxJoinCount: 10,
-    canSpeak: false,
-    canJoin: false,
-    autoUpdateInfo: true
+    mode: 'pending',
+    threshold: 10,
+    maxCount: 100
 })
 
 // ============ 批量修改 ============
@@ -372,11 +334,13 @@ const editForm = reactive({
     id: '',
     inviteCode: '',
     groupJID: '',
-    isExists: false,
+    isExists: true,
     joinSuccess: 0,
+    joinFailed: 0,
+    memberCount: 0,
+    messageCount: 0,
     canSpeak: false,
-    canJoin: false,
-    memberCount: 0
+    canJoin: false
 })
 
 // ============ 工具函数 ============
@@ -413,6 +377,8 @@ const fetchGroups = async () => {
             total.value = res.data.total || 0
             stats.value = res.data.stats || { total: 0, exists: 0, not_exists: 0 }
             stats.value.total = total.value
+            // 计算待处理数量（group_jid为空 且 join_failed=0 且 is_exists=true）
+            pendingCount.value = groups.value.filter(g => g.isExists && !g.groupJID && g.joinFailed === 0).length
         }
     } catch (error) {
         ElMessage.error('获取群组列表失败')
@@ -428,48 +394,22 @@ const handleSelectionChange = (selection) => {
 
 // ============ 导入 ============
 const handleImport = async () => {
-    let allLinks = []
-
-    // 1. 从文件提取
-    if (importForm.fileData) {
-        try {
-            const links = await extractLinksFromFile(importForm.fileData)
-            allLinks.push(...links)
-        } catch (error) {
-            ElMessage.error('解析文件失败: ' + error.message)
-            return
-        }
-    }
-
-    // 2. 从文本输入提取
-    if (importForm.linksText.trim()) {
-        const textLinks = importForm.linksText.split('\n')
-            .map(line => line.trim())
-            .filter(line => line)
-        allLinks.push(...textLinks)
-    }
-
-    if (allLinks.length === 0) {
-        ElMessage.warning('未提取到任何群链接')
+    const lines = importForm.linksText.split('\n').filter(line => line.trim())
+    if (lines.length === 0) {
+        ElMessage.warning('请输入至少一个群链接')
         return
     }
-
-    // 去重
-    allLinks = [...new Set(allLinks)]
 
     importing.value = true
     try {
         const res = await api.post('/ws-groups/import', {
-            inviteCodes: allLinks
+            inviteCodes: lines
         })
         if (res.code === 0) {
             const { success, duplicate, total } = res.data
             ElMessage.success(`导入完成：成功 ${success} 个，重复 ${duplicate} 个，共 ${total} 个`)
             showImportDialog.value = false
             importForm.linksText = ''
-            importForm.fileName = ''
-            importForm.fileData = null
-            uploadRef.value?.clearFiles()
             fetchGroups()
         }
     } catch (error) {
@@ -481,34 +421,30 @@ const handleImport = async () => {
 
 // ============ 批量入群 ============
 const handleBatchJoin = async () => {
-    if (selectedIds.value.length === 0) {
-        ElMessage.warning('请选择群组')
-        return
-    }
     if (!batchJoinForm.accountGroup) {
         ElMessage.warning('请选择账号分组')
+        return
+    }
+    if (batchJoinForm.mode === 'active' && batchJoinForm.threshold < 1) {
+        ElMessage.warning('活跃阈值至少为1')
         return
     }
 
     batchJoining.value = true
     try {
         const res = await api.post('/ws-groups/batch-join', {
-            groupIds: selectedIds.value,
             accountGroup: batchJoinForm.accountGroup,
-            maxJoinCount: batchJoinForm.maxJoinCount,
-            canSpeak: batchJoinForm.canSpeak,
-            canJoin: batchJoinForm.canJoin,
-            autoUpdateInfo: batchJoinForm.autoUpdateInfo
+            mode: batchJoinForm.mode,
+            threshold: batchJoinForm.threshold,
+            maxCount: batchJoinForm.maxCount
         })
         if (res.code === 0) {
-            ElMessage.success(res.data.message || '批量入群任务已提交')
+            ElMessage.success(`入群完成：成功 ${res.data.success} 个，失败 ${res.data.failed} 个`)
             showBatchJoinDialog.value = false
-            selectedIds.value = []
-            // 延迟刷新
-            setTimeout(() => fetchGroups(), 3000)
+            fetchGroups()
         }
     } catch (error) {
-        ElMessage.error('提交失败: ' + (error.message || ''))
+        ElMessage.error('入群失败: ' + (error.message || ''))
     } finally {
         batchJoining.value = false
     }
@@ -547,9 +483,11 @@ const editGroup = (row) => {
     editForm.groupJID = row.groupJID || ''
     editForm.isExists = row.isExists || false
     editForm.joinSuccess = row.joinSuccess || 0
+    editForm.joinFailed = row.joinFailed || 0
+    editForm.memberCount = row.memberCount || 0
+    editForm.messageCount = row.messageCount || 0
     editForm.canSpeak = row.canSpeak || false
     editForm.canJoin = row.canJoin || false
-    editForm.memberCount = row.memberCount || 0
     showEditDialog.value = true
 }
 
