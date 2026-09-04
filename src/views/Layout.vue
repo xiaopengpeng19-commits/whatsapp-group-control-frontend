@@ -84,6 +84,12 @@
           </el-icon>
           <span>群聊任务</span>
         </el-menu-item>
+        <el-menu-item index="/ws-groups">
+          <el-icon>
+            <Connection />
+          </el-icon>
+          <span>WS群管理</span>
+        </el-menu-item>
         <el-menu-item index="/pairing-code">
           <el-icon>
             <Key />

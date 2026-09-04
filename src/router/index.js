@@ -101,6 +101,12 @@ const routes = [
         meta: { title: "群聊任务" },
       },
       {
+        path: "ws-groups",
+        name: "WSGroups",
+        component: () => import("@/views/WSGroups.vue"),
+        meta: { title: "WS群管理" },
+      },
+      {
         path: "pairing-code",
         name: "PairingCode",
         component: () => import("@/views/PairingCode.vue"),
