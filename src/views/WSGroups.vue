@@ -423,7 +423,7 @@ const fetchGroups = async () => {
 
 // ============ 选中 ============
 const handleSelectionChange = (selection) => {
-    selectedIds.value = selection.map(item => item.id)
+    selectedIds.value = selection.map(item => item.inviteCode)
 }
 
 // ============ 导入 ============
