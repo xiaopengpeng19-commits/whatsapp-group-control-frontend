@@ -139,16 +139,30 @@
         <!-- ========================================== -->
         <!-- 导入群组对话框 -->
         <!-- ========================================== -->
+        <!-- 导入群组对话框 -->
         <el-dialog v-model="showImportDialog" title="导入群组" width="600px">
             <el-form :model="importForm" label-width="100px">
-                <el-form-item label="群链接列表" required>
-                    <el-input v-model="importForm.linksText" type="textarea" :rows="10"
-                        placeholder="每行一个群链接，支持格式：&#10;https://chat.whatsapp.com/xxx&#10;xxx&#10;或直接粘贴从Excel复制的内容" />
-                    <div style="font-size:12px;color:#999;margin-top:4px;">
-                        示例：<br>
-                        https://chat.whatsapp.com/JQRNmDAMcTkILZI8yBWKkm<br>
-                        JNzaWbsHagt77xeU4kaPhy
-                    </div>
+                <el-form-item label="上传文件">
+                    <el-upload ref="uploadRef" :auto-upload="false" accept=".xlsx,.xls,.csv,.txt" :limit="1"
+                        :on-change="handleFileChange" :on-remove="handleFileRemove" :on-exceed="handleExceed">
+                        <el-button type="primary" plain>
+                            <el-icon>
+                                <FolderOpened />
+                            </el-icon> 选择文件（.xlsx / .xls / .csv / .txt）
+                        </el-button>
+                        <template #tip>
+                            <div style="font-size:12px;color:#999;margin-top:4px;">
+                                支持 Excel 或文本文件，自动提取第一列或所有 WhatsApp 群链接
+                            </div>
+                        </template>
+                    </el-upload>
+                </el-form-item>
+                <el-form-item v-if="importForm.fileName" label="已选文件">
+                    <el-tag size="large">{{ importForm.fileName }}</el-tag>
+                </el-form-item>
+                <el-form-item label="或手动输入">
+                    <el-input v-model="importForm.linksText" type="textarea" :rows="5"
+                        placeholder="每行一个群链接，如：&#10;https://chat.whatsapp.com/xxx&#10;JQRNmDAMcTkILZI8yBWKkm" />
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -273,13 +287,65 @@ const filterExists = ref('')
 const selectedIds = ref([])
 const stats = ref({ total: 0, exists: 0, not_exists: 0 })
 
+import * as XLSX from 'xlsx'
+
 // ============ 导入 ============
 const showImportDialog = ref(false)
 const importing = ref(false)
+const uploadRef = ref(null)
 const importForm = reactive({
-    linksText: ''
+    linksText: '',
+    fileName: '',
+    fileData: null
 })
+// 文件选择
+const handleFileChange = (file) => {
+    importForm.fileName = file.name
+    importForm.fileData = file.raw
+}
 
+const handleFileRemove = () => {
+    importForm.fileName = ''
+    importForm.fileData = null
+}
+
+const handleExceed = () => {
+    ElMessage.warning('一次只能上传一个文件')
+}
+const extractLinksFromFile = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result)
+                const workbook = XLSX.read(data, { type: 'array' })
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
+
+                const links = []
+                // 遍历所有行
+                for (const row of jsonData) {
+                    if (!row || row.length === 0) continue
+                    // 遍历所有列，查找 WhatsApp 链接
+                    for (const cell of row) {
+                        if (!cell) continue
+                        const str = String(cell).trim()
+                        // 匹配群链接
+                        if (str.includes('chat.whatsapp.com/') ||
+                            str.match(/^[a-zA-Z0-9_-]{20,}$/)) {
+                            links.push(str)
+                        }
+                    }
+                }
+                resolve(links)
+            } catch (error) {
+                reject(error)
+            }
+        }
+        reader.onerror = reject
+        reader.readAsArrayBuffer(file)
+    })
+}
 // ============ 批量入群 ============
 const showBatchJoinDialog = ref(false)
 const batchJoining = ref(false)
@@ -362,22 +428,48 @@ const handleSelectionChange = (selection) => {
 
 // ============ 导入 ============
 const handleImport = async () => {
-    const lines = importForm.linksText.split('\n').filter(line => line.trim())
-    if (lines.length === 0) {
-        ElMessage.warning('请输入至少一个群链接')
+    let allLinks = []
+
+    // 1. 从文件提取
+    if (importForm.fileData) {
+        try {
+            const links = await extractLinksFromFile(importForm.fileData)
+            allLinks.push(...links)
+        } catch (error) {
+            ElMessage.error('解析文件失败: ' + error.message)
+            return
+        }
+    }
+
+    // 2. 从文本输入提取
+    if (importForm.linksText.trim()) {
+        const textLinks = importForm.linksText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line)
+        allLinks.push(...textLinks)
+    }
+
+    if (allLinks.length === 0) {
+        ElMessage.warning('未提取到任何群链接')
         return
     }
+
+    // 去重
+    allLinks = [...new Set(allLinks)]
 
     importing.value = true
     try {
         const res = await api.post('/ws-groups/import', {
-            inviteCodes: lines
+            inviteCodes: allLinks
         })
         if (res.code === 0) {
             const { success, duplicate, total } = res.data
             ElMessage.success(`导入完成：成功 ${success} 个，重复 ${duplicate} 个，共 ${total} 个`)
             showImportDialog.value = false
             importForm.linksText = ''
+            importForm.fileName = ''
+            importForm.fileData = null
+            uploadRef.value?.clearFiles()
             fetchGroups()
         }
     } catch (error) {
