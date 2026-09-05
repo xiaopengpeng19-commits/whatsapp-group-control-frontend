@@ -2,18 +2,14 @@
   <div class="message-history">
     <el-card>
       <el-form :model="filterForm" inline>
+        <!-- ✅ 账号改为输入框 -->
         <el-form-item label="账号">
-          <el-select v-model="filterForm.account" placeholder="选择账号" clearable @change="handleSearch" style="width:160px">
-            <el-option
-              v-for="item in accounts"
-              :key="item.account"
-              :label="item.account"
-              :value="item.account"
-            />
-          </el-select>
+          <el-input v-model="filterForm.account" placeholder="请输入账号" clearable style="width:200px"
+            @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="对方号码">
-          <el-input v-model="filterForm.to" placeholder="输入对方号码" clearable @keyup.enter="handleSearch" style="width:160px" />
+          <el-input v-model="filterForm.to" placeholder="输入对方号码" clearable @keyup.enter="handleSearch"
+            style="width:160px" />
         </el-form-item>
         <el-form-item label="消息类型">
           <el-select v-model="filterForm.type" placeholder="全部类型" clearable @change="handleSearch" style="width:120px">
@@ -24,7 +20,8 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="handleSearch" style="width:120px">
+          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="handleSearch"
+            style="width:120px">
             <el-option label="已发送" value="sent" />
             <el-option label="已送达" value="delivered" />
             <el-option label="已读" value="read" />
@@ -34,21 +31,30 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon> 搜索
+            <el-icon>
+              <Search />
+            </el-icon> 搜索
           </el-button>
           <el-button @click="resetFilter">
-            <el-icon><RefreshRight /></el-icon> 重置
+            <el-icon>
+              <RefreshRight />
+            </el-icon> 重置
           </el-button>
           <el-button @click="fetchMessages">
-            <el-icon><Refresh /></el-icon> 刷新
+            <el-icon>
+              <Refresh />
+            </el-icon> 刷新
           </el-button>
           <el-button type="danger" plain :disabled="selectedIds.length === 0" @click="handleBatchDelete">
-            <el-icon><Delete /></el-icon> 批量删除
+            <el-icon>
+              <Delete />
+            </el-icon> 批量删除
           </el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
+    <!-- 统计卡片 -->
     <el-row :gutter="20" style="margin-top:20px">
       <el-col :span="6">
         <el-card>
@@ -84,6 +90,7 @@
       </el-col>
     </el-row>
 
+    <!-- 消息列表 -->
     <el-card style="margin-top:20px">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -92,14 +99,8 @@
         </div>
       </template>
 
-      <el-table 
-        :data="messages" 
-        border 
-        v-loading="loading" 
-        stripe
-        @selection-change="handleSelectionChange"
-        size="default"
-      >
+      <el-table :data="messages" border v-loading="loading" stripe @selection-change="handleSelectionChange"
+        size="default">
         <el-table-column type="selection" width="40" />
         <el-table-column type="index" label="#" width="45" />
         <el-table-column prop="account" label="账号" width="130" />
@@ -146,29 +147,20 @@
         </el-table-column>
         <el-table-column label="操作" width="130" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button size="small" type="primary" link @click="showDetail(row)">
-              详情
-            </el-button>
-            <el-button size="small" type="danger" link @click="handleDelete(row)">
-              删除
-            </el-button>
+            <el-button size="small" type="primary" link @click="showDetail(row)">详情</el-button>
+            <el-button size="small" type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div style="margin-top:20px;display:flex;justify-content:flex-end">
-        <el-pagination
-          v-model:current-page="page"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="fetchMessages"
-          @current-change="fetchMessages"
-        />
+        <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50, 100]"
+          :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchMessages"
+          @current-change="fetchMessages" />
       </div>
     </el-card>
 
+    <!-- 消息详情对话框 -->
     <el-dialog v-model="showDetailDialog" title="消息详情" width="600px">
       <el-descriptions :column="2" border>
         <el-descriptions-item label="消息ID">{{ detailData.messageId || '-' }}</el-descriptions-item>
@@ -214,7 +206,7 @@ import { Search, RefreshRight, Refresh, Delete } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import dayjs from 'dayjs'
 
-const accounts = ref([])
+// ============ 状态 ============
 const messages = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -224,13 +216,15 @@ const showDetailDialog = ref(false)
 const detailData = ref({})
 const selectedIds = ref([])
 
+// ============ 筛选表单 ============
 const filterForm = reactive({
-  account: '',
+  account: '',  // ✅ 改为字符串，不再依赖 accounts 列表
   to: '',
   type: '',
   status: ''
 })
 
+// ============ 统计 ============
 const stats = computed(() => {
   const data = messages.value
   return {
@@ -241,16 +235,17 @@ const stats = computed(() => {
   }
 })
 
+// ============ 工具函数 ============
 const cleanJid = (jid) => {
   if (!jid) return ''
   return jid.split('@')[0]
 }
 
 const getStatusType = (status) => {
-  const map = { 
-    sent: 'info', 
-    delivered: 'success', 
-    read: 'success', 
+  const map = {
+    sent: 'info',
+    delivered: 'success',
+    read: 'success',
     failed: 'danger',
     received: 'info'
   }
@@ -258,36 +253,26 @@ const getStatusType = (status) => {
 }
 
 const getStatusLabel = (status) => {
-  const map = { 
-    sent: '已发送', 
-    delivered: '已送达', 
-    read: '已读', 
+  const map = {
+    sent: '已发送',
+    delivered: '已送达',
+    read: '已读',
     failed: '失败',
     received: '已接收'
   }
   return map[status] || status
 }
 
-const fetchAccounts = async () => {
-  try {
-    const res = await whatsapp.getAccounts()
-    if (res.code === 0) {
-      let data = res.data?.data || res.data || []
-      if (!Array.isArray(data)) data = []
-      accounts.value = data
-      if (accounts.value.length > 0 && !filterForm.account) {
-        filterForm.account = accounts.value[0].account
-        fetchMessages()
-      }
-    }
-  } catch (error) {
-    console.error('获取账号失败:', error)
-  }
+const formatTime = (time) => {
+  return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
+// ==========================================
+// 数据获取
+// ==========================================
 const fetchMessages = async () => {
   if (!filterForm.account) {
-    ElMessage.warning('请选择账号')
+    ElMessage.warning('请输入账号')
     return
   }
 
@@ -314,19 +299,27 @@ const fetchMessages = async () => {
   }
 }
 
+// ==========================================
+// 搜索/重置
+// ==========================================
 const handleSearch = () => {
   page.value = 1
   fetchMessages()
 }
 
 const resetFilter = () => {
+  filterForm.account = ''
   filterForm.to = ''
   filterForm.type = ''
   filterForm.status = ''
   page.value = 1
-  fetchMessages()
+  messages.value = []
+  total.value = 0
 }
 
+// ==========================================
+// 详情/删除
+// ==========================================
 const showDetail = (row) => {
   detailData.value = row
   showDetailDialog.value = true
@@ -334,7 +327,7 @@ const showDetail = (row) => {
 
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要删除该消息吗？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm('确定要删除该消息吗？', '提示', { type: 'warning' })
     const res = await whatsapp.deleteMessage(row.id)
     if (res.code === 0) {
       ElMessage.success('删除成功')
@@ -347,10 +340,17 @@ const handleDelete = async (row) => {
   }
 }
 
+// ==========================================
+// 批量删除
+// ==========================================
 const handleBatchDelete = async () => {
   if (selectedIds.value.length === 0) return
   try {
-    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 条消息吗？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedIds.value.length} 条消息吗？`,
+      '提示',
+      { type: 'warning' }
+    )
     const res = await whatsapp.batchDeleteMessages({ ids: selectedIds.value })
     if (res.code === 0) {
       ElMessage.success(`成功删除 ${res.data.deleted_count} 条消息`)
@@ -368,13 +368,11 @@ const handleSelectionChange = (selection) => {
   selectedIds.value = selection.map(item => item.id)
 }
 
-const formatTime = (time) => {
-  return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
-}
-
+// ==========================================
+// 生命周期
+// ==========================================
 onMounted(() => {
-  fetchAccounts()
-  fetchMessages()
+  // ✅ 不再自动加载，等待用户输入账号后点击搜索
 })
 </script>
 
