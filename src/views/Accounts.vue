@@ -176,6 +176,29 @@
           </el-tag>
         </template>
       </el-table-column>
+      <!-- 在表格中添加 -->
+      <el-table-column prop="groupMsgSent" label="群发消息" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" type="primary">
+            {{ row.groupMsgSent || 0 }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="groupMsgReceived" label="群收消息" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" type="success">
+            {{ row.groupMsgReceived || 0 }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <!-- 在账号列表表格中添加 -->
+      <el-table-column prop="privateMsgReceived" label="收私聊" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">
+            {{ row.privateMsgReceived || 0 }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="loginAt" label="登录时间" width="160">
         <template #default="{ row }">
           {{ formatTime(row.loginAt) }}
