@@ -8,7 +8,7 @@
                         <Upload />
                     </el-icon> 导入群组
                 </el-button>
-                <el-button type="success" @click="showBatchJoinDialog = true">
+                <el-button type="success" @click="showBatchJoinDialog = true" :disabled="batchTaskRunning">
                     <el-icon>
                         <Promotion />
                     </el-icon> 批量入群
@@ -44,14 +44,93 @@
                             <Search />
                         </el-icon> 筛选
                     </el-button>
-                    <el-button size="default" @click="resetFilter">
-                        重置
-                    </el-button>
+                    <el-button size="default" @click="resetFilter">重置</el-button>
                     <el-input v-model="searchKeyword" placeholder="搜索群链接" clearable prefix-icon="Search"
                         style="width:180px" @input="fetchGroups" />
                 </div>
             </div>
         </div>
+
+        <!-- 批量入群进度卡片 -->
+        <el-card v-if="batchTask" style="margin-bottom:20px;border-color:#409eff;">
+            <template #header>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>
+                        <el-icon v-if="batchTaskRunning">
+                            <Loading />
+                        </el-icon>
+                        <el-icon v-else>
+                            <Check />
+                        </el-icon>
+                        批量入群任务
+                        <el-tag :type="batchTaskStatusType" size="small" style="margin-left:10px;">
+                            {{ batchTaskStatusLabel }}
+                        </el-tag>
+                    </span>
+                    <div>
+                        <el-button v-if="batchTaskRunning" type="danger" size="small" plain @click="handleCancelTask"
+                            :loading="cancelling">
+                            取消任务
+                        </el-button>
+                        <el-button size="small" @click="fetchTaskStatus">刷新</el-button>
+                    </div>
+                </div>
+            </template>
+
+            <div>
+                <!-- 进度信息 -->
+                <el-row :gutter="20">
+                    <el-col :span="6">
+                        <div style="text-align:center;padding:10px 0;">
+                            <div style="font-size:20px;color:#409eff;">{{ batchTask.total || 0 }}</div>
+                            <div style="color:#999;font-size:13px;">总群组</div>
+                        </div>
+                    </el-col>
+                    <el-col :span="6">
+                        <div style="text-align:center;padding:10px 0;">
+                            <div style="font-size:20px;color:#67c23a;">{{ batchTask.success || 0 }}</div>
+                            <div style="color:#999;font-size:13px;">成功</div>
+                        </div>
+                    </el-col>
+                    <el-col :span="6">
+                        <div style="text-align:center;padding:10px 0;">
+                            <div style="font-size:20px;color:#f56c6c;">{{ batchTask.failed || 0 }}</div>
+                            <div style="color:#999;font-size:13px;">失败</div>
+                        </div>
+                    </el-col>
+                    <el-col :span="6">
+                        <div style="text-align:center;padding:10px 0;">
+                            <div style="font-size:20px;color:#e6a23c;">{{ batchTask.current || 0 }}</div>
+                            <div style="color:#999;font-size:13px;">已处理</div>
+                        </div>
+                    </el-col>
+                </el-row>
+
+                <!-- 进度条 -->
+                <el-progress :percentage="batchProgress" :color="batchProgressColor" :stroke-width="18"
+                    :text-inside="true" :status="batchProgressStatus" />
+
+                <!-- 当前处理 -->
+                <div
+                    style="margin-top:10px;color:#666;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;">
+                    <span>
+                        当前处理:
+                        <el-tag size="small" type="info">{{ batchTask.currentGroup || '等待中...' }}</el-tag>
+                    </span>
+                    <span style="color:#999;">
+                        开始时间: {{ formatTime(batchTask.startedAt) }}
+                        <span v-if="batchTask.updatedAt" style="margin-left:15px;">
+                            更新: {{ formatTime(batchTask.updatedAt) }}
+                        </span>
+                    </span>
+                </div>
+
+                <!-- 消息 -->
+                <div style="margin-top:8px;color:#999;font-size:12px;">
+                    {{ batchTask.message || '处理中...' }}
+                </div>
+            </div>
+        </el-card>
 
         <!-- 统计卡片 -->
         <el-row :gutter="20" style="margin-bottom:20px">
@@ -92,12 +171,12 @@
         <!-- 群组列表 -->
         <el-table :data="groups" v-loading="loading" border @selection-change="handleSelectionChange" row-key="id">
             <el-table-column type="selection" width="40" />
-            <el-table-column prop="inviteCode" label="群链接" min-width="120" show-overflow-tooltip>
+            <el-table-column prop="inviteCode" label="群链接" min-width="180" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span style="font-size:12px;font-family:monospace;">{{ row.inviteCode }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="groupJID" label="群组JID" min-width="120" show-overflow-tooltip>
+            <el-table-column prop="groupJID" label="群组JID" min-width="160" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span v-if="row.groupJID" style="font-size:12px;font-family:monospace;">{{ row.groupJID }}</span>
                     <span v-else style="color:#999;">-</span>
@@ -149,14 +228,10 @@
                     {{ formatTime(row.importedAt) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" width="160" fixed="right">
+            <el-table-column label="操作" width="120" fixed="right">
                 <template #default="{ row }">
-                    <el-button size="small" type="primary" plain @click="editGroup(row)">
-                        编辑
-                    </el-button>
-                    <el-button size="small" type="danger" plain @click="handleDelete(row)">
-                        删除
-                    </el-button>
+                    <el-button size="small" type="primary" plain @click="editGroup(row)">编辑</el-button>
+                    <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
                 </template>
             </el-table-column>
         </el-table>
@@ -225,7 +300,7 @@
         <!-- ========================================== -->
         <!-- 批量入群对话框 -->
         <!-- ========================================== -->
-        <el-dialog v-model="showBatchJoinDialog" title="批量入群" width="550px">
+        <el-dialog v-model="showBatchJoinDialog" title="批量入群" width="550px" :close-on-click-modal="false">
             <el-form :model="batchJoinForm" label-width="140px">
                 <el-form-item label="账号分组" required>
                     <el-select v-model="batchJoinForm.accountGroup" placeholder="选择账号分组" style="width:100%">
@@ -250,11 +325,16 @@
                     <el-input-number v-model="batchJoinForm.maxCount" :min="1" :max="999" style="width:100%" />
                     <div style="font-size:12px;color:#999;margin-top:4px;">单次最多处理的群数量</div>
                 </el-form-item>
+                <el-form-item v-if="batchTaskRunning" label="⚠️ 提示">
+                    <el-alert type="warning" :closable="false" show-icon>
+                        <template #title>当前有批量入群任务正在执行，请等待完成后再试</template>
+                    </el-alert>
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="showBatchJoinDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleBatchJoin" :loading="batchJoining">
-                    {{ batchJoining ? '执行中...' : '执行入群' }}
+                <el-button type="primary" @click="handleBatchJoin" :loading="batchJoining" :disabled="batchTaskRunning">
+                    {{ batchTaskRunning ? '任务执行中...' : '执行入群' }}
                 </el-button>
             </template>
         </el-dialog>
@@ -276,9 +356,7 @@
             </el-form>
             <template #footer>
                 <el-button @click="showBatchUpdateDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleBatchUpdate" :loading="batchUpdating">
-                    确定
-                </el-button>
+                <el-button type="primary" @click="handleBatchUpdate" :loading="batchUpdating">确定</el-button>
             </template>
         </el-dialog>
 
@@ -324,12 +402,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Promotion, Edit, Delete, Refresh, Search } from '@element-plus/icons-vue'
+import {
+    Upload,
+    Promotion,
+    Edit,
+    Delete,
+    Refresh,
+    Search,
+    FolderOpened,
+    Loading,
+    Check
+} from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
-import * as XLSX from 'xlsx'  // ✅ 新增：导入 Excel 解析库
+import * as XLSX from 'xlsx'
 
 // ============ 状态 ============
 const groups = ref([])
@@ -368,6 +456,12 @@ const batchJoinForm = reactive({
     maxCount: 100
 })
 
+// ============ 批量入群任务状态 ============
+const batchTask = ref(null)
+const batchTaskRunning = ref(false)
+const cancelling = ref(false)
+let statusPollingTimer = null
+
 // ============ 批量修改 ============
 const showBatchUpdateDialog = ref(false)
 const batchUpdating = ref(false)
@@ -392,49 +486,86 @@ const editForm = reactive({
     canJoin: false
 })
 
+// ============ 计算属性 ============
+const batchProgress = computed(() => {
+    if (!batchTask.value || !batchTask.value.total || batchTask.value.total === 0) return 0
+    const processed = (batchTask.value.success || 0) + (batchTask.value.failed || 0)
+    return Math.round((processed / batchTask.value.total) * 100)
+})
+
+const batchProgressColor = computed(() => {
+    const p = batchProgress.value
+    if (p === 100) return '#67c23a'
+    if (p > 50) return '#409eff'
+    return '#e6a23c'
+})
+
+const batchProgressStatus = computed(() => {
+    if (!batchTask.value) return ''
+    if (batchTask.value.status === 'completed') return 'success'
+    if (batchTask.value.status === 'failed' || batchTask.value.status === 'cancelled') return 'exception'
+    return ''
+})
+
+const batchTaskStatusLabel = computed(() => {
+    if (!batchTask.value) return '未知'
+    const map = {
+        pending: '等待中',
+        running: '执行中',
+        completed: '已完成',
+        failed: '失败',
+        cancelled: '已取消'
+    }
+    return map[batchTask.value.status] || batchTask.value.status
+})
+
+const batchTaskStatusType = computed(() => {
+    if (!batchTask.value) return 'info'
+    const map = {
+        pending: 'info',
+        running: 'warning',
+        completed: 'success',
+        failed: 'danger',
+        cancelled: 'info'
+    }
+    return map[batchTask.value.status] || 'info'
+})
+
 // ============ 工具函数 ============
 const formatTime = (time) => {
     return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
 // ==========================================
-// ✅ 核心：从文件内容提取 WhatsApp 群链接
+// 提取 WhatsApp 群链接
 // ==========================================
 const extractWhatsAppLinks = (content) => {
     const allLinks = new Set()
 
-    // 正则：匹配完整的 WhatsApp 群链接（包含 https://）
     const fullLinkRegex = /https?:\/\/chat\.whatsapp\.com\/([a-zA-Z0-9_-]{20,})/gi
-    // 正则：匹配纯邀请码
     const codeRegex = /([a-zA-Z0-9_-]{20,})/g
 
-    // 按行分割
     const lines = content.split(/\r?\n/).filter(line => line.trim())
 
     for (const line of lines) {
-        // 1. 先尝试匹配完整的 WhatsApp 链接
         let match
         while ((match = fullLinkRegex.exec(line)) !== null) {
             const fullUrl = match[0]
             const code = match[1]
             allLinks.add(fullUrl)
-            allLinks.add(code)  // 也保存邀请码，后续统一处理
+            allLinks.add(code)
         }
 
-        // 2. 如果没匹配到完整链接，尝试从 A 列（或任何列）提取邀请码
-        // 检查是否包含 chat.whatsapp.com
         if (line.includes('chat.whatsapp.com') && !line.match(fullLinkRegex)) {
-            // 手动提取 chat.whatsapp.com/ 后面的部分
             const parts = line.split('chat.whatsapp.com/')
             for (let i = 1; i < parts.length; i++) {
-                const code = parts[i].split(/[\s,;\t"']/)[0]  // 提取到空白字符或标点前
+                const code = parts[i].split(/[\s,;\t"']/)[0]
                 if (code && code.length >= 20) {
                     allLinks.add(code)
                 }
             }
         }
 
-        // 3. 如果行中有多个用 <br> 分隔的链接
         if (line.includes('<br>')) {
             const brParts = line.split('<br>')
             for (const part of brParts) {
@@ -445,7 +576,6 @@ const extractWhatsAppLinks = (content) => {
                         allLinks.add(code)
                     }
                 }
-                // 也尝试直接匹配邀请码
                 const codeMatch = trimmed.match(codeRegex)
                 if (codeMatch) {
                     for (const c of codeMatch) {
@@ -457,11 +587,9 @@ const extractWhatsAppLinks = (content) => {
             }
         }
 
-        // 4. 正则提取所有邀请码（作为兜底）
         const codeMatches = line.match(codeRegex)
         if (codeMatches) {
             for (const c of codeMatches) {
-                // 过滤掉纯数字（可能是手机号）和过短的
                 if (c.length >= 20 && !/^\d+$/.test(c)) {
                     allLinks.add(c)
                 }
@@ -479,25 +607,21 @@ const handleFileChange = (file) => {
     importForm.fileName = file.name
     importForm.fileData = file.raw
 
-    // 预览解析结果
     const reader = new FileReader()
     reader.onload = (e) => {
         let content = e.target.result
         let links = []
 
-        // 如果是 Excel 文件，用 XLSX 解析
         if (file.name.match(/\.(xlsx|xls)$/i)) {
             try {
                 const workbook = XLSX.read(content, { type: 'array' })
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
 
-                // 遍历所有行和列，查找 WhatsApp 群链接
                 for (const row of jsonData) {
                     if (!row || row.length === 0) continue
                     for (const cell of row) {
                         if (cell && typeof cell === 'string') {
-                            // 检查是否包含 chat.whatsapp.com
                             if (cell.includes('chat.whatsapp.com')) {
                                 const codes = extractWhatsAppLinks(cell)
                                 links.push(...codes)
@@ -507,23 +631,19 @@ const handleFileChange = (file) => {
                 }
             } catch (error) {
                 console.error('Excel 解析失败:', error)
-                // 降级：按文本解析
                 content = new TextDecoder().decode(content)
                 links = extractWhatsAppLinks(content)
             }
         } else {
-            // 文本文件直接解析
             links = extractWhatsAppLinks(content)
         }
 
-        // 去重并过滤
         const uniqueLinks = [...new Set(links)].filter(l => l && l.length >= 20)
         parsedCount.value = uniqueLinks.length
-        parsedLinksPreview.value = uniqueLinks.slice(0, 50)  // 预览前50个
+        parsedLinksPreview.value = uniqueLinks.slice(0, 50)
 
         if (uniqueLinks.length > 0) {
             ElMessage.success(`成功识别 ${uniqueLinks.length} 个群组链接`)
-            // 自动填充到文本框
             importForm.linksText = uniqueLinks.join('\n')
         } else {
             ElMessage.warning('未能从文件中识别到 WhatsApp 群链接，请检查格式')
@@ -556,7 +676,6 @@ const handleExceed = () => {
 const handleImport = async () => {
     let allLinks = []
 
-    // 如果手动输入了内容
     if (importForm.linksText.trim()) {
         const textLinks = importForm.linksText.split('\n')
             .map(line => line.trim())
@@ -564,7 +683,6 @@ const handleImport = async () => {
         allLinks.push(...textLinks)
     }
 
-    // 如果上传了文件但还没解析到链接（兜底）
     if (importForm.fileData && allLinks.length === 0) {
         const content = await new Promise((resolve, reject) => {
             const reader = new FileReader()
@@ -580,11 +698,9 @@ const handleImport = async () => {
         allLinks.push(...links)
     }
 
-    // 去重并过滤
     allLinks = [...new Set(allLinks)]
         .filter(l => l && l.length >= 20)
         .map(l => {
-            // 如果是完整链接，提取邀请码
             if (l.includes('chat.whatsapp.com/')) {
                 return l.split('chat.whatsapp.com/')[1]?.split(/[\s,;]/)[0] || l
             }
@@ -599,16 +715,13 @@ const handleImport = async () => {
 
     importing.value = true
     try {
-        // 分批导入，每次最多 100 个
         const batchSize = 100
         let totalSuccess = 0
         let totalDuplicate = 0
 
         for (let i = 0; i < allLinks.length; i += batchSize) {
             const batch = allLinks.slice(i, i + batchSize)
-            const res = await api.post('/ws-groups/import', {
-                inviteCodes: batch
-            })
+            const res = await api.post('/ws-groups/import', { inviteCodes: batch })
             if (res.code === 0) {
                 totalSuccess += res.data.success || 0
                 totalDuplicate += res.data.duplicate || 0
@@ -633,7 +746,114 @@ const handleImport = async () => {
 }
 
 // ==========================================
-// 其他函数保持不变
+// 批量入群任务状态
+// ==========================================
+const fetchTaskStatus = async () => {
+    try {
+        const res = await api.get('/ws-groups/batch-join/status')
+        if (res.code === 0) {
+            const data = res.data
+            batchTaskRunning.value = data.running || false
+            batchTask.value = data.task || null
+        }
+    } catch (error) {
+        console.error('获取任务状态失败:', error)
+    }
+}
+
+// ==========================================
+// 取消批量入群任务
+// ==========================================
+const handleCancelTask = async () => {
+    try {
+        await ElMessageBox.confirm('确定要取消当前批量入群任务吗？', '提示', { type: 'warning' })
+        cancelling.value = true
+        const res = await api.post('/ws-groups/batch-join/cancel')
+        if (res.code === 0) {
+            ElMessage.success('任务已取消')
+            await fetchTaskStatus()
+            if (statusPollingTimer) {
+                clearInterval(statusPollingTimer)
+                statusPollingTimer = null
+            }
+        }
+    } catch (error) {
+        if (error !== 'cancel') {
+            ElMessage.error('取消失败: ' + (error.message || ''))
+        }
+    } finally {
+        cancelling.value = false
+    }
+}
+
+// ==========================================
+// 轮询任务状态
+// ==========================================
+const startPolling = () => {
+    if (statusPollingTimer) {
+        clearInterval(statusPollingTimer)
+    }
+    statusPollingTimer = setInterval(async () => {
+        await fetchTaskStatus()
+        if (!batchTaskRunning.value && batchTask.value) {
+            const status = batchTask.value.status
+            if (status === 'completed' || status === 'failed' || status === 'cancelled') {
+                clearInterval(statusPollingTimer)
+                statusPollingTimer = null
+                fetchGroups()
+                if (status === 'completed') {
+                    ElMessage.success('批量入群任务已完成')
+                } else if (status === 'failed') {
+                    ElMessage.error('批量入群任务失败: ' + (batchTask.value.message || ''))
+                } else if (status === 'cancelled') {
+                    ElMessage.info('批量入群任务已取消')
+                }
+            }
+        }
+    }, 2000)
+}
+
+// ==========================================
+// 批量入群
+// ==========================================
+const handleBatchJoin = async () => {
+    if (!batchJoinForm.accountGroup) {
+        ElMessage.warning('请选择账号分组')
+        return
+    }
+    if (batchJoinForm.mode === 'active' && batchJoinForm.threshold < 1) {
+        ElMessage.warning('活跃阈值至少为1')
+        return
+    }
+
+    if (batchTaskRunning.value) {
+        ElMessage.warning('已有批量入群任务正在执行，请等待完成')
+        return
+    }
+
+    batchJoining.value = true
+    try {
+        const res = await api.post('/ws-groups/batch-join', {
+            accountGroup: batchJoinForm.accountGroup,
+            mode: batchJoinForm.mode,
+            threshold: batchJoinForm.threshold,
+            maxCount: batchJoinForm.maxCount
+        })
+        if (res.code === 0) {
+            ElMessage.success(res.data.message || '批量入群任务已启动')
+            showBatchJoinDialog.value = false
+            await fetchTaskStatus()
+            startPolling()
+        }
+    } catch (error) {
+        ElMessage.error('启动失败: ' + (error.message || ''))
+    } finally {
+        batchJoining.value = false
+    }
+}
+
+// ==========================================
+// 数据获取
 // ==========================================
 const fetchAccountGroups = async () => {
     try {
@@ -682,40 +902,16 @@ const resetFilter = () => {
     fetchGroups()
 }
 
+// ==========================================
+// 选中
+// ==========================================
 const handleSelectionChange = (selection) => {
     selectedIds.value = selection.map(item => item.id)
 }
 
-const handleBatchJoin = async () => {
-    if (!batchJoinForm.accountGroup) {
-        ElMessage.warning('请选择账号分组')
-        return
-    }
-    if (batchJoinForm.mode === 'active' && batchJoinForm.threshold < 1) {
-        ElMessage.warning('活跃阈值至少为1')
-        return
-    }
-
-    batchJoining.value = true
-    try {
-        const res = await api.post('/ws-groups/batch-join', {
-            accountGroup: batchJoinForm.accountGroup,
-            mode: batchJoinForm.mode,
-            threshold: batchJoinForm.threshold,
-            maxCount: batchJoinForm.maxCount
-        })
-        if (res.code === 0) {
-            ElMessage.success(`入群完成：成功 ${res.data.success} 个，失败 ${res.data.failed} 个`)
-            showBatchJoinDialog.value = false
-            fetchGroups()
-        }
-    } catch (error) {
-        ElMessage.error('入群失败: ' + (error.message || ''))
-    } finally {
-        batchJoining.value = false
-    }
-}
-
+// ==========================================
+// 批量修改
+// ==========================================
 const handleBatchUpdate = async () => {
     if (selectedIds.value.length === 0) {
         ElMessage.warning('请选择群组')
@@ -741,6 +937,9 @@ const handleBatchUpdate = async () => {
     }
 }
 
+// ==========================================
+// 编辑
+// ==========================================
 const editGroup = (row) => {
     editForm.id = row.id
     editForm.inviteCode = row.inviteCode
@@ -774,6 +973,9 @@ const handleEdit = async () => {
     }
 }
 
+// ==========================================
+// 删除
+// ==========================================
 const handleDelete = async (row) => {
     try {
         await ElMessageBox.confirm(`确定要删除群组 ${row.inviteCode} 吗？`, '提示', { type: 'warning' })
@@ -809,9 +1011,23 @@ const handleBatchDelete = async () => {
     }
 }
 
+// ==========================================
+// 生命周期
+// ==========================================
 onMounted(() => {
     fetchAccountGroups()
     fetchGroups()
+    fetchTaskStatus()
+    if (batchTaskRunning.value) {
+        startPolling()
+    }
+})
+
+onBeforeUnmount(() => {
+    if (statusPollingTimer) {
+        clearInterval(statusPollingTimer)
+        statusPollingTimer = null
+    }
 })
 </script>
 
