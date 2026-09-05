@@ -92,12 +92,12 @@
         <!-- 群组列表 -->
         <el-table :data="groups" v-loading="loading" border @selection-change="handleSelectionChange" row-key="id">
             <el-table-column type="selection" width="40" />
-            <el-table-column prop="inviteCode" label="群链接" min-width="180" show-overflow-tooltip>
+            <el-table-column prop="inviteCode" label="群链接" min-width="120" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span style="font-size:12px;font-family:monospace;">{{ row.inviteCode }}</span>
                 </template>
             </el-table-column>
-            <el-table-column prop="groupJID" label="群组JID" min-width="160" show-overflow-tooltip>
+            <el-table-column prop="groupJID" label="群组JID" min-width="120" show-overflow-tooltip>
                 <template #default="{ row }">
                     <span v-if="row.groupJID" style="font-size:12px;font-family:monospace;">{{ row.groupJID }}</span>
                     <span v-else style="color:#999;">-</span>
@@ -149,7 +149,7 @@
                     {{ formatTime(row.importedAt) }}
                 </template>
             </el-table-column>
-            <el-table-column label="操作" width="120" fixed="right">
+            <el-table-column label="操作" width="160" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" plain @click="editGroup(row)">
                         编辑
