@@ -211,9 +211,11 @@
       </el-table-column>
 
       <!-- 操作列 -->
-      <el-table-column label="操作" width="320" fixed="right">
+      <!-- 操作列 -->
+      <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <!-- 上线/下线按钮 -->
             <el-button
               v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
               size="small" type="success" @click="handleOnline(row.account)">
@@ -229,21 +231,20 @@
             </el-button>
             <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
             <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
-            <el-table-column label="操作" width="370" fixed="right">
-              <template #default="{ row }">
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                  <!-- 原有按钮... -->
-                  <el-button size="small" type="info" @click="showPrivateMessages(row.account)">
-                    <el-icon>
-                      <ChatDotRound />
-                    </el-icon> 私聊
-                  </el-button>
-                </div>
-              </template>
-            </el-table-column>
+
+            <!-- 私聊按钮 -->
+            <el-button size="small" type="info" @click="showPrivateMessages(row.account)">
+              <el-icon>
+                <ChatDotRound />
+              </el-icon> 私聊
+            </el-button>
+
+            <!-- 二维码 -->
             <el-button size="small" type="info" @click="showQRCode(row)">
               二维码
             </el-button>
+
+            <!-- 删除 -->
             <el-button size="small" type="danger" @click="handleDelete(row.account)">
               <el-icon>
                 <Delete />
