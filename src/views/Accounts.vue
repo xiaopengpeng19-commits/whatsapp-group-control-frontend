@@ -229,7 +229,18 @@
             </el-button>
             <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
             <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
-
+            <el-table-column label="操作" width="370" fixed="right">
+              <template #default="{ row }">
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <!-- 原有按钮... -->
+                  <el-button size="small" type="info" @click="showPrivateMessages(row.account)">
+                    <el-icon>
+                      <ChatDotRound />
+                    </el-icon> 私聊
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
             <el-button size="small" type="info" @click="showQRCode(row)">
               二维码
             </el-button>
@@ -249,7 +260,64 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- 私聊消息弹窗 -->
+    <el-dialog v-model="showPrivateDialog" :title="`私聊消息 - ${currentAccount}`" width="900px"
+      :close-on-click-modal="false">
+      <div>
+        <!-- 统计 -->
+        <div style="margin-bottom:12px;display:flex;gap:15px;flex-wrap:wrap;">
+          <span>总消息: <el-tag type="info">{{ privateTotal }}</el-tag></span>
+        </div>
 
+        <!-- 消息列表 -->
+        <el-table :data="privateMessages" border v-loading="privateLoading" max-height="450" stripe>
+          <el-table-column type="index" label="#" width="50" />
+          <el-table-column prop="senderLid" label="发送者LID" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="senderPhone" label="发送者手机号" width="140">
+            <template #default="{ row }">
+              <span v-if="row.senderPhone">{{ row.senderPhone }}</span>
+              <span v-else style="color:#999;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remoteJid" label="RemoteJID" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="content" label="消息内容" min-width="200" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span v-if="row.content">{{ row.content }}</span>
+              <span v-else style="color:#999;">[非文本消息]</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="messageType" label="类型" width="100">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.messageType === 'conversation' ? 'primary' : 'warning'">
+                {{ row.messageType || 'text' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="receivedAt" label="接收时间" width="170">
+            <template #default="{ row }">
+              {{ formatTime(row.receivedAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="80" align="center">
+            <template #default="{ row }">
+              <el-button size="small" type="danger" link @click="handleDeletePrivate(row.id)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div style="margin-top:15px;display:flex;justify-content:flex-end">
+          <el-pagination v-model:current-page="privatePage" v-model:page-size="privatePageSize"
+            :page-sizes="[10, 20, 50, 100]" :total="privateTotal" layout="total, sizes, prev, pager, next"
+            @size-change="fetchPrivateMessages" @current-change="fetchPrivateMessages" />
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showPrivateDialog = false">关闭</el-button>
+        <el-button type="primary" @click="fetchPrivateMessages">刷新</el-button>
+      </template>
+    </el-dialog>
     <!-- 批量添加账号对话框 -->
     <el-dialog v-model="showBatchAddDialog" title="批量添加账号" width="600px">
       <el-form :model="batchAddForm" label-width="100px">
@@ -455,7 +523,59 @@ import { Plus, Refresh, Folder, Picture, Upload, FolderOpened, Promotion, Switch
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
+import { ChatDotRound } from '@element-plus/icons-vue'
+// ============ 私聊消息 ============
+const showPrivateDialog = ref(false)
+const currentAccount = ref('')
+const privateMessages = ref([])
+const privateLoading = ref(false)
+const privateTotal = ref(0)
+const privatePage = ref(1)
+const privatePageSize = ref(20)
 
+const showPrivateMessages = async (account) => {
+  currentAccount.value = account
+  privatePage.value = 1
+  showPrivateDialog.value = true
+  await fetchPrivateMessages()
+}
+
+const fetchPrivateMessages = async () => {
+  if (!currentAccount.value) return
+  privateLoading.value = true
+  try {
+    const res = await api.get('/private-messages/list', {
+      params: {
+        account: currentAccount.value,
+        page: privatePage.value,
+        page_size: privatePageSize.value
+      }
+    })
+    if (res.code === 0) {
+      privateMessages.value = res.data.data || []
+      privateTotal.value = res.data.total || 0
+    }
+  } catch (error) {
+    ElMessage.error('获取私聊消息失败')
+  } finally {
+    privateLoading.value = false
+  }
+}
+
+const handleDeletePrivate = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要删除该消息吗？', '提示', { type: 'warning' })
+    const res = await api.delete(`/private-messages/${id}/delete`)
+    if (res.code === 0) {
+      ElMessage.success('删除成功')
+      fetchPrivateMessages()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
+}
 // ============ 状态 ============
 const filterIsLogin = ref('')
 const accounts = ref([])
