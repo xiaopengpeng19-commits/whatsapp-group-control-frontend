@@ -37,7 +37,6 @@
                         <el-option label="存在" value="true" />
                         <el-option label="不存在" value="false" />
                     </el-select>
-                    <!-- ✅ 消息数筛选 -->
                     <el-input-number v-model="filterMessageCount" :min="0" placeholder="消息数" controls-position="right"
                         style="width:140px" />
                     <el-button size="default" type="primary" @click="fetchGroups">
@@ -197,6 +196,23 @@
                     <el-input v-model="importForm.linksText" type="textarea" :rows="5"
                         placeholder="每行一个群链接，如：&#10;https://chat.whatsapp.com/xxx&#10;JQRNmDAMcTkILZI8yBWKkm" />
                 </el-form-item>
+                <el-form-item v-if="parsedCount > 0" label="识别结果">
+                    <el-tag type="success">成功识别 {{ parsedCount }} 个群组链接</el-tag>
+                    <el-button type="primary" link @click="showParsedLinks = !showParsedLinks">
+                        {{ showParsedLinks ? '收起' : '查看详情' }}
+                    </el-button>
+                    <div v-if="showParsedLinks"
+                        style="margin-top:8px;max-height:150px;overflow-y:auto;background:#f5f7fa;padding:8px;border-radius:4px;">
+                        <div v-for="(link, idx) in parsedLinksPreview" :key="idx"
+                            style="font-size:12px;font-family:monospace;padding:2px 0;border-bottom:1px solid #e4e7ed;">
+                            {{ link }}
+                        </div>
+                        <div v-if="parsedLinksPreview.length === 0 && parsedCount > 0"
+                            style="color:#999;font-size:12px;">
+                            点击"查看详情"展开列表
+                        </div>
+                    </div>
+                </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="showImportDialog = false">取消</el-button>
@@ -313,6 +329,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Promotion, Edit, Delete, Refresh, Search } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+import * as XLSX from 'xlsx'  // ✅ 新增：导入 Excel 解析库
 
 // ============ 状态 ============
 const groups = ref([])
@@ -337,6 +354,9 @@ const importForm = reactive({
     fileName: '',
     fileData: null
 })
+const parsedCount = ref(0)
+const showParsedLinks = ref(false)
+const parsedLinksPreview = ref([])
 
 // ============ 批量入群 ============
 const showBatchJoinDialog = ref(false)
@@ -377,7 +397,244 @@ const formatTime = (time) => {
     return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
 }
 
-// ============ 数据获取 ============
+// ==========================================
+// ✅ 核心：从文件内容提取 WhatsApp 群链接
+// ==========================================
+const extractWhatsAppLinks = (content) => {
+    const allLinks = new Set()
+
+    // 正则：匹配完整的 WhatsApp 群链接（包含 https://）
+    const fullLinkRegex = /https?:\/\/chat\.whatsapp\.com\/([a-zA-Z0-9_-]{20,})/gi
+    // 正则：匹配纯邀请码
+    const codeRegex = /([a-zA-Z0-9_-]{20,})/g
+
+    // 按行分割
+    const lines = content.split(/\r?\n/).filter(line => line.trim())
+
+    for (const line of lines) {
+        // 1. 先尝试匹配完整的 WhatsApp 链接
+        let match
+        while ((match = fullLinkRegex.exec(line)) !== null) {
+            const fullUrl = match[0]
+            const code = match[1]
+            allLinks.add(fullUrl)
+            allLinks.add(code)  // 也保存邀请码，后续统一处理
+        }
+
+        // 2. 如果没匹配到完整链接，尝试从 A 列（或任何列）提取邀请码
+        // 检查是否包含 chat.whatsapp.com
+        if (line.includes('chat.whatsapp.com') && !line.match(fullLinkRegex)) {
+            // 手动提取 chat.whatsapp.com/ 后面的部分
+            const parts = line.split('chat.whatsapp.com/')
+            for (let i = 1; i < parts.length; i++) {
+                const code = parts[i].split(/[\s,;\t"']/)[0]  // 提取到空白字符或标点前
+                if (code && code.length >= 20) {
+                    allLinks.add(code)
+                }
+            }
+        }
+
+        // 3. 如果行中有多个用 <br> 分隔的链接
+        if (line.includes('<br>')) {
+            const brParts = line.split('<br>')
+            for (const part of brParts) {
+                const trimmed = part.trim()
+                if (trimmed.includes('chat.whatsapp.com')) {
+                    const code = trimmed.split('chat.whatsapp.com/')[1]?.split(/[\s,;]/)[0]
+                    if (code && code.length >= 20) {
+                        allLinks.add(code)
+                    }
+                }
+                // 也尝试直接匹配邀请码
+                const codeMatch = trimmed.match(codeRegex)
+                if (codeMatch) {
+                    for (const c of codeMatch) {
+                        if (c.length >= 20) {
+                            allLinks.add(c)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. 正则提取所有邀请码（作为兜底）
+        const codeMatches = line.match(codeRegex)
+        if (codeMatches) {
+            for (const c of codeMatches) {
+                // 过滤掉纯数字（可能是手机号）和过短的
+                if (c.length >= 20 && !/^\d+$/.test(c)) {
+                    allLinks.add(c)
+                }
+            }
+        }
+    }
+
+    return Array.from(allLinks)
+}
+
+// ==========================================
+// 文件导入处理
+// ==========================================
+const handleFileChange = (file) => {
+    importForm.fileName = file.name
+    importForm.fileData = file.raw
+
+    // 预览解析结果
+    const reader = new FileReader()
+    reader.onload = (e) => {
+        let content = e.target.result
+        let links = []
+
+        // 如果是 Excel 文件，用 XLSX 解析
+        if (file.name.match(/\.(xlsx|xls)$/i)) {
+            try {
+                const workbook = XLSX.read(content, { type: 'array' })
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
+
+                // 遍历所有行和列，查找 WhatsApp 群链接
+                for (const row of jsonData) {
+                    if (!row || row.length === 0) continue
+                    for (const cell of row) {
+                        if (cell && typeof cell === 'string') {
+                            // 检查是否包含 chat.whatsapp.com
+                            if (cell.includes('chat.whatsapp.com')) {
+                                const codes = extractWhatsAppLinks(cell)
+                                links.push(...codes)
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Excel 解析失败:', error)
+                // 降级：按文本解析
+                content = new TextDecoder().decode(content)
+                links = extractWhatsAppLinks(content)
+            }
+        } else {
+            // 文本文件直接解析
+            links = extractWhatsAppLinks(content)
+        }
+
+        // 去重并过滤
+        const uniqueLinks = [...new Set(links)].filter(l => l && l.length >= 20)
+        parsedCount.value = uniqueLinks.length
+        parsedLinksPreview.value = uniqueLinks.slice(0, 50)  // 预览前50个
+
+        if (uniqueLinks.length > 0) {
+            ElMessage.success(`成功识别 ${uniqueLinks.length} 个群组链接`)
+            // 自动填充到文本框
+            importForm.linksText = uniqueLinks.join('\n')
+        } else {
+            ElMessage.warning('未能从文件中识别到 WhatsApp 群链接，请检查格式')
+        }
+    }
+
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+        reader.readAsArrayBuffer(file.raw)
+    } else {
+        reader.readAsText(file.raw)
+    }
+}
+
+const handleFileRemove = () => {
+    importForm.fileName = ''
+    importForm.fileData = null
+    parsedCount.value = 0
+    parsedLinksPreview.value = []
+    showParsedLinks.value = false
+    uploadRef.value?.clearFiles()
+}
+
+const handleExceed = () => {
+    ElMessage.warning('一次只能上传一个文件')
+}
+
+// ==========================================
+// 导入
+// ==========================================
+const handleImport = async () => {
+    let allLinks = []
+
+    // 如果手动输入了内容
+    if (importForm.linksText.trim()) {
+        const textLinks = importForm.linksText.split('\n')
+            .map(line => line.trim())
+            .filter(line => line)
+        allLinks.push(...textLinks)
+    }
+
+    // 如果上传了文件但还没解析到链接（兜底）
+    if (importForm.fileData && allLinks.length === 0) {
+        const content = await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = (e) => resolve(e.target.result)
+            reader.onerror = reject
+            if (importForm.fileData.name.match(/\.(xlsx|xls)$/i)) {
+                reader.readAsArrayBuffer(importForm.fileData)
+            } else {
+                reader.readAsText(importForm.fileData)
+            }
+        })
+        const links = extractWhatsAppLinks(content)
+        allLinks.push(...links)
+    }
+
+    // 去重并过滤
+    allLinks = [...new Set(allLinks)]
+        .filter(l => l && l.length >= 20)
+        .map(l => {
+            // 如果是完整链接，提取邀请码
+            if (l.includes('chat.whatsapp.com/')) {
+                return l.split('chat.whatsapp.com/')[1]?.split(/[\s,;]/)[0] || l
+            }
+            return l
+        })
+        .filter(l => l && l.length >= 20)
+
+    if (allLinks.length === 0) {
+        ElMessage.warning('未提取到任何群链接，请检查文件格式')
+        return
+    }
+
+    importing.value = true
+    try {
+        // 分批导入，每次最多 100 个
+        const batchSize = 100
+        let totalSuccess = 0
+        let totalDuplicate = 0
+
+        for (let i = 0; i < allLinks.length; i += batchSize) {
+            const batch = allLinks.slice(i, i + batchSize)
+            const res = await api.post('/ws-groups/import', {
+                inviteCodes: batch
+            })
+            if (res.code === 0) {
+                totalSuccess += res.data.success || 0
+                totalDuplicate += res.data.duplicate || 0
+            }
+        }
+
+        ElMessage.success(`导入完成：成功 ${totalSuccess} 个，重复 ${totalDuplicate} 个，共 ${allLinks.length} 个`)
+        showImportDialog.value = false
+        importForm.linksText = ''
+        importForm.fileName = ''
+        importForm.fileData = null
+        parsedCount.value = 0
+        parsedLinksPreview.value = []
+        showParsedLinks.value = false
+        uploadRef.value?.clearFiles()
+        fetchGroups()
+    } catch (error) {
+        ElMessage.error('导入失败: ' + (error.message || ''))
+    } finally {
+        importing.value = false
+    }
+}
+
+// ==========================================
+// 其他函数保持不变
+// ==========================================
 const fetchAccountGroups = async () => {
     try {
         const res = await api.get('/whatsapp/accounts/groups')
@@ -418,7 +675,6 @@ const fetchGroups = async () => {
     }
 }
 
-// ============ 重置筛选 ============
 const resetFilter = () => {
     filterExists.value = ''
     filterMessageCount.value = 0
@@ -426,91 +682,10 @@ const resetFilter = () => {
     fetchGroups()
 }
 
-// ============ 选中 ============
 const handleSelectionChange = (selection) => {
-    selectedIds.value = selection.map(item => item.inviteCode)
+    selectedIds.value = selection.map(item => item.id)
 }
 
-// ============ 文件导入 ============
-const handleFileChange = (file) => {
-    importForm.fileName = file.name
-    importForm.fileData = file.raw
-}
-
-const handleFileRemove = () => {
-    importForm.fileName = ''
-    importForm.fileData = null
-    uploadRef.value?.clearFiles()
-}
-
-const handleExceed = () => {
-    ElMessage.warning('一次只能上传一个文件')
-}
-
-// ============ 导入 ============
-const handleImport = async () => {
-    let allLinks = []
-
-    if (importForm.fileData) {
-        try {
-            const content = await new Promise((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onload = (e) => resolve(e.target.result)
-                reader.onerror = reject
-                reader.readAsText(importForm.fileData)
-            })
-            const lines = content.split('\n').filter(line => line.trim())
-            for (const line of lines) {
-                const parts = line.split(/[,\t]+/).map(s => s.trim())
-                for (const part of parts) {
-                    if (part.includes('chat.whatsapp.com/') || part.match(/^[a-zA-Z0-9_-]{20,}$/)) {
-                        allLinks.push(part)
-                    }
-                }
-            }
-        } catch (error) {
-            ElMessage.error('解析文件失败: ' + error.message)
-            return
-        }
-    }
-
-    if (importForm.linksText.trim()) {
-        const textLinks = importForm.linksText.split('\n')
-            .map(line => line.trim())
-            .filter(line => line)
-        allLinks.push(...textLinks)
-    }
-
-    if (allLinks.length === 0) {
-        ElMessage.warning('未提取到任何群链接')
-        return
-    }
-
-    allLinks = [...new Set(allLinks)]
-
-    importing.value = true
-    try {
-        const res = await api.post('/ws-groups/import', {
-            inviteCodes: allLinks
-        })
-        if (res.code === 0) {
-            const { success, duplicate, total } = res.data
-            ElMessage.success(`导入完成：成功 ${success} 个，重复 ${duplicate} 个，共 ${total} 个`)
-            showImportDialog.value = false
-            importForm.linksText = ''
-            importForm.fileName = ''
-            importForm.fileData = null
-            uploadRef.value?.clearFiles()
-            fetchGroups()
-        }
-    } catch (error) {
-        ElMessage.error('导入失败: ' + (error.message || ''))
-    } finally {
-        importing.value = false
-    }
-}
-
-// ============ 批量入群 ============
 const handleBatchJoin = async () => {
     if (!batchJoinForm.accountGroup) {
         ElMessage.warning('请选择账号分组')
@@ -541,7 +716,6 @@ const handleBatchJoin = async () => {
     }
 }
 
-// ============ 批量修改 ============
 const handleBatchUpdate = async () => {
     if (selectedIds.value.length === 0) {
         ElMessage.warning('请选择群组')
@@ -567,7 +741,6 @@ const handleBatchUpdate = async () => {
     }
 }
 
-// ============ 编辑 ============
 const editGroup = (row) => {
     editForm.id = row.id
     editForm.inviteCode = row.inviteCode
@@ -601,7 +774,6 @@ const handleEdit = async () => {
     }
 }
 
-// ============ 删除 ============
 const handleDelete = async (row) => {
     try {
         await ElMessageBox.confirm(`确定要删除群组 ${row.inviteCode} 吗？`, '提示', { type: 'warning' })
@@ -637,7 +809,6 @@ const handleBatchDelete = async () => {
     }
 }
 
-// ============ 生命周期 ============
 onMounted(() => {
     fetchAccountGroups()
     fetchGroups()
