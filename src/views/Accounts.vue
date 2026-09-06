@@ -286,18 +286,14 @@
           <el-input v-model="batchProfileForm.nickname" placeholder="请输入新昵称（留空则不修改）" />
         </el-form-item>
 
-        <!-- ✅ 头像：支持 URL 或 Base64 -->
-        <el-form-item label="头像">
-          <el-radio-group v-model="batchProfileForm.avatarType" size="small" style="margin-bottom:8px;">
-            <el-radio-button value="url">URL</el-radio-button>
-            <el-radio-button value="base64">Base64</el-radio-button>
-          </el-radio-group>
-          <el-input v-if="batchProfileForm.avatarType === 'url'" v-model="batchProfileForm.imageUrl"
-            placeholder="请输入头像图片 URL（如：https://example.com/avatar.jpg）" />
-          <el-input v-else v-model="batchProfileForm.base64Content" type="textarea" :rows="3"
-            placeholder="请粘贴 Base64 编码的图片数据" />
+        <!-- 头像 - 从分组选取 -->
+        <el-form-item label="头像分组">
+          <el-select v-model="batchProfileForm.avatarGroup" placeholder="选择头像分组" style="width:100%" clearable>
+            <el-option v-for="item in avatarGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
           <div style="font-size:12px;color:#999;margin-top:4px;">
-            {{ batchProfileForm.avatarType === 'url' ? 'URL 方式：图片需公网可访问' : 'Base64 方式：支持 data:image/png;base64,开头或纯Base64'}}
+            从分组中随机选取头像，分配给选中的账号
           </div>
         </el-form-item>
 
@@ -533,6 +529,31 @@ import dayjs from 'dayjs'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import { Edit } from '@element-plus/icons-vue'
 // ============ 批量修改资料 ============
+// 获取头像分组
+const avatarGroups = ref([])
+
+const fetchAvatarGroups = async () => {
+  try {
+    const res = await api.get('/avatar-materials/groups')
+    if (res.code === 0) {
+      avatarGroups.value = res.data || []
+    }
+  } catch (error) { }
+}
+
+// 批量修改资料中添加头像分组处理
+if (batchProfileForm.avatarGroup) {
+  const res = await api.post('/whatsapp/accounts/batch/avatar-group', {
+    accounts: selectedAccounts.value,
+    group: batchProfileForm.avatarGroup
+  })
+  if (res.code !== 0) {
+    ElMessage.error('修改头像失败: ' + (res.message || ''))
+    hasError = true
+  } else {
+    ElMessage.success(`头像修改已提交 (${selectedAccounts.value.length} 个账号)`)
+  }
+}
 const showBatchProfileDialog = ref(false)
 const batchProfileLoading = ref(false)
 const batchProfileForm = reactive({
@@ -1375,6 +1396,7 @@ onMounted(() => {
   fetchAccountGroups()
   fetchProxyGroups()
   fetchAccounts()
+  fetchAvatarGroups()
 })
 </script>
 
