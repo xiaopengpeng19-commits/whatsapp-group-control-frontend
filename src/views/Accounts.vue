@@ -199,9 +199,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="loginAt" label="登录时间" width="160">
+      <el-table-column prop="createdAt" label="创建时间" width="160">
         <template #default="{ row }">
-          {{ formatTime(row.loginAt) }}
+          {{ formatTime(row.createdAt) }}
         </template>
       </el-table-column>
       <el-table-column prop="statusAt" label="状态更新时间" width="160">
