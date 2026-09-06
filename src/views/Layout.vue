@@ -4,117 +4,119 @@
       <div class="logo">
         <span>📱 群控系统</span>
       </div>
-      <el-menu router default-active="$route.path" class="menu" background-color="#1f2d3d" text-color="#bfcbd9"
-        active-text-color="#409eff">
-        <el-menu-item index="/dashboard">
-          <el-icon>
-            <DataLine />
-          </el-icon>
-          <span>仪表盘</span>
-        </el-menu-item>
-        <el-menu-item index="/accounts">
-          <el-icon>
-            <Iphone />
-          </el-icon>
-          <span>账号管理</span>
-        </el-menu-item>
-        <el-menu-item index="/messages">
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
-          <span>消息管理</span>
-        </el-menu-item>
-        <el-menu-item index="/message-history">
-          <el-icon>
-            <Document />
-          </el-icon>
-          <span>消息记录</span>
-        </el-menu-item>
-        <el-menu-item index="/proxies">
-          <el-icon>
-            <Connection />
-          </el-icon>
-          <span>代理管理</span>
-        </el-menu-item>
-        <el-menu-item index="/targets">
-          <el-icon>
-            <UserFilled />
-          </el-icon>
-          <span>目标账号</span>
-        </el-menu-item>
-        <el-menu-item index="/broadcast">
-          <el-icon>
-            <Promotion />
-          </el-icon>
-          <span>群发任务</span>
-        </el-menu-item>
-        <el-menu-item index="/chat">
-          <el-icon>
-            <ChatLineSquare />
-          </el-icon>
-          <span>互聊任务</span>
-        </el-menu-item>
-        <el-menu-item index="/nurture">
-          <el-icon>
-            <Sunny />
-          </el-icon>
-          <span>养号任务</span>
-        </el-menu-item>
-        <el-menu-item index="/check-whatsapp">
-          <el-icon>
-            <Search />
-          </el-icon>
-          <span>检查注册</span>
-        </el-menu-item>
-        <el-menu-item index="/contacts">
-          <el-icon>
-            <User />
-          </el-icon>
-          <span>联系人</span>
-        </el-menu-item>
-        <el-menu-item index="/groups">
-          <el-icon>
-            <Connection />
-          </el-icon>
-          <span>群组管理</span>
-        </el-menu-item>
-        <el-menu-item index="/group-chat">
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
-          <span>群聊任务</span>
-        </el-menu-item>
-        <el-menu-item index="/ws-groups">
-          <el-icon>
-            <Connection />
-          </el-icon>
-          <span>WS群管理</span>
-        </el-menu-item>
-        <el-menu-item index="/auto-reply">
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
-          <span>自动回复</span>
-        </el-menu-item>
-        <el-menu-item index="/avatar-materials">
-          <el-icon>
-            <Picture />
-          </el-icon>
-          <span>头像素材</span>
-        </el-menu-item>
-        <el-menu-item index="/pairing-code">
-          <el-icon>
-            <Key />
-          </el-icon>
-          <span>生成配对码</span>
-        </el-menu-item>
-        <el-menu-item index="/users">
-          <el-icon>
-            <Setting />
-          </el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
-      </el-menu>
+      <div class="menu-wrapper">
+        <el-menu router default-active="$route.path" class="menu" background-color="#1f2d3d" text-color="#bfcbd9"
+          active-text-color="#409eff">
+          <el-menu-item index="/dashboard">
+            <el-icon>
+              <DataLine />
+            </el-icon>
+            <span>仪表盘</span>
+          </el-menu-item>
+          <el-menu-item index="/accounts">
+            <el-icon>
+              <Iphone />
+            </el-icon>
+            <span>账号管理</span>
+          </el-menu-item>
+          <el-menu-item index="/messages">
+            <el-icon>
+              <ChatDotRound />
+            </el-icon>
+            <span>消息管理</span>
+          </el-menu-item>
+          <el-menu-item index="/message-history">
+            <el-icon>
+              <Document />
+            </el-icon>
+            <span>消息记录</span>
+          </el-menu-item>
+          <el-menu-item index="/proxies">
+            <el-icon>
+              <Connection />
+            </el-icon>
+            <span>代理管理</span>
+          </el-menu-item>
+          <el-menu-item index="/targets">
+            <el-icon>
+              <UserFilled />
+            </el-icon>
+            <span>目标账号</span>
+          </el-menu-item>
+          <el-menu-item index="/broadcast">
+            <el-icon>
+              <Promotion />
+            </el-icon>
+            <span>群发任务</span>
+          </el-menu-item>
+          <el-menu-item index="/chat">
+            <el-icon>
+              <ChatLineSquare />
+            </el-icon>
+            <span>互聊任务</span>
+          </el-menu-item>
+          <el-menu-item index="/nurture">
+            <el-icon>
+              <Sunny />
+            </el-icon>
+            <span>养号任务</span>
+          </el-menu-item>
+          <el-menu-item index="/check-whatsapp">
+            <el-icon>
+              <Search />
+            </el-icon>
+            <span>检查注册</span>
+          </el-menu-item>
+          <el-menu-item index="/contacts">
+            <el-icon>
+              <User />
+            </el-icon>
+            <span>联系人</span>
+          </el-menu-item>
+          <el-menu-item index="/groups">
+            <el-icon>
+              <Connection />
+            </el-icon>
+            <span>群组管理</span>
+          </el-menu-item>
+          <el-menu-item index="/group-chat">
+            <el-icon>
+              <ChatDotRound />
+            </el-icon>
+            <span>群聊任务</span>
+          </el-menu-item>
+          <el-menu-item index="/ws-groups">
+            <el-icon>
+              <Connection />
+            </el-icon>
+            <span>WS群管理</span>
+          </el-menu-item>
+          <el-menu-item index="/auto-reply">
+            <el-icon>
+              <ChatDotRound />
+            </el-icon>
+            <span>自动回复</span>
+          </el-menu-item>
+          <el-menu-item index="/avatar-materials">
+            <el-icon>
+              <Picture />
+            </el-icon>
+            <span>头像素材</span>
+          </el-menu-item>
+          <el-menu-item index="/pairing-code">
+            <el-icon>
+              <Key />
+            </el-icon>
+            <span>生成配对码</span>
+          </el-menu-item>
+          <el-menu-item index="/users">
+            <el-icon>
+              <Setting />
+            </el-icon>
+            <span>用户管理</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
     </el-aside>
 
     <el-container>
@@ -189,6 +191,8 @@ const handleCommand = async (command) => {
 .sidebar {
   background: #1f2d3d;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
@@ -200,11 +204,31 @@ const handleCommand = async (command) => {
   font-size: 18px;
   font-weight: 600;
   border-bottom: 1px solid #2c3e50;
+  flex-shrink: 0;
+}
+
+.menu-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.menu-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu-wrapper::-webkit-scrollbar-thumb {
+  background: #4a5a6a;
+  border-radius: 2px;
+}
+
+.menu-wrapper::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .menu {
   border-right: none;
-  height: calc(100vh - 60px);
+  min-height: 100%;
 }
 
 .header {
