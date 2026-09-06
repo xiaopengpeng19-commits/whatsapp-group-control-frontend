@@ -270,8 +270,11 @@
     <!-- ========================================== -->
     <!-- 批量修改资料对话框 -->
     <!-- ========================================== -->
-    <el-dialog v-model="showBatchProfileDialog" title="批量修改资料" width="550px" :close-on-click-modal="false">
-      <el-form :model="batchProfileForm" label-width="100px">
+    <!-- ========================================== -->
+    <!-- 批量修改资料对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showBatchProfileDialog" title="批量修改资料" width="600px" :close-on-click-modal="false">
+      <el-form :model="batchProfileForm" label-width="120px">
         <el-form-item label="选中账号">
           <span>{{ selectedAccounts.length }} 个账号</span>
           <el-tag v-for="acc in selectedAccounts.slice(0, 5)" :key="acc" size="small" style="margin-left:4px;">
@@ -286,8 +289,21 @@
           <el-input v-model="batchProfileForm.nickname" placeholder="请输入新昵称（留空则不修改）" />
         </el-form-item>
 
-        <el-form-item label="头像URL">
-          <el-input v-model="batchProfileForm.imageUrl" placeholder="请输入头像图片URL（留空则不修改）" />
+        <!-- ✅ 头像：支持 URL 或 Base64 -->
+        <el-form-item label="头像">
+          <el-radio-group v-model="batchProfileForm.avatarType" size="small" style="margin-bottom:8px;">
+            <el-radio-button value="url">URL</el-radio-button>
+            <el-radio-button value="base64">Base64</el-radio-button>
+          </el-radio-group>
+          <el-input v-if="batchProfileForm.avatarType === 'url'" v-model="batchProfileForm.imageUrl"
+            placeholder="请输入头像图片 URL（如：https://example.com/avatar.jpg）" />
+          <el-input v-else v-model="batchProfileForm.base64Content" type="textarea" :rows="3"
+            placeholder="请粘贴 Base64 编码的图片数据" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            {{ batchProfileForm.avatarType === 'url' ? 'URL 方式：图片需公网可访问' : 'Base64 方式：支持 data:image/png;base64, 开头或纯
+            Base64'
+            }}
+          </div>
         </el-form-item>
 
         <el-form-item label="状态">
@@ -298,9 +314,9 @@
           <el-alert type="info" :closable="false" show-icon>
             <template #title>
               <div>
-                <div>• 至少填写一项</div>
+                <div>• 至少填写一项要修改的内容</div>
                 <div>• 仅对在线账号生效</div>
-                <div>• 头像URL需为公网可访问的图片地址</div>
+                <div>• 头像支持 URL 或 Base64 两种方式</div>
               </div>
             </template>
           </el-alert>
@@ -606,7 +622,9 @@ const showBatchProfileDialog = ref(false)
 const batchProfileLoading = ref(false)
 const batchProfileForm = reactive({
   nickname: '',
+  avatarType: 'url',  // ✅ 新增：url 或 base64
   imageUrl: '',
+  base64Content: '',  // ✅ 新增
   status: ''
 })
 
@@ -617,7 +635,7 @@ const handleBatchProfile = async () => {
   }
 
   // 检查是否至少填写一项
-  if (!batchProfileForm.nickname && !batchProfileForm.imageUrl && !batchProfileForm.status) {
+  if (!batchProfileForm.nickname && !batchProfileForm.imageUrl && !batchProfileForm.base64Content && !batchProfileForm.status) {
     ElMessage.warning('请至少填写一项要修改的内容')
     return
   }
@@ -640,12 +658,23 @@ const handleBatchProfile = async () => {
       }
     }
 
-    // 修改头像
-    if (batchProfileForm.imageUrl) {
-      const res = await api.post('/whatsapp/accounts/batch/avatar', {
-        accounts: selectedAccounts.value,
-        imageUrl: batchProfileForm.imageUrl
-      })
+    // ✅ 修改头像（支持 URL 或 Base64）
+    if (batchProfileForm.imageUrl || batchProfileForm.base64Content) {
+      const payload = {
+        accounts: selectedAccounts.value
+      }
+      if (batchProfileForm.avatarType === 'url') {
+        payload.imageUrl = batchProfileForm.imageUrl
+      } else {
+        // 如果是 data:image/png;base64, 开头的，提取纯 Base64
+        let base64 = batchProfileForm.base64Content
+        if (base64.startsWith('data:image')) {
+          base64 = base64.split(',')[1] || base64
+        }
+        payload.base64Content = base64
+      }
+
+      const res = await api.post('/whatsapp/accounts/batch/avatar', payload)
       if (res.code !== 0) {
         ElMessage.error('修改头像失败: ' + (res.message || ''))
         hasError = true
@@ -671,10 +700,11 @@ const handleBatchProfile = async () => {
     if (!hasError) {
       showBatchProfileDialog.value = false
       batchProfileForm.nickname = ''
+      batchProfileForm.avatarType = 'url'
       batchProfileForm.imageUrl = ''
+      batchProfileForm.base64Content = ''
       batchProfileForm.status = ''
       selectedAccounts.value = []
-      // 延迟刷新，等待异步任务完成
       setTimeout(() => fetchAccounts(), 3000)
     }
   } catch (error) {
