@@ -31,6 +31,7 @@
         </el-select>
 
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <!-- 上线类 -->
           <el-button type="success" plain @click="handleBatchOnline" :disabled="selectedAccounts.length === 0"
             :loading="batchOnlineLoading" size="default">
             <el-icon>
@@ -43,6 +44,7 @@
             </el-icon> 分组上线
           </el-button>
 
+          <!-- 下线类 -->
           <el-button type="danger" plain @click="handleBatchOffline" :disabled="selectedAccounts.length === 0"
             :loading="batchOfflineLoading" size="default">
             <el-icon>
@@ -55,6 +57,7 @@
             </el-icon> 分组下线
           </el-button>
 
+          <!-- 其他操作 -->
           <el-button type="primary" @click="showBatchAddDialog = true" size="default">
             <el-icon>
               <Plus />
@@ -77,11 +80,21 @@
               <Connection />
             </el-icon> 改代理
           </el-button>
+          <el-button type="info" plain @click="showGroupProxyDialog = true" size="default">
+            <el-icon>
+              <Connection />
+            </el-icon> 分组改代理
+          </el-button>
           <el-button type="primary" plain @click="showBatchProfileDialog = true"
             :disabled="selectedAccounts.length === 0" size="default">
             <el-icon>
               <Edit />
             </el-icon> 批量改资料
+          </el-button>
+          <el-button type="primary" plain @click="showGroupProfileDialog = true" size="default">
+            <el-icon>
+              <Edit />
+            </el-icon> 分组改资料
           </el-button>
           <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0"
             size="default">
@@ -193,6 +206,7 @@
         <template #default="{ row }">{{ formatTime(row.statusAt) }}</template>
       </el-table-column>
 
+      <!-- 操作列 -->
       <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
@@ -373,6 +387,33 @@
       </template>
     </el-dialog>
 
+    <!-- 分组改代理对话框 -->
+    <el-dialog v-model="showGroupProxyDialog" title="分组改代理" width="450px">
+      <el-form label-width="100px">
+        <el-form-item label="账号分组" required>
+          <el-select v-model="groupProxyForm.accountGroup" placeholder="请选择账号分组" style="width:100%">
+            <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="代理分组" required>
+          <el-select v-model="groupProxyForm.proxyGroup" placeholder="请选择代理分组" style="width:100%">
+            <el-option v-for="item in proxyGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-alert type="info" :closable="false" show-icon>
+            <template #title>将对该分组下所有账号执行改代理操作，代理在下次登录时生效</template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showGroupProxyDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleGroupProxy" :loading="groupProxyLoading">确定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 批量改分组对话框 -->
     <el-dialog v-model="showBatchGroupDialog" title="批量改分组" width="400px">
       <el-form label-width="80px">
@@ -509,6 +550,56 @@
         <el-button type="primary" @click="handleBatchProfile" :loading="batchProfileLoading">确定修改</el-button>
       </template>
     </el-dialog>
+
+    <!-- 分组改资料对话框 -->
+    <el-dialog v-model="showGroupProfileDialog" title="分组改资料" width="550px">
+      <el-form :model="groupProfileForm" label-width="100px">
+        <el-form-item label="账号分组" required>
+          <el-select v-model="groupProfileForm.accountGroup" placeholder="请选择账号分组" style="width:100%">
+            <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="昵称">
+          <el-input v-model="groupProfileForm.nickname" placeholder="请输入新昵称（留空则不修改）" />
+        </el-form-item>
+
+        <el-form-item label="头像">
+          <el-radio-group v-model="groupProfileForm.avatarType" size="small" style="margin-bottom:8px;">
+            <el-radio-button value="group">从分组选取</el-radio-button>
+            <el-radio-button value="url">URL</el-radio-button>
+          </el-radio-group>
+
+          <el-select v-if="groupProfileForm.avatarType === 'group'" v-model="groupProfileForm.avatarGroup"
+            placeholder="选择头像分组" style="width:100%" clearable>
+            <el-option v-for="item in avatarGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+
+          <el-input v-else v-model="groupProfileForm.imageUrl" placeholder="请输入头像图片 URL" />
+
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            <span v-if="groupProfileForm.avatarType === 'group'">从分组中随机选取头像</span>
+            <span v-else>URL 方式：图片需公网可访问</span>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="状态">
+          <el-input v-model="groupProfileForm.status" placeholder="请输入新状态（留空则不修改）" />
+        </el-form-item>
+
+        <el-form-item>
+          <el-alert type="info" :closable="false" show-icon>
+            <template #title>将对该分组下所有账号执行修改，仅对在线账号生效</template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showGroupProfileDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleGroupProfile" :loading="groupProfileLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -546,7 +637,9 @@ const showBatchAddDialog = ref(false)
 const showImportDialog = ref(false)
 const showBatchGroupDialog = ref(false)
 const showBatchProxyDialog = ref(false)
+const showGroupProxyDialog = ref(false)
 const showBatchProfileDialog = ref(false)
+const showGroupProfileDialog = ref(false)
 const showQRDialog = ref(false)
 const importing = ref(false)
 const uploadRef = ref(null)
@@ -563,6 +656,24 @@ const groupOfflineLoading = ref(false)
 // ============ 批量改代理 ============
 const batchProxyGroup = ref('')
 const batchProxyLoading = ref(false)
+
+// ============ 分组改代理 ============
+const groupProxyLoading = ref(false)
+const groupProxyForm = reactive({
+  accountGroup: '',
+  proxyGroup: ''
+})
+
+// ============ 分组改资料 ============
+const groupProfileLoading = ref(false)
+const groupProfileForm = reactive({
+  accountGroup: '',
+  nickname: '',
+  avatarType: 'group',
+  avatarGroup: '',
+  imageUrl: '',
+  status: ''
+})
 
 // ============ 批量上线/下线 ============
 const batchOnlineLoading = ref(false)
@@ -617,14 +728,24 @@ const debounceFetchAccounts = debounce(() => {
 
 // ============ 状态映射 ============
 const statusMap = {
-  'online': '在线', 'normal': '在线', 'logging': '登录中', 'offline': '离线',
-  'banned': '封禁', 'expired': '过期', 'requesting_pair_code': '请求配对码中',
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期',
+  'requesting_pair_code': '请求配对码中',
   'waiting_pair_code': '等待配对码'
 }
 const statusTypeMap = {
-  'online': 'success', 'normal': 'success', 'logging': 'warning',
-  'offline': 'info', 'banned': 'danger', 'expired': 'danger',
-  'requesting_pair_code': 'warning', 'waiting_pair_code': 'warning'
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger',
+  'requesting_pair_code': 'warning',
+  'waiting_pair_code': 'warning'
 }
 const getStatusText = (s) => statusMap[s] || s || '未知'
 const getStatusType = (s) => statusTypeMap[s] || 'info'
@@ -728,8 +849,8 @@ const handleBatchDelete = async () => {
     let success = 0, fail = 0
     for (const account of selectedAccounts.value) {
       const res = await whatsapp.deleteAccount(account)
-      if (res.code === 0) { success++ }
-      else { fail++ }
+      if (res.code === 0) success++ 
+      else fail++
       await new Promise(r => setTimeout(r, 50))
     }
     ElMessage.success(`成功删除 ${success} 个，失败 ${fail} 个`)
@@ -877,20 +998,172 @@ const handleBatchProxy = async () => {
   if (!batchProxyGroup.value) { ElMessage.warning('请选择代理分组'); return }
   batchProxyLoading.value = true
   try {
-    let success = 0
-    for (const account of selectedAccounts.value) {
-      const res = await api.put(`/whatsapp/accounts/${account}/proxygroup`, { proxyGroup: batchProxyGroup.value })
-      if (res.code === 0) success++
+    const res = await api.post('/whatsapp/accounts/batch/proxy', {
+      accounts: selectedAccounts.value,
+      proxyGroup: batchProxyGroup.value
+    })
+    if (res.code === 0) {
+      ElMessage.success(`已提交 ${res.data.total} 个账号的改代理任务`)
+      showBatchProxyDialog.value = false
+      batchProxyGroup.value = ''
+      selectedAccounts.value = []
+      setTimeout(() => {
+        fetchAccounts()
+        fetchProxyGroups()
+      }, 2000)
+    } else {
+      ElMessage.error(res.message || '批量改代理失败')
     }
-    ElMessage.success(`成功更新 ${success}/${selectedAccounts.value.length} 个账号的代理分组`)
-    showBatchProxyDialog.value = false
-    batchProxyGroup.value = ''
-    selectedAccounts.value = []
-    fetchAccounts(); fetchProxyGroups()
   } catch (e) {
     ElMessage.error('批量改代理失败: ' + (e.message || ''))
   } finally {
     batchProxyLoading.value = false
+  }
+}
+
+// ============ 分组改代理 ============
+const handleGroupProxy = async () => {
+  if (!groupProxyForm.accountGroup) {
+    ElMessage.warning('请选择账号分组')
+    return
+  }
+  if (!groupProxyForm.proxyGroup) {
+    ElMessage.warning('请选择代理分组')
+    return
+  }
+
+  groupProxyLoading.value = true
+  try {
+    const res = await api.get('/whatsapp/accounts/by-group', {
+      params: { group: groupProxyForm.accountGroup }
+    })
+    if (res.code !== 0 || !res.data || res.data.length === 0) {
+      ElMessage.warning('该分组没有账号')
+      return
+    }
+
+    const accounts = res.data.map(a => a.account)
+    const proxyRes = await api.post('/whatsapp/accounts/batch/proxy', {
+      accounts: accounts,
+      proxyGroup: groupProxyForm.proxyGroup
+    })
+    if (proxyRes.code === 0) {
+      ElMessage.success(`已提交 ${accounts.length} 个账号的改代理任务`)
+      showGroupProxyDialog.value = false
+      groupProxyForm.accountGroup = ''
+      groupProxyForm.proxyGroup = ''
+      setTimeout(() => {
+        fetchAccounts()
+        fetchProxyGroups()
+      }, 2000)
+    }
+  } catch (e) {
+    ElMessage.error('操作失败: ' + (e.message || ''))
+  } finally {
+    groupProxyLoading.value = false
+  }
+}
+
+// ============ 分组改资料 ============
+const handleGroupProfile = async () => {
+  if (!groupProfileForm.accountGroup) {
+    ElMessage.warning('请选择账号分组')
+    return
+  }
+
+  const hasNickname = groupProfileForm.nickname && groupProfileForm.nickname.trim() !== ''
+  const hasImageUrl = groupProfileForm.imageUrl && groupProfileForm.imageUrl.trim() !== ''
+  const hasStatus = groupProfileForm.status && groupProfileForm.status.trim() !== ''
+  const hasAvatarGroup = groupProfileForm.avatarGroup && groupProfileForm.avatarGroup.trim() !== ''
+
+  if (!hasNickname && !hasImageUrl && !hasStatus && !hasAvatarGroup) {
+    ElMessage.warning('请至少填写一项要修改的内容')
+    return
+  }
+
+  groupProfileLoading.value = true
+  try {
+    const res = await api.get('/whatsapp/accounts/by-group', {
+      params: { group: groupProfileForm.accountGroup }
+    })
+    if (res.code !== 0 || !res.data || res.data.length === 0) {
+      ElMessage.warning('该分组没有账号')
+      return
+    }
+
+    const accounts = res.data.map(a => a.account)
+    let hasError = false
+
+    // 修改昵称
+    if (hasNickname) {
+      const nickRes = await api.post('/whatsapp/accounts/batch/nickname', {
+        accounts: accounts,
+        nickname: groupProfileForm.nickname.trim()
+      })
+      if (nickRes.code !== 0) {
+        ElMessage.error('修改昵称失败: ' + (nickRes.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`昵称修改已提交 (${accounts.length} 个账号)`)
+      }
+    }
+
+    // 修改头像 - 从分组选取
+    if (hasAvatarGroup) {
+      const avatarRes = await api.post('/whatsapp/accounts/batch/avatar-group', {
+        accounts: accounts,
+        group: groupProfileForm.avatarGroup
+      })
+      if (avatarRes.code !== 0) {
+        ElMessage.error('修改头像失败: ' + (avatarRes.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`头像修改已提交 (${accounts.length} 个账号)`)
+      }
+    }
+
+    // 修改头像 - URL
+    if (hasImageUrl) {
+      const avatarRes = await api.post('/whatsapp/accounts/batch/avatar', {
+        accounts: accounts,
+        imageUrl: groupProfileForm.imageUrl.trim()
+      })
+      if (avatarRes.code !== 0) {
+        ElMessage.error('修改头像失败: ' + (avatarRes.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`头像修改已提交 (${accounts.length} 个账号)`)
+      }
+    }
+
+    // 修改状态
+    if (hasStatus) {
+      const statusRes = await api.post('/whatsapp/accounts/batch/status', {
+        accounts: accounts,
+        status: groupProfileForm.status.trim()
+      })
+      if (statusRes.code !== 0) {
+        ElMessage.error('修改状态失败: ' + (statusRes.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`状态修改已提交 (${accounts.length} 个账号)`)
+      }
+    }
+
+    if (!hasError) {
+      showGroupProfileDialog.value = false
+      groupProfileForm.accountGroup = ''
+      groupProfileForm.nickname = ''
+      groupProfileForm.avatarType = 'group'
+      groupProfileForm.avatarGroup = ''
+      groupProfileForm.imageUrl = ''
+      groupProfileForm.status = ''
+      setTimeout(() => fetchAccounts(), 3000)
+    }
+  } catch (e) {
+    ElMessage.error('操作失败: ' + (e.message || ''))
+  } finally {
+    groupProfileLoading.value = false
   }
 }
 
@@ -919,7 +1192,8 @@ const handleBatchProfile = async () => {
   try {
     if (hasNickname) {
       const res = await api.post('/whatsapp/accounts/batch/nickname', {
-        accounts: selectedAccounts.value, nickname: batchProfileForm.nickname.trim()
+        accounts: selectedAccounts.value,
+        nickname: batchProfileForm.nickname.trim()
       })
       if (res.code !== 0) { ElMessage.error('修改昵称失败'); hasError = true }
       else ElMessage.success(`昵称修改已提交 (${selectedAccounts.value.length} 个账号)`)
@@ -927,7 +1201,8 @@ const handleBatchProfile = async () => {
 
     if (hasAvatarGroup) {
       const res = await api.post('/whatsapp/accounts/batch/avatar-group', {
-        accounts: selectedAccounts.value, group: batchProfileForm.avatarGroup
+        accounts: selectedAccounts.value,
+        group: batchProfileForm.avatarGroup
       })
       if (res.code !== 0) { ElMessage.error('修改头像失败'); hasError = true }
       else ElMessage.success(`头像修改已提交 (${selectedAccounts.value.length} 个账号)`)
@@ -941,12 +1216,14 @@ const handleBatchProfile = async () => {
         reader.readAsDataURL(avatarFile.value)
       })
       const uploadRes = await api.post('/avatar-materials/upload', {
-        base64Content: base64, group: '临时'
+        base64Content: base64,
+        group: '临时'
       })
       if (uploadRes.code !== 0) { ElMessage.error('头像上传失败'); hasError = true }
       else {
         const res = await api.post('/whatsapp/accounts/batch/avatar', {
-          accounts: selectedAccounts.value, imageUrl: uploadRes.data.fileUrl
+          accounts: selectedAccounts.value,
+          imageUrl: uploadRes.data.fileUrl
         })
         if (res.code !== 0) { ElMessage.error('修改头像失败'); hasError = true }
         else ElMessage.success(`头像修改已提交 (${selectedAccounts.value.length} 个账号)`)
@@ -955,7 +1232,8 @@ const handleBatchProfile = async () => {
 
     if (hasImageUrl) {
       const res = await api.post('/whatsapp/accounts/batch/avatar', {
-        accounts: selectedAccounts.value, imageUrl: batchProfileForm.imageUrl.trim()
+        accounts: selectedAccounts.value,
+        imageUrl: batchProfileForm.imageUrl.trim()
       })
       if (res.code !== 0) { ElMessage.error('修改头像失败'); hasError = true }
       else ElMessage.success(`头像修改已提交 (${selectedAccounts.value.length} 个账号)`)
@@ -963,7 +1241,8 @@ const handleBatchProfile = async () => {
 
     if (hasStatus) {
       const res = await api.post('/whatsapp/accounts/batch/status', {
-        accounts: selectedAccounts.value, status: batchProfileForm.status.trim()
+        accounts: selectedAccounts.value,
+        status: batchProfileForm.status.trim()
       })
       if (res.code !== 0) { ElMessage.error('修改状态失败'); hasError = true }
       else ElMessage.success(`状态修改已提交 (${selectedAccounts.value.length} 个账号)`)
