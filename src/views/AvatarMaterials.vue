@@ -209,20 +209,53 @@ const handleDelete = async (id) => {
 }
 
 const copyUrl = (url) => {
-    navigator.clipboard.writeText(url).then(() => {
-        ElMessage.success('已复制 URL')
-    }).catch(() => {
-        // 降级方案
-        const input = document.createElement('input')
-        input.value = url
-        document.body.appendChild(input)
-        input.select()
-        document.execCommand('copy')
-        document.body.removeChild(input)
-        ElMessage.success('已复制 URL')
-    })
-}
+    if (!url) {
+        ElMessage.warning('没有可复制的内容')
+        return
+    }
 
+    // 方法1：使用 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+            ElMessage.success('已复制 URL')
+        }).catch(() => {
+            // 降级方案
+            fallbackCopy(url)
+        })
+    } else {
+        // 降级方案
+        fallbackCopy(url)
+    }
+}
+const fallbackCopy = (text) => {
+    // 创建临时 textarea
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '-9999px'
+    textarea.style.width = '1px'
+    textarea.style.height = '1px'
+    document.body.appendChild(textarea)
+
+    // 选中并复制
+    textarea.focus()
+    textarea.select()
+
+    try {
+        const success = document.execCommand('copy')
+        if (success) {
+            ElMessage.success('已复制 URL')
+        } else {
+            ElMessage.error('复制失败，请手动复制')
+        }
+    } catch (err) {
+        ElMessage.error('复制失败，请手动复制')
+    }
+
+    // 清理
+    document.body.removeChild(textarea)
+}
 const handleImageError = (e) => {
     e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f0f0f0"/%3E%3Ctext x="50" y="110" font-size="14" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E'
 }
