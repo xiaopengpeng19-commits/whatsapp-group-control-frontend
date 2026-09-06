@@ -270,9 +270,6 @@
     <!-- ========================================== -->
     <!-- 批量修改资料对话框 -->
     <!-- ========================================== -->
-    <!-- ========================================== -->
-    <!-- 批量修改资料对话框 -->
-    <!-- ========================================== -->
     <el-dialog v-model="showBatchProfileDialog" title="批量修改资料" width="600px" :close-on-click-modal="false">
       <el-form :model="batchProfileForm" label-width="120px">
         <el-form-item label="选中账号">
@@ -300,9 +297,7 @@
           <el-input v-else v-model="batchProfileForm.base64Content" type="textarea" :rows="3"
             placeholder="请粘贴 Base64 编码的图片数据" />
           <div style="font-size:12px;color:#999;margin-top:4px;">
-            {{ batchProfileForm.avatarType === 'url' ? 'URL 方式：图片需公网可访问' : 'Base64 方式：支持 data:image/png;base64, 开头或纯
-            Base64'
-            }}
+            {{ batchProfileForm.avatarType === 'url' ? 'URL 方式：图片需公网可访问' : 'Base64 方式：支持 data:image/png;base64,开头或纯Base64'}}
           </div>
         </el-form-item>
 
@@ -328,86 +323,6 @@
         <el-button type="primary" @click="handleBatchProfile" :loading="batchProfileLoading">
           确定修改
         </el-button>
-      </template>
-    </el-dialog>
-    <!-- 私聊消息弹窗 -->
-    <el-dialog v-model="showPrivateDialog" :title="`私聊消息 - ${currentAccount}`" width="900px"
-      :close-on-click-modal="false">
-      <div>
-        <!-- 统计 -->
-        <div style="margin-bottom:12px;display:flex;gap:15px;flex-wrap:wrap;">
-          <span>总消息: <el-tag type="info">{{ privateTotal }}</el-tag></span>
-        </div>
-
-        <!-- 消息列表 -->
-        <el-table :data="privateMessages" border v-loading="privateLoading" max-height="450" stripe>
-          <el-table-column type="index" label="#" width="50" />
-
-          <!-- ✅ 新增方向列 -->
-          <el-table-column label="方向" width="70" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.isOutgoing ? 'primary' : 'success'" size="small">
-                {{ row.isOutgoing ? '发送' : '接收' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="senderLid" label="发送者LID" min-width="160" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span v-if="row.isOutgoing" style="color:#999;">-</span>
-              <span v-else>{{ row.senderLid }}</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="senderPhone" label="发送者手机号" width="140">
-            <template #default="{ row }">
-              <span v-if="row.isOutgoing" style="color:#409eff;">{{ row.account }}</span>
-              <span v-else-if="row.senderPhone">{{ row.senderPhone }}</span>
-              <span v-else style="color:#999;">-</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="remoteJid" label="对方JID" min-width="160" show-overflow-tooltip />
-
-          <el-table-column prop="content" label="消息内容" min-width="200" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span v-if="row.content">{{ row.content }}</span>
-              <span v-else style="color:#999;">[非文本消息]</span>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="messageType" label="类型" width="100">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.messageType === 'conversation' ? 'primary' : 'warning'">
-                {{ row.messageType || 'text' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column prop="receivedAt" label="时间" width="170">
-            <template #default="{ row }">
-              {{ formatTime(row.receivedAt) }}
-            </template>
-          </el-table-column>
-
-          <el-table-column label="操作" width="80" align="center">
-            <template #default="{ row }">
-              <el-button size="small" type="danger" link @click="handleDeletePrivate(row.id)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 分页 -->
-        <div style="margin-top:15px;display:flex;justify-content:flex-end">
-          <el-pagination v-model:current-page="privatePage" v-model:page-size="privatePageSize"
-            :page-sizes="[10, 20, 50, 100]" :total="privateTotal" layout="total, sizes, prev, pager, next"
-            @size-change="fetchPrivateMessages" @current-change="fetchPrivateMessages" />
-        </div>
-      </div>
-
-      <template #footer>
-        <el-button @click="showPrivateDialog = false">关闭</el-button>
-        <el-button type="primary" @click="fetchPrivateMessages">刷新</el-button>
       </template>
     </el-dialog>
     <!-- 批量添加账号对话框 -->
