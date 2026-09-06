@@ -558,9 +558,10 @@ const showBatchProfileDialog = ref(false)
 const batchProfileLoading = ref(false)
 const batchProfileForm = reactive({
   nickname: '',
-  avatarType: 'url',  // ✅ 新增：url 或 base64
+  avatarType: 'upload',
   imageUrl: '',
-  base64Content: '',  // ✅ 新增
+  base64Content: '',
+  avatarGroup: '',  // ✅ 添加这个字段
   status: ''
 })
 
