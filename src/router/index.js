@@ -107,6 +107,12 @@ const routes = [
         meta: { title: "WS群管理" },
       },
       {
+        path: "auto-reply",
+        name: "AutoReply",
+        component: () => import("@/views/AutoReply.vue"),
+        meta: { title: "自动回复" },
+      },
+      {
         path: "pairing-code",
         name: "PairingCode",
         component: () => import("@/views/PairingCode.vue"),

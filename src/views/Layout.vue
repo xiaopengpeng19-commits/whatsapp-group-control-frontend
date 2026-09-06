@@ -90,6 +90,12 @@
           </el-icon>
           <span>WS群管理</span>
         </el-menu-item>
+        <el-menu-item index="/auto-reply">
+          <el-icon>
+            <ChatDotRound />
+          </el-icon>
+          <span>自动回复</span>
+        </el-menu-item>
         <el-menu-item index="/pairing-code">
           <el-icon>
             <Key />
