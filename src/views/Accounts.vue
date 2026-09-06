@@ -273,20 +273,40 @@
         <!-- 消息列表 -->
         <el-table :data="privateMessages" border v-loading="privateLoading" max-height="450" stripe>
           <el-table-column type="index" label="#" width="50" />
-          <el-table-column prop="senderLid" label="发送者LID" min-width="180" show-overflow-tooltip />
+
+          <!-- ✅ 新增方向列 -->
+          <el-table-column label="方向" width="70" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.isOutgoing ? 'primary' : 'success'" size="small">
+                {{ row.isOutgoing ? '发送' : '接收' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="senderLid" label="发送者LID" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span v-if="row.isOutgoing" style="color:#999;">-</span>
+              <span v-else>{{ row.senderLid }}</span>
+            </template>
+          </el-table-column>
+
           <el-table-column prop="senderPhone" label="发送者手机号" width="140">
             <template #default="{ row }">
-              <span v-if="row.senderPhone">{{ row.senderPhone }}</span>
+              <span v-if="row.isOutgoing" style="color:#409eff;">{{ row.account }}</span>
+              <span v-else-if="row.senderPhone">{{ row.senderPhone }}</span>
               <span v-else style="color:#999;">-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="remoteJid" label="RemoteJID" min-width="180" show-overflow-tooltip />
+
+          <el-table-column prop="remoteJid" label="对方JID" min-width="160" show-overflow-tooltip />
+
           <el-table-column prop="content" label="消息内容" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
               <span v-if="row.content">{{ row.content }}</span>
               <span v-else style="color:#999;">[非文本消息]</span>
             </template>
           </el-table-column>
+
           <el-table-column prop="messageType" label="类型" width="100">
             <template #default="{ row }">
               <el-tag size="small" :type="row.messageType === 'conversation' ? 'primary' : 'warning'">
@@ -294,11 +314,13 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="receivedAt" label="接收时间" width="170">
+
+          <el-table-column prop="receivedAt" label="时间" width="170">
             <template #default="{ row }">
               {{ formatTime(row.receivedAt) }}
             </template>
           </el-table-column>
+
           <el-table-column label="操作" width="80" align="center">
             <template #default="{ row }">
               <el-button size="small" type="danger" link @click="handleDeletePrivate(row.id)">删除</el-button>
