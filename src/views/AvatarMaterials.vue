@@ -1,3 +1,5 @@
+<!-- frontend/src/views/AvatarMaterials.vue -->
+
 <template>
     <div class="avatar-materials">
         <!-- 工具栏 -->
@@ -63,35 +65,50 @@
         </div>
 
         <!-- 上传对话框 -->
-        <el-dialog v-model="showUploadDialog" title="上传头像" width="500px">
+        <el-dialog v-model="showUploadDialog" title="上传头像" width="600px" :close-on-click-modal="false">
             <el-form :model="uploadForm" label-width="80px">
                 <el-form-item label="分组">
                     <el-input v-model="uploadForm.group" placeholder="请输入分组名称（默认：默认分组）" />
                 </el-form-item>
                 <el-form-item label="选择图片">
-                    <el-upload ref="uploadRef" :auto-upload="false" :limit="1" accept="image/*"
+                    <el-upload ref="uploadRef" :auto-upload="false" multiple accept="image/*" :limit="20"
                         :on-change="handleFileChange" :on-remove="handleFileRemove">
                         <el-button type="primary" plain>
                             <el-icon>
                                 <FolderOpened />
-                            </el-icon> 选择图片
+                            </el-icon> 选择图片（可多选）
                         </el-button>
                         <template #tip>
                             <div style="font-size:12px;color:#999;margin-top:4px;">
-                                支持 JPG/PNG，自动压缩为 640x640 JPG，不超过 2MB
+                                支持 JPG/PNG，自动压缩为 640x640 JPG，不超过 2MB/张，可一次选择多张
                             </div>
                         </template>
                     </el-upload>
                 </el-form-item>
-                <el-form-item v-if="previewUrl">
-                    <div style="width:100px;height:100px;border-radius:50%;overflow:hidden;border:2px solid #e4e7ed;">
-                        <img :src="previewUrl" style="width:100%;height:100%;object-fit:cover;" />
+                <el-form-item v-if="previewUrls.length > 0" label="已选图片">
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                        <div v-for="(url, index) in previewUrls" :key="index"
+                            style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:2px solid #e4e7ed;">
+                            <img :src="url" style="width:100%;height:100%;object-fit:cover;" />
+                            <el-button size="small" type="danger" circle
+                                style="position:absolute;top:-4px;right:-4px;width:20px;height:20px;padding:0;"
+                                @click="removePreview(index)">
+                                <el-icon>
+                                    <Close />
+                                </el-icon>
+                            </el-button>
+                        </div>
+                    </div>
+                    <div style="font-size:12px;color:#999;margin-top:4px;">
+                        共 {{ previewUrls.length }} 张图片
                     </div>
                 </el-form-item>
             </el-form>
             <template #footer>
                 <el-button @click="showUploadDialog = false">取消</el-button>
-                <el-button type="primary" @click="handleUpload" :loading="uploading">确定上传</el-button>
+                <el-button type="primary" @click="handleUpload" :loading="uploading">
+                    {{ uploading ? '上传中...' : '确定上传' }}
+                </el-button>
             </template>
         </el-dialog>
     </div>
@@ -100,9 +117,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Refresh, FolderOpened } from '@element-plus/icons-vue'
+import { Upload, Refresh, FolderOpened, Close } from '@element-plus/icons-vue'
 import api from '@/api'
 
+// ============ 状态 ============
 const list = ref([])
 const groups = ref([])
 const total = ref(0)
@@ -114,10 +132,11 @@ const uploading = ref(false)
 
 const showUploadDialog = ref(false)
 const uploadRef = ref(null)
-const uploadFile = ref(null)
-const previewUrl = ref('')
+const uploadFiles = ref([])
+const previewUrls = ref([])
 const uploadForm = reactive({ group: '' })
 
+// ============ 数据获取 ============
 const fetchList = async () => {
     loading.value = true
     try {
@@ -144,46 +163,80 @@ const fetchGroups = async () => {
     } catch (error) { }
 }
 
+// ============ 文件处理 ============
 const handleFileChange = (file) => {
-    uploadFile.value = file.raw
-    previewUrl.value = URL.createObjectURL(file.raw)
+    uploadFiles.value.push(file.raw)
+    previewUrls.value.push(URL.createObjectURL(file.raw))
 }
 
-const handleFileRemove = () => {
-    uploadFile.value = null
-    previewUrl.value = ''
-    uploadRef.value?.clearFiles()
+const handleFileRemove = (file) => {
+    const index = uploadFiles.value.findIndex(f => f.uid === file.uid)
+    if (index !== -1) {
+        uploadFiles.value.splice(index, 1)
+        previewUrls.value.splice(index, 1)
+    }
 }
 
+const removePreview = (index) => {
+    uploadFiles.value.splice(index, 1)
+    previewUrls.value.splice(index, 1)
+}
+
+// ============ 上传 ============
 const handleUpload = async () => {
-    if (!uploadFile.value) {
+    if (uploadFiles.value.length === 0) {
         ElMessage.warning('请选择图片')
         return
     }
 
     uploading.value = true
-    try {
-        const reader = new FileReader()
-        const base64 = await new Promise((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target.result)
-            reader.onerror = reject
-            reader.readAsDataURL(uploadFile.value)
-        })
+    let successCount = 0
+    let failCount = 0
 
+    try {
         const group = uploadForm.group || '默认分组'
-        const res = await api.post('/avatar-materials/upload', {
-            base64Content: base64,
-            group: group
-        })
-        if (res.code === 0) {
-            ElMessage.success('上传成功')
+
+        for (const file of uploadFiles.value) {
+            try {
+                if (file.size > 2 * 1024 * 1024) {
+                    ElMessage.warning(`${file.name} 超过 2MB，跳过`)
+                    failCount++
+                    continue
+                }
+
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onload = (e) => resolve(e.target.result)
+                    reader.onerror = reject
+                    reader.readAsDataURL(file)
+                })
+
+                const res = await api.post('/avatar-materials/upload', {
+                    base64Content: base64,
+                    group: group
+                })
+
+                if (res.code === 0) {
+                    successCount++
+                } else {
+                    failCount++
+                }
+            } catch (err) {
+                failCount++
+            }
+        }
+
+        if (successCount > 0) {
+            ElMessage.success(`上传完成：成功 ${successCount} 张${failCount > 0 ? `，失败 ${failCount} 张` : ''}`)
             showUploadDialog.value = false
-            uploadFile.value = null
-            previewUrl.value = ''
+            uploadFiles.value = []
+            previewUrls.value = []
             uploadForm.group = ''
             uploadRef.value?.clearFiles()
             fetchList()
             fetchGroups()
+        } else {
+            ElMessage.error('上传失败，请检查图片格式')
         }
     } catch (error) {
         ElMessage.error('上传失败: ' + (error.message || ''))
@@ -192,6 +245,7 @@ const handleUpload = async () => {
     }
 }
 
+// ============ 删除 ============
 const handleDelete = async (id) => {
     try {
         await ElMessageBox.confirm('确定要删除该头像吗？', '提示', { type: 'warning' })
@@ -208,58 +262,48 @@ const handleDelete = async (id) => {
     }
 }
 
+// ============ 复制 URL ============
 const copyUrl = (url) => {
     if (!url) {
         ElMessage.warning('没有可复制的内容')
         return
     }
 
-    // 方法1：使用 Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
             ElMessage.success('已复制 URL')
         }).catch(() => {
-            // 降级方案
             fallbackCopy(url)
         })
     } else {
-        // 降级方案
         fallbackCopy(url)
     }
 }
+
 const fallbackCopy = (text) => {
-    // 创建临时 textarea
     const textarea = document.createElement('textarea')
     textarea.value = text
     textarea.style.position = 'fixed'
     textarea.style.left = '-9999px'
     textarea.style.top = '-9999px'
-    textarea.style.width = '1px'
-    textarea.style.height = '1px'
     document.body.appendChild(textarea)
-
-    // 选中并复制
     textarea.focus()
     textarea.select()
-
     try {
-        const success = document.execCommand('copy')
-        if (success) {
-            ElMessage.success('已复制 URL')
-        } else {
-            ElMessage.error('复制失败，请手动复制')
-        }
+        document.execCommand('copy')
+        ElMessage.success('已复制 URL')
     } catch (err) {
         ElMessage.error('复制失败，请手动复制')
     }
-
-    // 清理
     document.body.removeChild(textarea)
 }
+
+// ============ 图片加载失败占位 ============
 const handleImageError = (e) => {
     e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f0f0f0"/%3E%3Ctext x="50" y="110" font-size="14" fill="%23999"%3E图片加载失败%3C/text%3E%3C/svg%3E'
 }
 
+// ============ 生命周期 ============
 onMounted(() => {
     fetchGroups()
     fetchList()
