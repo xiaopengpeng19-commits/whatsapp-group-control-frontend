@@ -96,6 +96,12 @@
           </el-icon>
           <span>自动回复</span>
         </el-menu-item>
+        <el-menu-item index="/avatar-materials">
+          <el-icon>
+            <Picture />
+          </el-icon>
+          <span>头像素材</span>
+        </el-menu-item>
         <el-menu-item index="/pairing-code">
           <el-icon>
             <Key />

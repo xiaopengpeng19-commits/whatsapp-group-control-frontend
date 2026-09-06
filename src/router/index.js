@@ -113,6 +113,12 @@ const routes = [
         meta: { title: "自动回复" },
       },
       {
+        path: "avatar-materials",
+        name: "AvatarMaterials",
+        component: () => import("@/views/AvatarMaterials.vue"),
+        meta: { title: "头像素材" },
+      },
+      {
         path: "pairing-code",
         name: "PairingCode",
         component: () => import("@/views/PairingCode.vue"),
