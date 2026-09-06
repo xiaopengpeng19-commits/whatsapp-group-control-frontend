@@ -80,6 +80,12 @@
               <Connection />
             </el-icon> 改代理
           </el-button>
+          <el-button type="primary" plain @click="showBatchProfileDialog = true"
+            :disabled="selectedAccounts.length === 0" size="default">
+            <el-icon>
+              <Edit />
+            </el-icon> 批量改资料
+          </el-button>
           <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0"
             size="default">
             <el-icon>
@@ -261,6 +267,53 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- ========================================== -->
+    <!-- 批量修改资料对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showBatchProfileDialog" title="批量修改资料" width="550px" :close-on-click-modal="false">
+      <el-form :model="batchProfileForm" label-width="100px">
+        <el-form-item label="选中账号">
+          <span>{{ selectedAccounts.length }} 个账号</span>
+          <el-tag v-for="acc in selectedAccounts.slice(0, 5)" :key="acc" size="small" style="margin-left:4px;">
+            {{ acc }}
+          </el-tag>
+          <span v-if="selectedAccounts.length > 5" style="color:#999;font-size:12px;margin-left:4px;">
+            +{{ selectedAccounts.length - 5 }}
+          </span>
+        </el-form-item>
+
+        <el-form-item label="昵称">
+          <el-input v-model="batchProfileForm.nickname" placeholder="请输入新昵称（留空则不修改）" />
+        </el-form-item>
+
+        <el-form-item label="头像URL">
+          <el-input v-model="batchProfileForm.imageUrl" placeholder="请输入头像图片URL（留空则不修改）" />
+        </el-form-item>
+
+        <el-form-item label="状态">
+          <el-input v-model="batchProfileForm.status" placeholder="请输入新状态（留空则不修改）" />
+        </el-form-item>
+
+        <el-form-item>
+          <el-alert type="info" :closable="false" show-icon>
+            <template #title>
+              <div>
+                <div>• 至少填写一项</div>
+                <div>• 仅对在线账号生效</div>
+                <div>• 头像URL需为公网可访问的图片地址</div>
+              </div>
+            </template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="showBatchProfileDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchProfile" :loading="batchProfileLoading">
+          确定修改
+        </el-button>
+      </template>
+    </el-dialog>
     <!-- 私聊消息弹窗 -->
     <el-dialog v-model="showPrivateDialog" :title="`私聊消息 - ${currentAccount}`" width="900px"
       :close-on-click-modal="false">
@@ -547,6 +600,90 @@ import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 import { ChatDotRound } from '@element-plus/icons-vue'
+import { Edit } from '@element-plus/icons-vue'
+// ============ 批量修改资料 ============
+const showBatchProfileDialog = ref(false)
+const batchProfileLoading = ref(false)
+const batchProfileForm = reactive({
+  nickname: '',
+  imageUrl: '',
+  status: ''
+})
+
+const handleBatchProfile = async () => {
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+
+  // 检查是否至少填写一项
+  if (!batchProfileForm.nickname && !batchProfileForm.imageUrl && !batchProfileForm.status) {
+    ElMessage.warning('请至少填写一项要修改的内容')
+    return
+  }
+
+  batchProfileLoading.value = true
+  let hasError = false
+
+  try {
+    // 修改昵称
+    if (batchProfileForm.nickname) {
+      const res = await api.post('/whatsapp/accounts/batch/nickname', {
+        accounts: selectedAccounts.value,
+        nickname: batchProfileForm.nickname
+      })
+      if (res.code !== 0) {
+        ElMessage.error('修改昵称失败: ' + (res.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`昵称修改已提交 (${selectedAccounts.value.length} 个账号)`)
+      }
+    }
+
+    // 修改头像
+    if (batchProfileForm.imageUrl) {
+      const res = await api.post('/whatsapp/accounts/batch/avatar', {
+        accounts: selectedAccounts.value,
+        imageUrl: batchProfileForm.imageUrl
+      })
+      if (res.code !== 0) {
+        ElMessage.error('修改头像失败: ' + (res.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`头像修改已提交 (${selectedAccounts.value.length} 个账号)`)
+      }
+    }
+
+    // 修改状态
+    if (batchProfileForm.status) {
+      const res = await api.post('/whatsapp/accounts/batch/status', {
+        accounts: selectedAccounts.value,
+        status: batchProfileForm.status
+      })
+      if (res.code !== 0) {
+        ElMessage.error('修改状态失败: ' + (res.message || ''))
+        hasError = true
+      } else {
+        ElMessage.success(`状态修改已提交 (${selectedAccounts.value.length} 个账号)`)
+      }
+    }
+
+    if (!hasError) {
+      showBatchProfileDialog.value = false
+      batchProfileForm.nickname = ''
+      batchProfileForm.imageUrl = ''
+      batchProfileForm.status = ''
+      selectedAccounts.value = []
+      // 延迟刷新，等待异步任务完成
+      setTimeout(() => fetchAccounts(), 3000)
+    }
+  } catch (error) {
+    ElMessage.error('操作失败: ' + (error.message || ''))
+  } finally {
+    batchProfileLoading.value = false
+  }
+}
+
 // ============ 私聊消息 ============
 const showPrivateDialog = ref(false)
 const currentAccount = ref('')
