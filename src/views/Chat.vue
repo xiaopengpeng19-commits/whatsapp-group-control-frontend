@@ -227,6 +227,16 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="语言">{{ getLanguageLabel(detailTask.language) }}</el-descriptions-item>
+          <el-descriptions-item label="同国家配对">
+            <el-tag :type="detailTask.allowSameCountry ? 'success' : 'info'" size="small">
+              {{ detailTask.allowSameCountry ? '✅ 开启' : '❌ 关闭' }}
+            </el-tag>
+          </el-descriptions-item>
+
+          <!-- 如果还有更多字段，继续添加 -->
+          <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
+          <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
+          <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
         </el-descriptions>
 
         <!-- ========================================== -->
