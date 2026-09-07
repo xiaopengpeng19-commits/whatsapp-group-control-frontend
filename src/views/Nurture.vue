@@ -1061,7 +1061,7 @@ onBeforeUnmount(() => {
 .range-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 20px;
     flex-wrap: wrap;
 }
 
