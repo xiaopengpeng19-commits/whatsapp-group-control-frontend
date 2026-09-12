@@ -13,6 +13,11 @@
             <DocumentAdd />
           </el-icon> 批量导入
         </el-button>
+        <el-button type="success" plain @click="showConditionStatusDialog = true">
+          <el-icon>
+            <Switch />
+          </el-icon> 按条件改状态
+        </el-button>
         <el-button type="warning" plain @click="showBatchGroupDialog = true">
           <el-icon>
             <Folder />
@@ -128,7 +133,57 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- ========================================== -->
+    <!-- 按条件修改状态对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showConditionStatusDialog" title="按条件修改状态" width="500px">
+      <el-form :model="conditionStatusForm" label-width="120px">
+        <el-form-item label="选择分组">
+          <el-select v-model="conditionStatusForm.group" placeholder="全部分组" clearable style="width:100%">
+            <el-option label="全部分组" value="" />
+            <el-option v-for="item in groups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+              :value="item.name" />
+          </el-select>
+        </el-form-item>
 
+        <el-form-item label="当前状态">
+          <el-select v-model="conditionStatusForm.fromStatus" placeholder="选择当前状态" style="width:100%">
+            <el-option label="初始化" value="initial" />
+            <el-option label="已使用" value="used" />
+            <el-option label="已发送" value="sent" />
+            <el-option label="已送达" value="delivered" />
+            <el-option label="已读" value="read" />
+            <el-option label="已回复" value="replied" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="修改为">
+          <el-select v-model="conditionStatusForm.toStatus" placeholder="选择目标状态" style="width:100%">
+            <el-option label="初始化" value="initial" />
+            <el-option label="已使用" value="used" />
+            <el-option label="已发送" value="sent" />
+            <el-option label="已送达" value="delivered" />
+            <el-option label="已读" value="read" />
+            <el-option label="已回复" value="replied" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item>
+          <el-alert type="info" :closable="false" show-icon>
+            <template #title>
+              将【{{ conditionStatusForm.group || '全部分组' }}】中状态为【{{ getStatusLabel(conditionStatusForm.fromStatus)
+              }}】的目标，修改为【{{ getStatusLabel(conditionStatusForm.toStatus) }}】
+            </template>
+          </el-alert>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showConditionStatusDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleConditionStatus" :loading="conditionStatusLoading">
+          确定修改
+        </el-button>
+      </template>
+    </el-dialog>
     <!-- ========================================== -->
     <!-- 添加对话框 -->
     <!-- ========================================== -->
@@ -245,7 +300,78 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, DocumentAdd, Folder, Delete, Refresh, Download } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+import { Switch } from '@element-plus/icons-vue'
+// ============ 按条件修改状态 ============
+const showConditionStatusDialog = ref(false)
+const conditionStatusLoading = ref(false)
+const conditionStatusForm = reactive({
+  group: '',
+  fromStatus: '',
+  toStatus: ''
+})
 
+const getStatusLabel = (status) => {
+  const map = {
+    initial: '初始化',
+    used: '已使用',
+    sent: '已发送',
+    delivered: '已送达',
+    read: '已读',
+    replied: '已回复'
+  }
+  return map[status] || status || '-'
+}
+
+const handleConditionStatus = async () => {
+  if (!conditionStatusForm.fromStatus) {
+    ElMessage.warning('请选择当前状态')
+    return
+  }
+  if (!conditionStatusForm.toStatus) {
+    ElMessage.warning('请选择目标状态')
+    return
+  }
+  if (conditionStatusForm.fromStatus === conditionStatusForm.toStatus) {
+    ElMessage.warning('当前状态和目标状态不能相同')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要将【${conditionStatusForm.group || '全部分组'}】中状态为【${getStatusLabel(conditionStatusForm.fromStatus)}】的目标，修改为【${getStatusLabel(conditionStatusForm.toStatus)}】吗？`,
+      '确认',
+      { type: 'warning' }
+    )
+
+    conditionStatusLoading.value = true
+
+    // ✅ 调用后端批量接口
+    const res = await api.post('/target/accounts/batch/status', {
+      group: conditionStatusForm.group || '',
+      fromStatus: conditionStatusForm.fromStatus,
+      toStatus: conditionStatusForm.toStatus
+    })
+
+    if (res.code === 0) {
+      ElMessage.success(`成功修改 ${res.data.updated} 个目标的状态`)
+      showConditionStatusDialog.value = false
+      conditionStatusForm.group = ''
+      conditionStatusForm.fromStatus = ''
+      conditionStatusForm.toStatus = ''
+      fetchAccounts()
+      fetchGroups()
+      fetchStatusStats()
+    } else {
+      ElMessage.error(res.message || '修改失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('操作失败: ' + (error.message || ''))
+    }
+  } finally {
+    conditionStatusLoading.value = false
+  }
+}
 // ============ 状态 ============
 const accounts = ref([])
 const groups = ref([])
