@@ -107,7 +107,11 @@
               <Refresh />
             </el-icon> 刷新
           </el-button>
-
+          <el-button type="info" plain @click="handleRefreshContacts" :loading="refreshContactsLoading" size="default">
+            <el-icon>
+              <Refresh />
+            </el-icon> 刷新联系人数量
+          </el-button>
           <el-button type="danger" plain @click="handleClearReconnectQueue" :loading="clearQueueLoading" size="default">
             <el-icon>
               <Delete />
@@ -146,6 +150,13 @@
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
             {{ row.group || '未分组' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="contactCount" label="联系人" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag size="small" type="info">
+            {{ row.contactCount || 0 }}
           </el-tag>
         </template>
       </el-table-column>
@@ -675,6 +686,27 @@ const groupProfileForm = reactive({
   status: ''
 })
 
+// ============ 刷新联系人数量 ============
+const refreshContactsLoading = ref(false)
+
+const handleRefreshContacts = async () => {
+  try {
+    await ElMessageBox.confirm('确定要刷新所有账号的联系人数量吗？', '提示', { type: 'info' })
+    refreshContactsLoading.value = true
+    const res = await api.post('/whatsapp/accounts/refresh-contacts')
+    if (res.code === 0) {
+      ElMessage.success('刷新任务已提交，请稍后刷新查看')
+      setTimeout(() => fetchAccounts(), 5000)
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('刷新失败: ' + (error.message || ''))
+    }
+  } finally {
+    refreshContactsLoading.value = false
+  }
+}
+
 // ============ 批量上线/下线 ============
 const batchOnlineLoading = ref(false)
 const batchOfflineLoading = ref(false)
@@ -849,7 +881,7 @@ const handleBatchDelete = async () => {
     let success = 0, fail = 0
     for (const account of selectedAccounts.value) {
       const res = await whatsapp.deleteAccount(account)
-      if (res.code === 0) success++ 
+      if (res.code === 0) success++
       else fail++
       await new Promise(r => setTimeout(r, 50))
     }
