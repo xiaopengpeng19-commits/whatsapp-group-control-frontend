@@ -127,6 +127,11 @@
               <el-radio-button value="pt">Português</el-radio-button>
             </el-radio-group>
           </el-form-item>
+          <el-form-item label="每账号最多会话数">
+            <el-input-number v-model="createForm.maxPairsPerAccount" :min="0" :max="100" size="large" />
+            <span style="margin-left:8px;color:#86909c;">0 表示不限制</span>
+            <div class="form-tip">每个账号最多和 N 个不同账号会话，已配对过的账号可重复会话</div>
+          </el-form-item>
           <el-form-item label="同国家配对">
             <el-switch v-model="createForm.allowSameCountry" active-text="开启" inactive-text="关闭" />
             <div class="form-tip">开启后，同一国家的账号可直接配对，无需互为联系人</div>
@@ -442,6 +447,7 @@ const createForm = reactive({
   maxConcurrent: 2,
   pairIntervalMin: 30,
   pairIntervalMax: 99,
+  maxPairsPerAccount: 0,
   allowSameCountry: false
 })
 
