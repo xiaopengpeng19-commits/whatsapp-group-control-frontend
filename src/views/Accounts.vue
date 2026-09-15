@@ -677,11 +677,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import {
-  Plus, Refresh, Folder, Picture, Upload, FolderOpened,
-  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument, User
-} from '@element-plus/icons-vue'
+
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
