@@ -218,31 +218,33 @@
       </el-table-column>
 
       <!-- 操作列 -->
-      <el-table-column label="操作" width="420" fixed="right">
+      <el-table-column label="操作" width="480" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <el-button
-              v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
-              size="small" type="success" @click="handleOnline(row.account)">
-              <el-icon>
-                <Promotion />
-              </el-icon> 上线
-            </el-button>
-            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
-              @click="handleOffline(row.account)">
-              <el-icon>
-                <SwitchButton />
-              </el-icon> 下线
-            </el-button>
-            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
-            <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
+            <!-- 上线/下线按钮 -->
+            <el-button v-if="row.status !== 'online' && ..." ...>上线</el-button>
+            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" ...>下线</el-button>
+            <el-button v-else-if="row.status === 'logging'" ...>登录中...</el-button>
+            <el-button v-else-if="row.status === 'banned'" ...>已封禁</el-button>
 
+            <!-- ✅ 新增：联系人按钮 -->
+            <el-button size="small" type="primary" @click="showContacts(row.account)">
+              <el-icon>
+                <User />
+              </el-icon> 联系人
+            </el-button>
+
+            <!-- 私聊按钮 -->
             <el-button size="small" type="info" @click="showPrivateMessages(row.account)">
               <el-icon>
                 <ChatDotRound />
               </el-icon> 私聊
             </el-button>
+
+            <!-- 二维码 -->
             <el-button size="small" type="info" @click="showQRCode(row)">二维码</el-button>
+
+            <!-- 删除 -->
             <el-button size="small" type="danger" @click="handleDelete(row.account)">
               <el-icon>
                 <Delete />
@@ -259,7 +261,55 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- ========================================== -->
+    <!-- 联系人列表弹窗 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showContactsDialog" :title="`联系人 - ${currentContactAccount}`" width="800px"
+      :close-on-click-modal="false">
+      <div>
+        <div
+          style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <span>联系人总数: <el-tag type="info">{{ contactTotal }}</el-tag></span>
+          <div style="display:flex;gap:8px;">
+            <el-input v-model="contactSearchKeyword" placeholder="搜索手机号" clearable size="small" style="width:200px" />
+            <el-button size="small" type="primary" @click="fetchContacts">
+              <el-icon>
+                <Refresh />
+              </el-icon> 刷新
+            </el-button>
+          </div>
+        </div>
 
+        <el-table :data="filteredContacts" border v-loading="contactsLoading" max-height="450" stripe>
+          <el-table-column type="index" label="#" width="50" />
+          <el-table-column prop="phone" label="手机号" min-width="150">
+            <template #default="{ row }">
+              <span style="font-family:monospace;">{{ row.phone }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="名称" min-width="150">
+            <template #default="{ row }">
+              <span v-if="row.name">{{ row.name }}</span>
+              <span v-else style="color:#999;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" link @click="copyPhone(row.phone)">复制</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-if="contactTotal === 0 && !contactsLoading" style="text-align:center;color:#999;padding:30px;">
+          暂无联系人
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showContactsDialog = false">关闭</el-button>
+        <el-button type="primary" @click="fetchContacts">刷新</el-button>
+      </template>
+    </el-dialog>
     <!-- 私聊消息弹窗 -->
     <el-dialog v-model="showPrivateDialog" :title="`私聊消息 - ${currentAccount}`" width="900px"
       :close-on-click-modal="false">
@@ -615,6 +665,11 @@
 </template>
 
 <script setup>
+import { ref, reactive, onMounted, computed } from 'vue'
+import {
+  Plus, Refresh, Folder, Picture, Upload, FolderOpened,
+  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument, User
+} from '@element-plus/icons-vue'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
@@ -625,7 +680,98 @@ import {
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
+// ============ 联系人列表 ============
+const showContactsDialog = ref(false)
+const currentContactAccount = ref('')
+const contacts = ref([])
+const contactsLoading = ref(false)
+const contactTotal = ref(0)
+const contactSearchKeyword = ref('')
 
+// 过滤后的联系人
+const filteredContacts = computed(() => {
+  if (!contactSearchKeyword.value) return contacts.value
+  const kw = contactSearchKeyword.value.toLowerCase()
+  return contacts.value.filter(c =>
+    c.phone.includes(kw) || (c.name && c.name.toLowerCase().includes(kw))
+  )
+})
+
+const showContacts = async (account) => {
+  currentContactAccount.value = account
+  contactSearchKeyword.value = ''
+  showContactsDialog.value = true
+  await fetchContacts()
+}
+
+const fetchContacts = async () => {
+  if (!currentContactAccount.value) return
+  contactsLoading.value = true
+  try {
+    const res = await api.get('/whatsapp/contacts/list', {
+      params: { account: currentContactAccount.value }
+    })
+    if (res.code === 0 && res.data) {
+      const rawContacts = res.data.contacts || []
+      // 解析联系人
+      contacts.value = rawContacts
+        .filter(c => c.peerPhone || c.peerId)
+        .map(c => {
+          let phone = ''
+          if (c.peerPhone) {
+            phone = String(c.peerPhone)
+          } else if (c.peerId) {
+            phone = c.peerId.split('@')[0]
+          }
+          return {
+            phone: phone,
+            name: c.peerName || ''
+          }
+        })
+        .filter(c => c.phone && c.phone !== '0')
+      contactTotal.value = contacts.value.length
+    } else {
+      contacts.value = []
+      contactTotal.value = 0
+    }
+  } catch (error) {
+    ElMessage.error('获取联系人失败: ' + (error.message || ''))
+    contacts.value = []
+    contactTotal.value = 0
+  } finally {
+    contactsLoading.value = false
+  }
+}
+
+const copyPhone = (phone) => {
+  if (!phone) return
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(phone).then(() => {
+      ElMessage.success('已复制: ' + phone)
+    }).catch(() => {
+      fallbackCopyPhone(phone)
+    })
+  } else {
+    fallbackCopyPhone(phone)
+  }
+}
+
+const fallbackCopyPhone = (text) => {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  try {
+    document.execCommand('copy')
+    ElMessage.success('已复制: ' + text)
+  } catch (err) {
+    ElMessage.error('复制失败')
+  }
+  document.body.removeChild(textarea)
+}
 // ============ 状态 ============
 const filterIsLogin = ref('')
 const accounts = ref([])
