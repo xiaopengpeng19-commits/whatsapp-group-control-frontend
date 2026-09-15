@@ -171,24 +171,28 @@
                     </el-form-item>
                     <el-form-item label="消息间隔">
                         <div class="range-wrapper">
-                            <el-input-number v-model="createForm.minDelay" :min="1" :max="30" size="large" />
+                            <el-input-number v-model="createForm.minDelay" :min="1" :max="999" size="large"
+                                style="width:130px;" />
                             <span class="range-sep">~</span>
-                            <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" size="large" />
+                            <el-input-number v-model="createForm.maxDelay" :min="2" :max="999" size="large"
+                                style="width:130px;" />
                             <span class="range-unit">秒</span>
                         </div>
                     </el-form-item>
                     <el-form-item label="对话轮数">
                         <div class="range-wrapper">
-                            <el-input-number v-model="createForm.minRounds" :min="1" :max="20" size="large" />
+                            <el-input-number v-model="createForm.minRounds" :min="1" :max="999" size="large"
+                                style="width:130px;" />
                             <span class="range-sep">~</span>
-                            <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" size="large" />
+                            <el-input-number v-model="createForm.maxRounds" :min="2" :max="999" size="large"
+                                style="width:130px;" />
                             <span class="range-unit">轮</span>
                         </div>
-                        <div class="form-tip">第1轮严格检查已读，第2+轮宽松处理</div>
                     </el-form-item>
                     <el-form-item label="最大并发">
                         <div class="range-wrapper">
-                            <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
+                            <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="999" size="large"
+                                style="width:130px;" />
                             <span class="range-unit" style="margin-left:8px;">同时进行的对话数</span>
                         </div>
                     </el-form-item>
@@ -254,14 +258,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                    }}分钟</el-descriptions-item>
+                        }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -281,7 +285,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -452,9 +456,9 @@
                                     <el-option label="失败" value="failed" />
                                 </el-select>
                                 <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                                    }}</el-tag>
+                                }}</el-tag>
                                 <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                                    }}</el-tag>
+                                }}</el-tag>
                             </div>
                         </div>
 
@@ -472,7 +476,7 @@
                                         <span>→</span>
                                         <span>{{ msg.toAccount }}</span>
                                         <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round
-                                            }}轮</el-tag>
+                                        }}轮</el-tag>
                                         <el-tag v-if="msg.isSimulated" type="warning" size="small"
                                             style="font-size:10px;padding:0 6px;">模拟</el-tag>
                                         <el-tag :type="getMessageStatusType(msg.status)" size="small"
@@ -481,7 +485,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         <span v-if="msg.isSimulated"
@@ -540,7 +544,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}

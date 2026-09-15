@@ -160,23 +160,24 @@
           </el-form-item>
           <el-form-item label="消息间隔">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.minDelay" :min="1" :max="30" size="large" />
+              <el-input-number v-model="createForm.minDelay" :min="1" :max="999" size="large" style="width:130px;" />
               <span class="range-sep">~</span>
-              <el-input-number v-model="createForm.maxDelay" :min="2" :max="60" size="large" />
+              <el-input-number v-model="createForm.maxDelay" :min="2" :max="999" size="large" style="width:130px;" />
               <span class="range-unit">秒</span>
             </div>
           </el-form-item>
           <el-form-item label="对话轮数">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.minRounds" :min="1" :max="20" size="large" />
+              <el-input-number v-model="createForm.minRounds" :min="1" :max="999" size="large" style="width:130px;" />
               <span class="range-sep">~</span>
-              <el-input-number v-model="createForm.maxRounds" :min="2" :max="50" size="large" />
+              <el-input-number v-model="createForm.maxRounds" :min="2" :max="999" size="large" style="width:130px;" />
               <span class="range-unit">轮</span>
             </div>
           </el-form-item>
           <el-form-item label="最大并发">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="10" size="large" />
+              <el-input-number v-model="createForm.maxConcurrent" :min="1" :max="999" size="large"
+                style="width:130px;" />
               <span class="range-unit" style="margin-left:8px;">同时进行的对话数</span>
             </div>
           </el-form-item>
