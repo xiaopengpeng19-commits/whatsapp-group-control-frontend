@@ -222,10 +222,22 @@
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
             <!-- 上线/下线按钮 -->
-            <el-button v-if="row.status !== 'online' && ..." ...>上线</el-button>
-            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" ...>下线</el-button>
-            <el-button v-else-if="row.status === 'logging'" ...>登录中...</el-button>
-            <el-button v-else-if="row.status === 'banned'" ...>已封禁</el-button>
+            <!-- 上线/下线按钮 -->
+            <el-button
+              v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
+              size="small" type="success" @click="handleOnline(row.account)">
+              <el-icon>
+                <Promotion />
+              </el-icon> 上线
+            </el-button>
+            <el-button v-else-if="row.status === 'online' || row.status === 'normal'" size="small" type="warning"
+              @click="handleOffline(row.account)">
+              <el-icon>
+                <SwitchButton />
+              </el-icon> 下线
+            </el-button>
+            <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
+            <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
 
             <!-- ✅ 新增：联系人按钮 -->
             <el-button size="small" type="primary" @click="showContacts(row.account)">
