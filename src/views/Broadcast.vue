@@ -118,7 +118,11 @@
           <el-input-number v-model="createForm.perAccountLimit" :min="1" style="width:100%" />
         </el-form-item>
         <el-form-item label="并发数量">
-          <el-input-number v-model="createForm.concurrencyLimit" :min="1" :max="20" style="width:100%" />
+          <el-input-number v-model="createForm.concurrencyLimit" :min="1" :max="10" style="width:100%" />
+        </el-form-item>
+        <el-form-item label="轮次间隔">
+          <el-input-number v-model="createForm.roundInterval" :min="1" :max="3600" style="width:100%" />
+          <span style="margin-left:8px;color:#999;">秒</span>
         </el-form-item>
         <el-form-item label="消息类型" required>
           <el-radio-group v-model="createForm.messageType">
@@ -169,6 +173,7 @@
           <el-descriptions-item label="账号分组">{{ detailTask.accountGroup }}</el-descriptions-item>
           <el-descriptions-item label="目标分组">{{ detailTask.targetGroup }}</el-descriptions-item>
           <el-descriptions-item label="并发数">{{ detailTask.concurrencyLimit }}</el-descriptions-item>
+          <el-descriptions-item label="轮次间隔">{{ detailTask.roundInterval || 100 }}秒</el-descriptions-item>
           <el-descriptions-item label="总数">{{ detailTask.totalTargets }}</el-descriptions-item>
           <el-descriptions-item label="已发送">{{ detailTask.sentCount }}</el-descriptions-item>
           <el-descriptions-item label="已送达">{{ detailTask.deliveredCount }}</el-descriptions-item>
@@ -257,6 +262,7 @@ const createForm = reactive({
   accountGroup: '',
   targetGroup: '',
   perAccountLimit: 10,
+  roundInterval: 1,
   concurrencyLimit: 2,
   messageType: 'text',
   messageContent: '',
