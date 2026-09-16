@@ -1448,7 +1448,7 @@ const handleBatchOnline = async () => {
   try {
     const res = await api.post('/whatsapp/accounts/batch/online', { accounts: offlineAccounts })
     if (res.code === 0) {
-      ElMessage.success(`已提交 ${res.data.total} 个账号的批量上线任务`)
+      ElMessage.success(`已加入上线队列： ${res.data.total} 个账号`)
       selectedAccounts.value = []
       setTimeout(() => fetchAccounts(), 5000)
     }
@@ -1470,7 +1470,7 @@ const handleBatchOffline = async () => {
   try {
     const res = await api.post('/whatsapp/accounts/batch/offline', { accounts: onlineAccounts })
     if (res.code === 0) {
-      ElMessage.success(`已提交 ${res.data.total} 个账号的批量下线任务`)
+      ElMessage.success(`已加入下线队列： ${res.data.total} 个账号`)
       selectedAccounts.value = []
       setTimeout(() => fetchAccounts(), 3000)
     }
@@ -1529,14 +1529,14 @@ const handleDelete = async (account) => {
 const handleOnline = async (account) => {
   try {
     const res = await whatsapp.online(account)
-    if (res.code === 0) { ElMessage.success('上线成功'); fetchAccounts() }
+    if (res.code === 0) { ElMessage.success('已加入上线队列，请稍候查看状态'); fetchAccounts() }
   } catch (e) { ElMessage.error(e.message || '上线失败') }
 }
 
 const handleOffline = async (account) => {
   try {
     const res = await whatsapp.offline(account)
-    if (res.code === 0) { ElMessage.success('下线成功'); fetchAccounts() }
+    if (res.code === 0) { ElMessage.success('已加入下线队列，请稍候查看状态'); fetchAccounts() }
   } catch (e) { ElMessage.error('下线失败') }
 }
 
