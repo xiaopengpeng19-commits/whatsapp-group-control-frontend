@@ -55,10 +55,12 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="进度" width="130">
+      <el-table-column label="会话上限" width="100" align="center">
         <template #default="{ row }">
-          <el-progress :percentage="getProgress(row)" :color="getProgressColor(row)" :stroke-width="6"
-            style="width:100px" />
+          <el-tag v-if="row.maxPairsPerAccount && row.maxPairsPerAccount > 0" size="small" type="primary">
+            {{ row.maxPairsPerAccount }}
+          </el-tag>
+          <el-tag v-else size="small" type="info">不限</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="activeSessions" label="会话数" width="70" align="center" />
