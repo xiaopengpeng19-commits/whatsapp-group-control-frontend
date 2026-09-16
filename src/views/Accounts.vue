@@ -142,6 +142,14 @@
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
       <el-table-column prop="nickname" label="昵称" width="100" />
+      <el-table-column label="类型" width="80" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.platformChecked" :type="row.isBusiness ? 'warning' : 'info'" size="small">
+            {{ row.isBusiness ? '商业' : '个人' }}
+          </el-tag>
+          <span v-else style="color:#999;">-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="group" label="账号分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
