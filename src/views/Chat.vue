@@ -337,7 +337,42 @@
             {{ showAllSessions ? '收起' : `查看全部 (${activeSessions.length}个)` }}
           </el-button>
         </div>
+        <!-- 配对记录查询 -->
+        <div style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-weight:bold;font-size:13px;">配对记录查询</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+            <el-input v-model="pairSearchAccount" placeholder="输入号码，如 8615316816550" clearable size="small"
+              style="width:220px;" @keyup.enter="searchPairRecord" />
+            <el-button size="small" type="primary" @click="searchPairRecord">查询</el-button>
+            <el-button size="small" @click="pairSearchAccount = ''; pairSearchResult = null">清除</el-button>
+          </div>
 
+          <!-- 查询结果 -->
+          <div v-if="pairSearchResult" style="padding:8px 12px;background:#f5f7fa;border-radius:4px;">
+            <div style="font-size:13px;margin-bottom:6px;">
+              <strong>{{ pairSearchResult.account }}</strong>
+              共配过
+              <el-tag size="small" type="primary">{{ pairSearchResult.pairedWith.length }}</el-tag>
+              个账号
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <el-tag v-for="acc in pairSearchResult.pairedWith" :key="acc" size="small" type="success"
+                style="margin:2px;">
+                {{ acc }}
+              </el-tag>
+              <span v-if="pairSearchResult.pairedWith.length === 0" style="color:#999;font-size:13px;">
+                没有配对记录
+              </span>
+            </div>
+          </div>
+
+          <!-- 查不到该账号 -->
+          <div v-else-if="pairSearchDone" style="color:#999;font-size:13px;padding:4px 0;">
+            该号码在任务里没有配对记录
+          </div>
+        </div>
         <!-- ========================================== -->
         <!-- 对话记录 -->
         <!-- ========================================== -->
@@ -410,6 +445,36 @@ import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+// 配对记录查询
+const pairSearchAccount = ref('')
+const pairSearchResult = ref(null)   // { account, pairedWith: [] }
+const pairSearchDone = ref(false)
+
+const searchPairRecord = () => {
+  pairSearchDone.value = false
+  pairSearchResult.value = null
+
+  const acc = (pairSearchAccount.value || '').trim()
+  if (!acc) {
+    ElMessage.warning('请输入号码')
+    return
+  }
+
+  if (!detailTask.value) return
+
+  // accountPairs 是 map[account][]string
+  const pairs = detailTask.value.accountPairs || {}
+  const pairedWith = pairs[acc]
+
+  if (pairedWith && pairedWith.length > 0) {
+    pairSearchResult.value = {
+      account: acc,
+      pairedWith: pairedWith
+    }
+  } else {
+    pairSearchDone.value = true
+  }
+}
 // ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
