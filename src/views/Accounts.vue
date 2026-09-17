@@ -704,9 +704,11 @@ const contactSearchKeyword = ref('')
 const filteredContacts = computed(() => {
   if (!contactSearchKeyword.value) return contacts.value
   const kw = contactSearchKeyword.value.toLowerCase()
-  return contacts.value.filter(c =>
-    c.phone.includes(kw) || (c.name && c.name.toLowerCase().includes(kw))
-  )
+  return contacts.value.filter(c => {
+    const phone = String(c.phone || '')
+    const name = String(c.name || '')
+    return phone.includes(kw) || name.toLowerCase().includes(kw)
+  })
 })
 
 const showContacts = async (account) => {
@@ -725,7 +727,6 @@ const fetchContacts = async () => {
     })
     if (res.code === 0 && res.data) {
       const rawContacts = res.data.contacts || []
-      // 解析联系人
       contacts.value = rawContacts
         .filter(c => c.peerPhone || c.peerId)
         .map(c => {
@@ -733,11 +734,11 @@ const fetchContacts = async () => {
           if (c.peerPhone) {
             phone = String(c.peerPhone)
           } else if (c.peerId) {
-            phone = c.peerId.split('@')[0]
+            phone = String(c.peerId).split('@')[0]
           }
           return {
             phone: phone,
-            name: c.peerName || ''
+            name: String(c.peerName || '')   // ✅ 强制字符串
           }
         })
         .filter(c => c.phone && c.phone !== '0')
