@@ -216,14 +216,12 @@
     </el-dialog>
 
     <!-- ========================================== -->
-    <!-- 任务详情对话框 - 精简版 -->
+    <!-- 任务详情对话框 -->
     <!-- ========================================== -->
     <el-dialog v-model="showDetailDialog" :title="`任务详情 - ${detailTask?.name || ''}`" width="1000px"
       :close-on-click-modal="false" @close="closeDetail">
       <div v-if="detailTask" v-loading="detailLoading">
-        <!-- ========================================== -->
         <!-- 基本信息 - 4列 -->
-        <!-- ========================================== -->
         <el-descriptions :column="4" border size="small">
           <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
           <el-descriptions-item label="账号分组">
@@ -240,16 +238,12 @@
               {{ detailTask.allowSameCountry ? '✅ 开启' : '❌ 关闭' }}
             </el-tag>
           </el-descriptions-item>
-
-          <!-- 如果还有更多字段，继续添加 -->
           <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
         </el-descriptions>
 
-        <!-- ========================================== -->
-        <!-- 参与账号 - 缩略显示 -->
-        <!-- ========================================== -->
+        <!-- 参与账号 -->
         <div style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-weight:bold;font-size:13px;">参与账号</span>
@@ -285,9 +279,7 @@
           </el-button>
         </div>
 
-        <!-- ========================================== -->
-        <!-- 参数和统计 - 4列 -->
-        <!-- ========================================== -->
+        <!-- 参数和统计 -->
         <el-descriptions :column="4" border size="small" style="margin-top:12px;">
           <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
@@ -312,8 +304,46 @@
         </el-descriptions>
 
         <!-- ========================================== -->
-        <!-- 活跃会话 -->
+        <!-- 配对记录查询 -->
         <!-- ========================================== -->
+        <div style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-weight:bold;font-size:13px;">配对记录查询</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+            <el-input v-model="pairSearchAccount" placeholder="输入号码，如 8615316816550" clearable size="small"
+              style="width:220px;" @keyup.enter="searchPairRecord" />
+            <el-button size="small" type="primary" @click="searchPairRecord">查询</el-button>
+            <el-button size="small" @click="clearPairSearch">清除</el-button>
+          </div>
+
+          <!-- 查询结果 -->
+          <div v-if="pairSearchResult" style="padding:8px 12px;background:#f5f7fa;border-radius:4px;">
+            <div style="font-size:13px;margin-bottom:6px;">
+              <strong>{{ pairSearchResult.account }}</strong>
+              共配过
+              <el-tag size="small" type="primary">{{ pairSearchResult.pairedWith.length }}</el-tag>
+              个账号
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <el-tag v-for="item in pairSearchResult.pairedWith" :key="item.account" size="small" type="success"
+                style="margin:2px;">
+                {{ item.account }}
+                <span style="margin-left:4px;font-weight:bold;">×{{ item.count }}</span>
+              </el-tag>
+              <span v-if="pairSearchResult.pairedWith.length === 0" style="color:#999;font-size:13px;">
+                没有配对记录
+              </span>
+            </div>
+          </div>
+
+          <!-- 查不到 -->
+          <div v-else-if="pairSearchDone" style="color:#999;font-size:13px;padding:4px 0;">
+            该号码在任务里没有配对记录
+          </div>
+        </div>
+
+        <!-- 活跃会话 -->
         <div style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-weight:bold;font-size:13px;">活跃会话 ({{ activeSessions.length }})</span>
@@ -337,45 +367,8 @@
             {{ showAllSessions ? '收起' : `查看全部 (${activeSessions.length}个)` }}
           </el-button>
         </div>
-        <!-- 配对记录查询 -->
-        <div style="margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:bold;font-size:13px;">配对记录查询</span>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-            <el-input v-model="pairSearchAccount" placeholder="输入号码，如 8615316816550" clearable size="small"
-              style="width:220px;" @keyup.enter="searchPairRecord" />
-            <el-button size="small" type="primary" @click="searchPairRecord">查询</el-button>
-            <el-button size="small" @click="pairSearchAccount = ''; pairSearchResult = null">清除</el-button>
-          </div>
 
-          <!-- 查询结果 -->
-          <div v-if="pairSearchResult" style="padding:8px 12px;background:#f5f7fa;border-radius:4px;">
-            <div style="font-size:13px;margin-bottom:6px;">
-              <strong>{{ pairSearchResult.account }}</strong>
-              共配过
-              <el-tag size="small" type="primary">{{ pairSearchResult.pairedWith.length }}</el-tag>
-              个账号
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">
-              <el-tag v-for="acc in pairSearchResult.pairedWith" :key="acc" size="small" type="success"
-                style="margin:2px;">
-                {{ acc }}
-              </el-tag>
-              <span v-if="pairSearchResult.pairedWith.length === 0" style="color:#999;font-size:13px;">
-                没有配对记录
-              </span>
-            </div>
-          </div>
-
-          <!-- 查不到该账号 -->
-          <div v-else-if="pairSearchDone" style="color:#999;font-size:13px;padding:4px 0;">
-            该号码在任务里没有配对记录
-          </div>
-        </div>
-        <!-- ========================================== -->
         <!-- 对话记录 -->
-        <!-- ========================================== -->
         <div style="margin-top:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-weight:bold;font-size:13px;">对话记录</span>
@@ -445,36 +438,6 @@ import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
-// 配对记录查询
-const pairSearchAccount = ref('')
-const pairSearchResult = ref(null)   // { account, pairedWith: [] }
-const pairSearchDone = ref(false)
-
-const searchPairRecord = () => {
-  pairSearchDone.value = false
-  pairSearchResult.value = null
-
-  const acc = (pairSearchAccount.value || '').trim()
-  if (!acc) {
-    ElMessage.warning('请输入号码')
-    return
-  }
-
-  if (!detailTask.value) return
-
-  // accountPairs 是 map[account][]string
-  const pairs = detailTask.value.accountPairs || {}
-  const pairedWith = pairs[acc]
-
-  if (pairedWith && pairedWith.length > 0) {
-    pairSearchResult.value = {
-      account: acc,
-      pairedWith: pairedWith
-    }
-  } else {
-    pairSearchDone.value = true
-  }
-}
 // ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
@@ -501,10 +464,15 @@ const showAllSessions = ref(false)
 const messageFilterStatus = ref('')
 const messageTotal = ref(0)
 
+// ============ 配对记录查询 ============
+const pairSearchAccount = ref('')
+const pairSearchResult = ref(null)   // { account, pairedWith: [{account, count}] }
+const pairSearchDone = ref(false)
+
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
-  accountGroups: [],  // ✅ 改为数组
+  accountGroups: [],
   language: 'pt',
   initiateRate: 60,
   minDelay: 3,
@@ -572,18 +540,6 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
-const getProgress = (row) => {
-  if (!row.totalRounds || row.totalRounds === 0) return 0
-  return Math.round(((row.currentRound || 0) / row.totalRounds) * 100)
-}
-
-const getProgressColor = (row) => {
-  const p = getProgress(row)
-  if (p === 100) return '#67c23a'
-  if (p > 50) return '#409eff'
-  return '#e6a23c'
-}
-
 const getMessageStatusType = (status) => {
   const map = { sent: 'info', delivered: 'success', read: 'success', failed: 'danger', received: 'info' }
   return map[status] || 'info'
@@ -630,21 +586,6 @@ const getAccountStatusType = (account) => {
   return 'info'
 }
 
-const getAccountStatusText = (account) => {
-  const status = getAccountStatus(account)
-  if (status.status === 'banned') return '🚫 封禁'
-  if (status.status === 'expired') return '⏰ 过期'
-  if (isAccountCooling(account)) {
-    const cooldownAt = detailTask.value.accountCooldowns[account]
-    const remaining = Math.ceil((new Date(cooldownAt) - new Date()) / 60000)
-    return remaining > 0 ? `⏳ ${remaining}分钟` : '⏳ 冷却中'
-  }
-  if (status.status === 'online') return '🟢 在线'
-  if (status.status === 'logging') return '🟡 登录中'
-  if (status.status === 'offline') return '⚪ 离线'
-  return '❓ 未知'
-}
-
 const getAccountStatusShort = (account) => {
   const status = getAccountStatus(account)
   if (status.status === 'banned' || status.status === 'expired') return '🚫'
@@ -658,6 +599,50 @@ const getAccountStatusShort = (account) => {
 const getCurrentRound = (session) => {
   if (!session || session.chatCount === undefined || session.chatCount === 0) return 0
   return Math.ceil(session.chatCount / 2)
+}
+
+// ============ 配对记录查询 ============
+const searchPairRecord = () => {
+  pairSearchDone.value = false
+  pairSearchResult.value = null
+
+  const acc = (pairSearchAccount.value || '').trim()
+  if (!acc) {
+    ElMessage.warning('请输入号码')
+    return
+  }
+
+  if (!detailTask.value) return
+
+  const pairs = detailTask.value.accountPairs || {}
+  const pairCount = detailTask.value.pairCount || {}
+  const pairedWith = pairs[acc]
+
+  if (pairedWith && pairedWith.length > 0) {
+    const list = pairedWith.map(other => {
+      // 和后端 getPairKey 一致的排序规则
+      const key = acc < other ? `${acc}|${other}` : `${other}|${acc}`
+      return {
+        account: other,
+        count: pairCount[key] || 1
+      }
+    })
+    // 按次数降序
+    list.sort((a, b) => b.count - a.count)
+
+    pairSearchResult.value = {
+      account: acc,
+      pairedWith: list
+    }
+  } else {
+    pairSearchDone.value = true
+  }
+}
+
+const clearPairSearch = () => {
+  pairSearchAccount.value = ''
+  pairSearchResult.value = null
+  pairSearchDone.value = false
 }
 
 // ============ 数据获取 ============
@@ -721,7 +706,6 @@ const handleCreate = async () => {
 
   creating.value = true
   try {
-    // ✅ 多个分组用逗号连接
     const res = await api.post('/chat/tasks', {
       ...createForm,
       accountGroup: createForm.accountGroups.join(',')
@@ -826,6 +810,9 @@ const showTaskDetail = async (row) => {
   showAllAccounts.value = false
   showAllSessions.value = false
 
+  // 清空配对查询
+  clearPairSearch()
+
   try {
     await refreshAccountsStatus()
     const res = await api.get(`/chat/tasks/${row.id}`)
@@ -866,6 +853,7 @@ const closeDetail = () => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
   showAllAccounts.value = false
   showAllSessions.value = false
+  clearPairSearch()
 }
 
 // ============ 生命周期 ============
@@ -959,10 +947,8 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-/* 关键 :deep()穿透scoped */
 .slider-wrapper :deep(.el-slider) {
   flex: 1;
-  /* 兜底给最小宽度，防止极端压缩 */
   min-width: 120px;
 }
 
