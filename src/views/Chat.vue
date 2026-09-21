@@ -99,7 +99,21 @@
       <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50]" :total="total"
         layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks" @current-change="fetchTasks" />
     </div>
-
+    <!-- 修改会话上限对话框 -->
+    <el-dialog v-model="showEditMaxPairsDialog" title="修改会话上限" width="400px">
+      <el-form label-width="120px">
+        <el-form-item label="会话上限">
+          <el-input-number v-model="editMaxPairsValue" :min="0" :max="9999" style="width:100%" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            0 表示不限制；已配对的账号不受影响，只影响新配对
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditMaxPairsDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleUpdateMaxPairs" :loading="updatingMaxPairs">确定</el-button>
+      </template>
+    </el-dialog>
     <!-- ========================================== -->
     <!-- 创建任务对话框 -->
     <!-- ========================================== -->
@@ -241,6 +255,11 @@
           <el-descriptions-item label="发起概率">{{ detailTask.initiateRate }}%</el-descriptions-item>
           <el-descriptions-item label="回复概率">{{ detailTask.replyRate }}%</el-descriptions-item>
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
+          <el-descriptions-item label="会话上限">
+            <span>{{ detailTask.maxPairsPerAccount > 0 ? detailTask.maxPairsPerAccount : '不限' }}</span>
+            <el-button size="small" type="primary" link style="margin-left:8px;"
+              @click="openEditMaxPairs">修改</el-button>
+          </el-descriptions-item>
         </el-descriptions>
 
         <!-- 参与账号 -->
@@ -438,6 +457,38 @@ import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+// ============ 修改会话上限 ============
+const showEditMaxPairsDialog = ref(false)
+const editMaxPairsValue = ref(0)
+const updatingMaxPairs = ref(false)
+
+const openEditMaxPairs = () => {
+  if (!detailTask.value) return
+  editMaxPairsValue.value = detailTask.value.maxPairsPerAccount || 0
+  showEditMaxPairsDialog.value = true
+}
+
+const handleUpdateMaxPairs = async () => {
+  if (!detailTask.value) return
+  updatingMaxPairs.value = true
+  try {
+    const res = await api.put(`/chat/tasks/${detailTask.value.id}/max-pairs`, {
+      maxPairsPerAccount: editMaxPairsValue.value
+    })
+    if (res.code === 0) {
+      ElMessage.success('修改成功')
+      showEditMaxPairsDialog.value = false
+      // 更新本地 detailTask，避免等下一轮刷新
+      detailTask.value.maxPairsPerAccount = editMaxPairsValue.value
+    } else {
+      ElMessage.error(res.message || '修改失败')
+    }
+  } catch (error) {
+    ElMessage.error('修改失败: ' + (error.message || ''))
+  } finally {
+    updatingMaxPairs.value = false
+  }
+}
 // ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
