@@ -85,6 +85,8 @@
             @click="handleStart(row)">启动</el-button>
           <el-button v-if="row.status === 'running'" size="small" type="warning"
             @click="handlePause(row)">暂停</el-button>
+          <el-button v-if="row.status === 'paused'" size="small" type="primary"
+            @click="openManageAccounts(row)">管理账号</el-button>
           <el-button v-if="row.status === 'paused'" size="small" type="success"
             @click="handleResume(row)">恢复</el-button>
           <el-button v-if="row.status === 'running' || row.status === 'paused'" size="small" type="danger"
@@ -99,6 +101,48 @@
       <el-pagination v-model:current-page="page" v-model:page-size="pageSize" :page-sizes="[10, 20, 50]" :total="total"
         layout="total, sizes, prev, pager, next, jumper" @size-change="fetchTasks" @current-change="fetchTasks" />
     </div>
+    <el-dialog v-model="showManageDialog" title="管理账号" width="700px">
+      <div v-if="manageTask">
+        <!-- 当前账号 -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-weight:bold;">当前账号 ({{ manageTask.accounts?.length || 0 }})</span>
+            <el-button size="small" type="danger" :disabled="selectedRemove.length === 0"
+              @click="handleRemoveAccounts">移除选中
+              ({{ selectedRemove.length }})</el-button>
+          </div>
+          <el-checkbox-group v-model="selectedRemove">
+            <div
+              style="display:flex;flex-wrap:wrap;gap:4px;max-height:150px;overflow-y:auto;padding:6px;background:#f5f7fa;border-radius:4px;">
+              <el-checkbox v-for="acc in manageTask.accounts" :key="acc" :label="acc" :value="acc" style="margin:2px;">
+                {{ acc }}
+              </el-checkbox>
+            </div>
+          </el-checkbox-group>
+        </div>
+
+        <!-- 添加账号 -->
+        <el-divider />
+        <div>
+          <div style="font-weight:bold;margin-bottom:6px;">添加账号</div>
+          <el-form label-width="80px">
+            <el-form-item label="分组">
+              <el-select v-model="addAccountsGroup" multiple placeholder="选择分组（可选）" style="width:100%">
+                <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+                  :value="item.name" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="账号">
+              <el-input v-model="addAccountsText" type="textarea" :rows="5" placeholder="每行一个手机号" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showManageDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleAddAccounts" :loading="managingAccounts">添加</el-button>
+      </template>
+    </el-dialog>
     <!-- 修改会话上限对话框 -->
     <el-dialog v-model="showEditMaxPairsDialog" title="修改会话上限" width="400px">
       <el-form label-width="120px">
@@ -456,6 +500,95 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+
+// ============ 管理账号 ============
+const showManageDialog = ref(false)
+const manageTask = ref(null)
+const selectedRemove = ref([])
+const addAccountsGroup = ref([])
+const addAccountsText = ref('')
+const managingAccounts = ref(false)
+
+const openManageAccounts = (row) => {
+  manageTask.value = row
+  selectedRemove.value = []
+  addAccountsGroup.value = []
+  addAccountsText.value = ''
+  showManageDialog.value = true
+}
+
+// 添加
+const handleAddAccounts = async () => {
+  if (!manageTask.value) return
+
+  let accounts = addAccountsText.value.split('\n').map(s => s.trim()).filter(s => s)
+
+  if (addAccountsGroup.value.length > 0) {
+    for (const g of addAccountsGroup.value) {
+      try {
+        const res = await api.get('/whatsapp/accounts/by-group', { params: { group: g } })
+        if (res.code === 0 && Array.isArray(res.data)) {
+          accounts.push(...res.data.map(a => a.account))
+        }
+      } catch (e) { }
+    }
+  }
+
+  accounts = [...new Set(accounts)]
+  if (accounts.length === 0) {
+    ElMessage.warning('请选择分组或输入账号')
+    return
+  }
+
+  managingAccounts.value = true
+  try {
+    const res = await api.post(`/chat/tasks/${manageTask.value.id}/accounts`, { accounts })
+    if (res.code === 0) {
+      ElMessage.success(`已添加 ${res.data.added} 个账号`)
+      // 更新本地账号列表
+      manageTask.value.accounts = [...new Set([...manageTask.value.accounts, ...accounts])]
+      addAccountsText.value = ''
+      addAccountsGroup.value = []
+      fetchTasks()
+    } else {
+      ElMessage.error(res.message || '添加失败')
+    }
+  } catch (e) {
+    ElMessage.error('添加失败: ' + (e.message || ''))
+  } finally {
+    managingAccounts.value = false
+  }
+}
+
+// 移除
+const handleRemoveAccounts = async () => {
+  if (!manageTask.value || selectedRemove.value.length === 0) return
+  try {
+    await ElMessageBox.confirm(`确定移除 ${selectedRemove.value.length} 个账号？`, '提示', { type: 'warning' })
+  } catch (e) {
+    return
+  }
+
+  managingAccounts.value = true
+  try {
+    const res = await api.post(`/chat/tasks/${manageTask.value.id}/accounts/remove`, {
+      accounts: selectedRemove.value
+    })
+    if (res.code === 0) {
+      ElMessage.success(`已移除 ${res.data.removed} 个账号`)
+      manageTask.value.accounts = manageTask.value.accounts.filter(a => !selectedRemove.value.includes(a))
+      selectedRemove.value = []
+      fetchTasks()
+    } else {
+      ElMessage.error(res.message || '移除失败')
+    }
+  } catch (e) {
+    ElMessage.error('移除失败: ' + (e.message || ''))
+  } finally {
+    managingAccounts.value = false
+  }
+}
 
 // ============ 修改会话上限 ============
 const showEditMaxPairsDialog = ref(false)
