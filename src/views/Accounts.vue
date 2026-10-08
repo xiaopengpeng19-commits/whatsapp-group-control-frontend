@@ -141,7 +141,12 @@
     <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
-      <el-table-column prop="nickname" label="昵称" width="100" />
+      <el-table-column prop="banCount" label="封禁次数" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.banCount > 0" type="danger" size="small">{{ row.banCount }}</el-tag>
+          <span v-else style="color:#999;">0</span>
+        </template>
+      </el-table-column>
       <el-table-column label="类型" width="80" align="center">
         <template #default="{ row }">
           <el-tag :type="row.isBusiness ? 'warning' : 'info'" size="small">
