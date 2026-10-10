@@ -344,6 +344,11 @@
             <el-button size="small" type="primary" link style="margin-left:8px;"
               @click="openEditMaxPairs">修改</el-button>
           </el-descriptions-item>
+          <el-descriptions-item label="最大并发">
+            <span>{{ detailTask.maxConcurrent || 2 }}</span>
+            <el-button size="small" type="primary" link style="margin-left:8px;"
+              @click="openEditMaxConcurrent">修改</el-button>
+          </el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
           <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
           <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{ formatTime(detailTask.completedAt)
@@ -428,9 +433,12 @@
             style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
             <span style="font-weight:bold;font-size:13px;">对话记录</span>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <!-- ✅ 按号码筛选 -->
+              <!-- ✅ 按号码筛选 + 查询/重置 -->
               <el-input v-model="messageFilterAccount" placeholder="按号码筛选" clearable size="small" style="width:160px;"
-                @keyup.enter="onMessageFilterChange" @clear="onMessageFilterChange" />
+                @keyup.enter="onMessageFilterChange" />
+              <el-button size="small" type="primary" @click="onMessageFilterChange">查询</el-button>
+              <el-button size="small" @click="resetMessageFilter">重置</el-button>
+
               <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:120px"
                 @change="onMessageFilterChange">
                 <el-option label="全部" value="" />
@@ -504,6 +512,24 @@
         <el-button type="primary" @click="handleUpdateMaxPairs" :loading="updatingMaxPairs">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- ========================================== -->
+    <!-- 修改最大并发对话框 -->
+    <!-- ========================================== -->
+    <el-dialog v-model="showEditMaxConcurrentDialog" title="修改最大并发" width="400px">
+      <el-form label-width="120px">
+        <el-form-item label="最大并发">
+          <el-input-number v-model="editMaxConcurrentValue" :min="1" :max="999" style="width:100%" />
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            同时进行的会话数上限；调小后已进行的会话不受影响
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEditMaxConcurrentDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleUpdateMaxConcurrent" :loading="updatingMaxConcurrent">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -538,7 +564,7 @@ const showAllAccounts = ref(false)
 const showAllSessions = ref(false)
 
 const messageFilterStatus = ref('')
-const messageFilterAccount = ref('')   // ✅ 按号码筛选
+const messageFilterAccount = ref('')
 const messageTotal = ref(0)
 
 // ============ 配对记录查询 ============
@@ -550,6 +576,11 @@ const pairSearchDone = ref(false)
 const showEditMaxPairsDialog = ref(false)
 const editMaxPairsValue = ref(0)
 const updatingMaxPairs = ref(false)
+
+// ============ 修改最大并发 ============
+const showEditMaxConcurrentDialog = ref(false)
+const editMaxConcurrentValue = ref(2)
+const updatingMaxConcurrent = ref(false)
 
 // ============ 管理账号 ============
 const showManageDialog = ref(false)
@@ -758,6 +789,34 @@ const handleUpdateMaxPairs = async () => {
     ElMessage.error('修改失败: ' + (error.message || ''))
   } finally {
     updatingMaxPairs.value = false
+  }
+}
+
+// ============ 修改最大并发 ============
+const openEditMaxConcurrent = () => {
+  if (!detailTask.value) return
+  editMaxConcurrentValue.value = detailTask.value.maxConcurrent || 2
+  showEditMaxConcurrentDialog.value = true
+}
+
+const handleUpdateMaxConcurrent = async () => {
+  if (!detailTask.value) return
+  updatingMaxConcurrent.value = true
+  try {
+    const res = await api.put(`/chat/tasks/${detailTask.value.id}/max-concurrent`, {
+      maxConcurrent: editMaxConcurrentValue.value
+    })
+    if (res.code === 0) {
+      ElMessage.success('修改成功')
+      showEditMaxConcurrentDialog.value = false
+      detailTask.value.maxConcurrent = editMaxConcurrentValue.value
+    } else {
+      ElMessage.error(res.message || '修改失败')
+    }
+  } catch (error) {
+    ElMessage.error('修改失败: ' + (error.message || ''))
+  } finally {
+    updatingMaxConcurrent.value = false
   }
 }
 
@@ -983,6 +1042,13 @@ const refreshAccountsStatus = async () => {
 
 // ✅ 消息筛选变化
 const onMessageFilterChange = () => {
+  fetchTaskMessages()
+}
+
+// ✅ 重置消息筛选
+const resetMessageFilter = () => {
+  messageFilterAccount.value = ''
+  messageFilterStatus.value = ''
   fetchTaskMessages()
 }
 
@@ -1222,7 +1288,7 @@ onBeforeUnmount(() => {
     gap: 8px;
   }
 
-  .slider-wrapper .slider-width {
+  .slider-wrapper .el-slider {
     width: 100%;
   }
 }
