@@ -298,10 +298,12 @@
             <span style="font-weight:bold;font-size:13px;">参与账号</span>
             <span style="color:#999;font-size:12px;">
               共 {{ detailTask.accounts?.length || 0 }} 个
-              <el-tag size="small" type="success">在线 {{ onlineCount }}</el-tag>
-              <el-tag size="small" type="info">离线 {{ offlineCount }}</el-tag>
-              <el-tag size="small" type="warning">冷却中 {{ cooldownCount }}</el-tag>
-              <el-tag size="small" type="danger">封禁 {{ bannedCount }}</el-tag>
+              <el-tag size="small" type="success" v-if="onlineCount > 0">在线 {{ onlineCount }}</el-tag>
+              <el-tag size="small" type="info" v-if="offlineCount > 0">离线 {{ offlineCount }}</el-tag>
+              <el-tag size="small" type="warning" v-if="cooldownCount > 0">冷却中 {{ cooldownCount }}</el-tag>
+              <el-tag size="small" type="danger" v-if="bannedCount > 0">封禁 {{ bannedCount }}</el-tag>
+              <el-tag size="small" type="warning" v-if="loggingCount > 0">登录中 {{ loggingCount }}</el-tag>
+              <el-tag size="small" type="info" v-if="unknownCount > 0">未知 {{ unknownCount }}</el-tag>
             </span>
           </div>
           <div
@@ -616,34 +618,30 @@ const displaySessions = computed(() => activeSessions.value.length > 10 && !show
   ? activeSessions.value.slice(0, 10)
   : activeSessions.value)
 
-const onlineCount = computed(() => {
-  if (!detailTask.value) return 0
-  return detailTask.value.accounts.filter(acc => {
-    const status = getAccountStatus(acc)
-    return status.status === 'online' && !isAccountCooling(acc)
-  }).length
-})
+// 按图标统计（互斥）
+const onlineCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🟢').length || 0
+)
 
-const offlineCount = computed(() => {
-  if (!detailTask.value) return 0
-  return detailTask.value.accounts.filter(acc => {
-    const status = getAccountStatus(acc)
-    return status.status === 'offline' && !isAccountCooling(acc)
-  }).length
-})
+const offlineCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '⚪').length || 0
+)
 
-const cooldownCount = computed(() => {
-  if (!detailTask.value) return 0
-  return detailTask.value.accounts.filter(acc => isAccountCooling(acc)).length
-})
+const bannedCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🚫').length || 0
+)
 
-const bannedCount = computed(() => {
-  if (!detailTask.value) return 0
-  return detailTask.value.accounts.filter(acc => {
-    const status = getAccountStatus(acc)
-    return status.status === 'banned' || status.status === 'expired'
-  }).length
-})
+const cooldownCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '⏳').length || 0
+)
+
+const loggingCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🟡').length || 0
+)
+
+const unknownCount = computed(() =>
+  detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '❓').length || 0
+)
 
 // ============ 工具函数 ============
 const getLanguageLabel = (lang) => {
