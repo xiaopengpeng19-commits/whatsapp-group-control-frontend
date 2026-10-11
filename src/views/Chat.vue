@@ -233,8 +233,9 @@
           <el-checkbox-group v-model="selectedRemove">
             <div
               style="display:flex;flex-wrap:wrap;gap:4px;max-height:180px;overflow-y:auto;padding:6px;background:#f5f7fa;border-radius:4px;">
-              <el-checkbox v-for="acc in manageTask.accounts" :key="acc" :label="acc" :value="acc" style="margin:2px;">
-                {{ acc }}
+              <el-checkbox v-for="acc in sortedManageAccounts" :key="acc" :label="acc" :value="acc" style="margin:2px;">
+                <span style="font-size:11px;margin-right:2px;">{{ getAccountStatusShort(acc) }}</span>
+                <span>{{ acc }}</span>
               </el-checkbox>
             </div>
           </el-checkbox-group>
@@ -592,6 +593,29 @@ const addAccountsGroup = ref([])
 const addAccountsText = ref('')
 const managingAccounts = ref(false)
 
+// 管理账号：按状态排序
+const sortedManageAccounts = computed(() => {
+  if (!manageTask.value || !manageTask.value.accounts) return []
+
+  const statusOrder = {
+    'online': 1,
+    'normal': 1,
+    'logging': 2,
+    'offline': 3,
+    'banned': 4,
+    'expired': 4,
+    'unknown': 5
+  }
+
+  return [...manageTask.value.accounts].sort((a, b) => {
+    const statusA = getAccountStatus(a)
+    const statusB = getAccountStatus(b)
+    const orderA = statusOrder[statusA.status] || 5
+    const orderB = statusOrder[statusB.status] || 5
+    if (orderA !== orderB) return orderA - orderB
+    return a.localeCompare(b)
+  })
+})
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
