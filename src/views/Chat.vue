@@ -317,6 +317,9 @@
                 <span style="margin-left:4px;font-size:10px;color:#999;">
                   {{ getAccountStatusShort(acc) }}
                   <span v-if="accountPairs[acc] !== undefined"> {{ accountPairs[acc] }}</span>
+                  <span v-if="accountUniquePairs[acc] !== undefined" style="color:#409eff;margin-left:2px;">
+                    ({{ accountUniquePairs[acc] }})
+                  </span>
                 </span>
               </el-tag>
             </template>
@@ -543,6 +546,7 @@ import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+const accountUniquePairs = ref({})
 // ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
@@ -1110,6 +1114,7 @@ const showTaskDetail = async (row) => {
       detailMessages.value = res.data.messages || []
       messageTotal.value = res.data.total || 0
       accountPairs.value = res.data.account_pairs || {}
+      accountUniquePairs.value = res.data.account_unique_pairs || {}   // ✅ 新增
       await nextTick()
     }
   } catch (error) {
