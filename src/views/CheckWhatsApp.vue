@@ -1,3 +1,5 @@
+
+
 <template>
   <div class="check-whatsapp">
     <el-card>
@@ -107,6 +109,7 @@
 </template>
 
 <script setup>
+import { copyToClipboard } from '@/utils/clipboard'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Delete, Document, Download, CopyDocument } from '@element-plus/icons-vue'
@@ -207,20 +210,7 @@ const loadSample = () => {
 5549999650463`
 }
 
-const copyPhone = (phone) => {
-  if (!phone) return
-  navigator.clipboard.writeText(phone).then(() => {
-    ElMessage.success('已复制: ' + phone)
-  }).catch(() => {
-    const input = document.createElement('input')
-    input.value = phone
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    document.body.removeChild(input)
-    ElMessage.success('已复制: ' + phone)
-  })
-}
+const copyPhone = (phone) => copyToClipboard(phone, '已复制: ' + phone)
 
 const exportList = (type) => {
   let phones = []

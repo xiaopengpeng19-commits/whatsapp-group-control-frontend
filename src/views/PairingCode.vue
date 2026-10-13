@@ -109,6 +109,7 @@ import { ElMessage } from 'element-plus'
 import { Key, Refresh, CopyDocument } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+import { copyToClipboard } from '@/utils/clipboard'
 
 const form = reactive({
     account: '8618939797045',
@@ -189,22 +190,11 @@ const resetForm = () => {
 }
 
 const copyResult = () => {
-    if (!result.value || !result.value.pairingCode) {
-        ElMessage.warning('没有可复制的内容')
-        return
-    }
-    navigator.clipboard.writeText(result.value.pairingCode).then(() => {
-        ElMessage.success('已复制配对码')
-    }).catch(() => {
-        // 降级方案
-        const input = document.createElement('input')
-        input.value = result.value.pairingCode
-        document.body.appendChild(input)
-        input.select()
-        document.execCommand('copy')
-        document.body.removeChild(input)
-        ElMessage.success('已复制配对码')
-    })
+  if (!result.value || !result.value.pairingCode) {
+    ElMessage.warning('没有可复制的内容')
+    return
+  }
+  copyToClipboard(result.value.pairingCode, '已复制配对码')
 }
 
 const fetchHistory = async () => {

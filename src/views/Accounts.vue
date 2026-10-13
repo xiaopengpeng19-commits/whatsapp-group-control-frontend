@@ -690,7 +690,7 @@
 </template>
 
 <script setup>
-
+import { copyToClipboard } from '@/utils/clipboard'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
@@ -765,18 +765,7 @@ const fetchContacts = async () => {
   }
 }
 
-const copyPhone = (phone) => {
-  if (!phone) return
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(phone).then(() => {
-      ElMessage.success('已复制: ' + phone)
-    }).catch(() => {
-      fallbackCopyPhone(phone)
-    })
-  } else {
-    fallbackCopyPhone(phone)
-  }
-}
+const copyPhone = (phone) => copyToClipboard(phone, '已复制: ' + phone)
 
 const fallbackCopyPhone = (text) => {
   const textarea = document.createElement('textarea')
@@ -1567,13 +1556,11 @@ const showQRCode = async (row) => {
 }
 
 const copyQRCode = () => {
-  if (!qrCode.value) { ElMessage.warning('没有可复制的内容'); return }
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(qrCode.value).then(() => ElMessage.success('已复制链接'))
-      .catch(() => fallbackCopy(qrCode.value))
-  } else {
-    fallbackCopy(qrCode.value)
+  if (!qrCode.value) {
+    ElMessage.warning('没有可复制的内容')
+    return
   }
+  copyToClipboard(qrCode.value, '已复制链接')
 }
 
 const fallbackCopy = (text) => {

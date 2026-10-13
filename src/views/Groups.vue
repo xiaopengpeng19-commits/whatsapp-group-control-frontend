@@ -326,6 +326,7 @@ import { Refresh, Plus } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
+import { copyToClipboard } from '@/utils/clipboard'
 
 // ============ 状态 ============
 const accounts = ref([])
@@ -895,18 +896,14 @@ const getInviteLink = async (row) => {
     })
     if (res.code === 0) {
       const data = res.data
+      const link = data.inviteLink || data.inviteCode || ''
       await ElMessageBox.alert(
-        `邀请链接: ${data.inviteLink || data.inviteCode}`,
+        `邀请链接: ${link}`,
         '邀请链接',
         {
           confirmButtonText: '复制',
           callback: () => {
-            if (data.inviteLink) {
-              navigator.clipboard.writeText(data.inviteLink)
-            } else {
-              navigator.clipboard.writeText(data.inviteCode)
-            }
-            ElMessage.success('已复制')
+            copyToClipboard(link, '已复制')
           }
         }
       )

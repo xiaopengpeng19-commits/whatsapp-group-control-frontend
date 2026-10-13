@@ -119,7 +119,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Refresh, FolderOpened, Close } from '@element-plus/icons-vue'
 import api from '@/api'
-
+import { copyToClipboard } from '@/utils/clipboard'
 // ============ 状态 ============
 const list = ref([])
 const groups = ref([])
@@ -268,16 +268,7 @@ const copyUrl = (url) => {
         ElMessage.warning('没有可复制的内容')
         return
     }
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => {
-            ElMessage.success('已复制 URL')
-        }).catch(() => {
-            fallbackCopy(url)
-        })
-    } else {
-        fallbackCopy(url)
-    }
+    copyToClipboard(url, '已复制 URL')
 }
 
 const fallbackCopy = (text) => {
