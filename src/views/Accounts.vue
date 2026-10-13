@@ -198,9 +198,14 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="chatPairs" label="配对次数" width="90" align="center">
+      <el-table-column label="配对" width="130" align="center">
         <template #default="{ row }">
-          <el-tag size="small" type="info">{{ row.chatPairs || 0 }}</el-tag>
+          <el-tag size="small" type="info">
+            {{ row.chatPairs || 0 }}
+            <span style="color:#409eff;">
+              ({{ (row.chatPairedWith || []).length }})
+            </span>
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="groupMsgSent" label="群发消息" width="100" align="center">
