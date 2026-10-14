@@ -1,5 +1,13 @@
 <template>
   <div class="dashboard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:16px;font-weight:600;">总览</span>
+      <el-button type="primary" plain :loading="exporting" @click="handleExportAccounts">
+        <el-icon>
+          <Download />
+        </el-icon> 导出所有账号
+      </el-button>
+    </div>
     <!-- 统计卡片 -->
     <el-row :gutter="20">
       <el-col :span="6" v-for="stat in stats" :key="stat.title">
@@ -50,10 +58,43 @@
 </template>
 
 <script setup>
+
+
+
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
-import { DataLine, Warning, SwitchButton } from '@element-plus/icons-vue'
 import api from '@/api'
+
+const exporting = ref(false)
+
+const handleExportAccounts = async () => {
+  exporting.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/export')
+    if (res.code === 0) {
+      const { fileUrl, count } = res.data
+
+      // 触发浏览器下载
+      const a = document.createElement('a')
+      a.href = fileUrl
+      a.target = '_blank'
+      a.download = ''   // 让浏览器用 URL 里的文件名
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+
+      ElMessage.success(`已导出 ${count} 个账号`)
+    } else {
+      ElMessage.error(res.message || '导出失败')
+    }
+  } catch (error) {
+    ElMessage.error('导出失败: ' + (error.message || ''))
+  } finally {
+    exporting.value = false
+  }
+}
 
 const stats = ref([
   { title: '总账号', value: 0, icon: DataLine, color: '#409eff' },
