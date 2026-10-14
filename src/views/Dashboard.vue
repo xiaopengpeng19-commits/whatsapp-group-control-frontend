@@ -85,15 +85,18 @@ const handleExportAccounts = async () => {
   try {
     const res = await api.post('/whatsapp/accounts/export')
     if (res.code === 0) {
-      const { fileUrl, filename, count } = res.data
+      const { content, filename, count } = res.data
 
-      // 触发浏览器下载（相对路径直接用，同源）
+      // Blob 下载（同源虚拟文件，download 属性必生效）
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      a.href = fileUrl
-      if (filename) a.download = filename
+      a.href = url
+      a.download = filename || 'accounts.txt'
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
+      URL.revokeObjectURL(url)
 
       ElMessage.success(`已导出 ${count} 个账号`)
     } else {
