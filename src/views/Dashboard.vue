@@ -1,5 +1,6 @@
 <template>
   <div class="dashboard">
+    <!-- 工具栏 -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <span style="font-size:16px;font-weight:600;">总览</span>
       <el-button type="primary" plain :loading="exporting" @click="handleExportAccounts">
@@ -8,6 +9,7 @@
         </el-icon> 导出所有账号
       </el-button>
     </div>
+
     <!-- 统计卡片 -->
     <el-row :gutter="20">
       <el-col :span="6" v-for="stat in stats" :key="stat.title">
@@ -58,15 +60,24 @@
 </template>
 
 <script setup>
-
-
-
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Download } from '@element-plus/icons-vue'
+import { Download, DataLine, Warning, SwitchButton } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import api from '@/api'
 
+// ============ 统计卡片 ============
+const stats = ref([
+  { title: '总账号', value: 0, icon: DataLine, color: '#409eff' },
+  { title: '在线账号', value: 0, icon: DataLine, color: '#67c23a' },
+  { title: '离线账号', value: 0, icon: SwitchButton, color: '#909399' },
+  { title: '封禁账号', value: 0, icon: Warning, color: '#f56c6c' }
+])
+
+const recentMessages = ref([])
+let intervalId = null
+
+// ============ 导出 ============
 const exporting = ref(false)
 
 const handleExportAccounts = async () => {
@@ -74,13 +85,12 @@ const handleExportAccounts = async () => {
   try {
     const res = await api.post('/whatsapp/accounts/export')
     if (res.code === 0) {
-      const { fileUrl, count } = res.data
+      const { fileUrl, filename, count } = res.data
 
-      // 触发浏览器下载
+      // 触发浏览器下载（相对路径直接用，同源）
       const a = document.createElement('a')
       a.href = fileUrl
-      a.target = '_blank'
-      a.download = ''   // 让浏览器用 URL 里的文件名
+      if (filename) a.download = filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -96,16 +106,7 @@ const handleExportAccounts = async () => {
   }
 }
 
-const stats = ref([
-  { title: '总账号', value: 0, icon: DataLine, color: '#409eff' },
-  { title: '在线账号', value: 0, icon: DataLine, color: '#67c23a' },
-  { title: '离线账号', value: 0, icon: SwitchButton, color: '#909399' },
-  { title: '封禁账号', value: 0, icon: Warning, color: '#f56c6c' }
-])
-
-const recentMessages = ref([])
-let intervalId = null
-
+// ============ 状态映射 ============
 const getStatusType = (status) => {
   const map = {
     sent: '',
@@ -128,6 +129,7 @@ const getStatusLabel = (status) => {
   return map[status] || status
 }
 
+// ============ 数据获取 ============
 const fetchData = async () => {
   try {
     // 1. 获取统计数据
@@ -155,6 +157,7 @@ const fetchData = async () => {
   }
 }
 
+// ============ 生命周期 ============
 onMounted(() => {
   fetchData()
   intervalId = setInterval(fetchData, 30000)
