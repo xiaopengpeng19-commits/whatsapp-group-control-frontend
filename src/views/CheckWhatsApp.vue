@@ -1,41 +1,34 @@
-
-
 <template>
   <div class="check-whatsapp">
     <el-card>
       <template #header>
         <span>📱 批量检查 WhatsApp 注册状态</span>
       </template>
-      
+
       <el-form :model="form" label-width="100px">
         <el-form-item label="账号">
           <el-select v-model="form.accountId" placeholder="选择账号" style="width:300px">
-            <el-option
-              v-for="item in accounts"
-              :key="item.account"
-              :label="item.account"
-              :value="item.account"
-            />
+            <el-option v-for="item in accounts" :key="item.account" :label="item.account" :value="item.account" />
           </el-select>
         </el-form-item>
         <el-form-item label="手机号列表">
-          <el-input
-            v-model="form.phonesText"
-            type="textarea"
-            :rows="10"
-            placeholder="每行一个手机号"
-            style="width:500px"
-          />
+          <el-input v-model="form.phonesText" type="textarea" :rows="10" placeholder="每行一个手机号" style="width:500px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleCheck" :loading="checking">
-            <el-icon><Search /></el-icon> 检查
+            <el-icon>
+              <Search />
+            </el-icon> 检查
           </el-button>
           <el-button @click="clearResults">
-            <el-icon><Delete /></el-icon> 清空结果
+            <el-icon>
+              <Delete />
+            </el-icon> 清空结果
           </el-button>
           <el-button @click="loadSample">
-            <el-icon><Document /></el-icon> 加载示例
+            <el-icon>
+              <Document />
+            </el-icon> 加载示例
           </el-button>
         </el-form-item>
       </el-form>
@@ -60,16 +53,12 @@
           <span style="color:#67c23a;font-weight:bold;">✅ 已注册 ({{ resultData.registered.length }})</span>
         </template>
         <div class="phone-tags">
-          <el-tag
-            v-for="phone in resultData.registered"
-            :key="phone"
-            type="success"
-            size="large"
-            style="margin:4px;cursor:pointer;"
-            @click="copyPhone(phone)"
-          >
+          <el-tag v-for="phone in resultData.registered" :key="phone" type="success" size="large"
+            style="margin:4px;cursor:pointer;" @click="copyPhone(phone)">
             {{ phone }}
-            <el-icon style="margin-left:4px;"><CopyDocument /></el-icon>
+            <el-icon style="margin-left:4px;">
+              <CopyDocument />
+            </el-icon>
           </el-tag>
         </div>
       </el-card>
@@ -80,13 +69,7 @@
           <span style="color:#f56c6c;font-weight:bold;">❌ 未注册 ({{ resultData.unregistered.length }})</span>
         </template>
         <div class="phone-tags">
-          <el-tag
-            v-for="phone in resultData.unregistered"
-            :key="phone"
-            type="danger"
-            size="large"
-            style="margin:4px;"
-          >
+          <el-tag v-for="phone in resultData.unregistered" :key="phone" type="danger" size="large" style="margin:4px;">
             {{ phone }}
           </el-tag>
         </div>
@@ -95,13 +78,19 @@
       <!-- 导出按钮 -->
       <div style="margin-top:15px;display:flex;gap:10px;">
         <el-button type="success" plain @click="exportList('registered')">
-          <el-icon><Download /></el-icon> 导出已注册号码
+          <el-icon>
+            <Download />
+          </el-icon> 导出已注册号码
         </el-button>
         <el-button type="danger" plain @click="exportList('unregistered')">
-          <el-icon><Download /></el-icon> 导出未注册号码
+          <el-icon>
+            <Download />
+          </el-icon> 导出未注册号码
         </el-button>
         <el-button type="primary" plain @click="exportList('all')">
-          <el-icon><Download /></el-icon> 导出全部
+          <el-icon>
+            <Download />
+          </el-icon> 导出全部
         </el-button>
       </div>
     </el-card>
@@ -137,9 +126,19 @@ const fetchAccounts = async () => {
     if (res.code === 0) {
       let data = res.data?.data || res.data || []
       if (!Array.isArray(data)) data = []
-      accounts.value = data
+
+      // ✅ 只保留在线账号
+      const onlineAccounts = data.filter(a =>
+        a.status === 'online' || a.status === 'normal'
+      )
+
+      accounts.value = onlineAccounts
+
+      // 默认选中第一个在线账号
       if (accounts.value.length > 0 && !form.accountId) {
         form.accountId = accounts.value[0].account
+      } else if (accounts.value.length === 0) {
+        form.accountId = ''
       }
     }
   } catch (error) {
@@ -152,7 +151,7 @@ const handleCheck = async () => {
     ElMessage.warning('请选择账号')
     return
   }
-  
+
   const phones = form.phonesText.split('\n')
     .map(p => p.trim())
     .filter(p => p !== '')
@@ -168,9 +167,9 @@ const handleCheck = async () => {
       accountId: form.accountId,
       phones: phones
     })
-    
+
     console.log('API返回:', res)
-    
+
     if (res.code === 0 && res.data) {
       resultData.registered = res.data.registered || []
       resultData.unregistered = res.data.unregistered || []
@@ -215,7 +214,7 @@ const copyPhone = (phone) => copyToClipboard(phone, '已复制: ' + phone)
 const exportList = (type) => {
   let phones = []
   let filename = ''
-  
+
   if (type === 'registered') {
     phones = resultData.registered
     filename = 'registered_phones.txt'
@@ -226,12 +225,12 @@ const exportList = (type) => {
     phones = [...resultData.registered, ...resultData.unregistered]
     filename = 'all_phones.txt'
   }
-  
+
   if (phones.length === 0) {
     ElMessage.warning('没有号码可导出')
     return
   }
-  
+
   const text = phones.join('\n')
   downloadFile(text, filename)
   ElMessage.success(`已导出 ${phones.length} 个号码`)
@@ -258,17 +257,21 @@ onMounted(() => {
 .check-whatsapp {
   max-width: 900px;
 }
+
 .phone-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
+
 .phone-tags .el-tag {
   cursor: default;
 }
+
 .phone-tags .el-tag[type="success"] {
   cursor: pointer;
 }
+
 .phone-tags .el-tag[type="success"]:hover {
   opacity: 0.8;
 }
