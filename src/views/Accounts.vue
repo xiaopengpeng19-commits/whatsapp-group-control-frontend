@@ -185,7 +185,8 @@
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
             <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
-            <el-tag v-if="row.status === 'banned' && row.errCode" type="danger" size="small" style="font-size:10px;">
+            <el-tag v-if="row.status === 'banned' && row.errCode" :type="getErrCodeType(row.errCode)" size="small"
+              style="font-size:10px;">
               {{ row.errCode }}
             </el-tag>
           </div>
@@ -708,7 +709,14 @@ const contacts = ref([])
 const contactsLoading = ref(false)
 const contactTotal = ref(0)
 const contactSearchKeyword = ref('')
-
+const getErrCodeType = (code) => {
+  const map = {
+    401: 'warning',   // 凭证失效（橙）
+    403: 'danger',    // 账号被禁（红）
+    404: 'info',      // 账号不存在（灰）
+  }
+  return map[code] || 'danger'
+}
 // 过滤后的联系人
 const filteredContacts = computed(() => {
   if (!contactSearchKeyword.value) return contacts.value
