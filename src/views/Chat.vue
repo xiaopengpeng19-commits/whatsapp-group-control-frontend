@@ -1189,6 +1189,7 @@ const showTaskDetail = async (row) => {
         sessions.value = res.data.sessions || []
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
+        accountUniquePairs.value = res.data.account_unique_pairs || {}
         await refreshAccountsStatus()
       }
     } catch (error) { }
