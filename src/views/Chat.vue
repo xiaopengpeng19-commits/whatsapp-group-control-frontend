@@ -223,22 +223,25 @@
     <el-dialog v-model="showManageDialog" title="管理账号" width="700px" :close-on-click-modal="false">
       <div v-if="manageTask">
         <!-- 当前账号 -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:bold;">当前账号 ({{ manageTask.accounts?.length || 0 }})</span>
-            <el-button size="small" type="danger" :disabled="selectedRemove.length === 0"
-              @click="handleRemoveAccounts">移除选中
-              ({{ selectedRemove.length }})</el-button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-weight:bold;">当前账号 ({{ manageTask.accounts?.length || 0 }})</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <!-- ✅ 新增：按分组移除 -->
+            <el-select v-model="removeFilterGroups" multiple placeholder="按分组移除" size="small" style="width:200px">
+              <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
+                :value="item.name" />
+            </el-select>
+            <el-button size="small" type="danger" :disabled="removeFilterGroups.length === 0"
+              @click="handleRemoveByGroups" :loading="managingAccounts">
+              移除分组 ({{ removeFilterGroups.length }})
+            </el-button>
+
+            <!-- 原有的按勾选移除 -->
+            <el-button size="small" type="danger" :disabled="selectedRemove.length === 0" @click="handleRemoveAccounts"
+              :loading="managingAccounts">
+              移除选中 ({{ selectedRemove.length }})
+            </el-button>
           </div>
-          <el-checkbox-group v-model="selectedRemove">
-            <div
-              style="display:flex;flex-wrap:wrap;gap:4px;max-height:180px;overflow-y:auto;padding:6px;background:#f5f7fa;border-radius:4px;">
-              <el-checkbox v-for="acc in sortedManageAccounts" :key="acc" :label="acc" :value="acc" style="margin:2px;">
-                <span style="font-size:11px;margin-right:2px;">{{ getAccountStatusShort(acc) }}</span>
-                <span>{{ acc }}</span>
-              </el-checkbox>
-            </div>
-          </el-checkbox-group>
         </div>
 
         <el-divider />
@@ -546,6 +549,7 @@ import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+const removeFilterGroups = ref([])
 const accountUniquePairs = ref({})
 // ============ 状态 ============
 const tasks = ref([])
@@ -597,6 +601,49 @@ const addAccountsGroup = ref([])
 const addAccountsText = ref('')
 const managingAccounts = ref(false)
 
+
+const handleRemoveByGroups = async () => {
+  if (!manageTask.value || removeFilterGroups.value.length === 0) return
+
+  try {
+    await ElMessageBox.confirm(
+      `确定移除分组【${removeFilterGroups.value.join(', ')}】下的账号？`,
+      '提示',
+      { type: 'warning' }
+    )
+  } catch (e) {
+    return
+  }
+
+  managingAccounts.value = true
+  try {
+    const res = await api.post(`/chat/tasks/${manageTask.value.id}/accounts/remove`, {
+      groups: removeFilterGroups.value
+    })
+    if (res.code === 0) {
+      ElMessage.success(`已移除 ${res.data.removed} 个账号`)
+
+      // 刷新任务
+      await fetchTasks()
+
+      // 刷新管理弹窗里的任务数据
+      const detailRes = await api.get(`/chat/tasks/${manageTask.value.id}`)
+      if (detailRes.code === 0) {
+        manageTask.value = detailRes.data.task
+      }
+
+      // 清空
+      removeFilterGroups.value = []
+      selectedRemove.value = []
+    } else {
+      ElMessage.error(res.message || '移除失败')
+    }
+  } catch (e) {
+    ElMessage.error('移除失败: ' + (e.message || ''))
+  } finally {
+    managingAccounts.value = false
+  }
+}
 // 管理账号：按状态排序
 const sortedManageAccounts = computed(() => {
   if (!manageTask.value || !manageTask.value.accounts) return []
@@ -850,6 +897,7 @@ const handleUpdateMaxConcurrent = async () => {
 const openManageAccounts = (row) => {
   manageTask.value = row
   selectedRemove.value = []
+  removeFilterGroups.value = []   // ✅ 清空
   addAccountsGroup.value = []
   addAccountsText.value = ''
   showManageDialog.value = true
