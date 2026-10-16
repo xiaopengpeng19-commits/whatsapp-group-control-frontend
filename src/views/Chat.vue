@@ -323,6 +323,10 @@
                   <span v-if="accountUniquePairs[acc] !== undefined" style="color:#409eff;margin-left:2px;">
                     ({{ accountUniquePairs[acc] }})
                   </span>
+                  <span v-if="detailTask.firstSenderStats && detailTask.firstSenderStats[acc]"
+                    style="color:#67c23a;margin-left:4px;">
+                    [先{{ detailTask.firstSenderStats[acc].self }} 后{{ detailTask.firstSenderStats[acc].peer }}]
+                  </span>
                 </span>
               </el-tag>
             </template>
