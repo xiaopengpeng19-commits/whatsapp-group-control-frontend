@@ -725,7 +725,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
 import {
-  Plus, Refresh, Folder, Picture, Upload, FolderOpened,Edit,
+  Plus, Refresh, Folder, Picture, Upload, FolderOpened,
   Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument
 } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
