@@ -141,6 +141,19 @@
     <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
+      <el-table-column prop="remark" label="备注" width="200" show-overflow-tooltip>
+        <template #default="{ row }">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span v-if="row.remark" style="font-size:12px;color:#666;">{{ row.remark }}</span>
+            <span v-else style="font-size:12px;color:#bbb;">-</span>
+            <el-button link type="primary" size="small" @click="openRemarkDialog(row)">
+              <el-icon>
+                <Edit />
+              </el-icon>
+            </el-button>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="banCount" label="封禁次数" width="90" align="center">
         <template #default="{ row }">
           <el-tag v-if="row.banCount > 0" type="danger" size="small">{{ row.banCount }}</el-tag>
@@ -287,6 +300,22 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- 备注编辑弹窗 -->
+    <el-dialog v-model="showRemarkDialog" title="编辑备注" width="500px">
+      <el-form label-width="80px">
+        <el-form-item label="账号">
+          <span style="font-family:monospace;">{{ remarkForm.account }}</span>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="remarkForm.remark" type="textarea" :rows="4" placeholder="请输入备注" maxlength="200"
+            show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showRemarkDialog = false">取消</el-button>
+        <el-button type="primary" :loading="remarkSaving" @click="handleSaveRemark">保存</el-button>
+      </template>
+    </el-dialog>
     <!-- ========================================== -->
     <!-- 联系人列表弹窗 -->
     <!-- ========================================== -->
@@ -696,12 +725,48 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
 import {
-  Plus, Refresh, Folder, Picture, Upload, FolderOpened,
+  Plus, Refresh, Folder, Picture, Upload, FolderOpened,Edit,
   Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument
 } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+// 备注弹窗
+const showRemarkDialog = ref(false)
+const remarkSaving = ref(false)
+const remarkForm = reactive({
+  account: '',
+  remark: ''
+})
+
+const openRemarkDialog = (row) => {
+  remarkForm.account = row.account
+  remarkForm.remark = row.remark || ''
+  showRemarkDialog.value = true
+}
+
+const handleSaveRemark = async () => {
+  if (!remarkForm.account) return
+  remarkSaving.value = true
+  try {
+    const res = await api.put(`/whatsapp/accounts/${remarkForm.account}/remark`, {
+      remark: remarkForm.remark.trim()
+    })
+    if (res.code === 0) {
+      ElMessage.success('备注已保存')
+      showRemarkDialog.value = false
+      fetchAccounts()
+    } else {
+      ElMessage.error(res.message || '保存失败')
+    }
+  } catch (e) {
+    ElMessage.error('保存失败: ' + (e.message || ''))
+  } finally {
+    remarkSaving.value = false
+  }
+}
+
 // ============ 联系人列表 ============
 const showContactsDialog = ref(false)
 const currentContactAccount = ref('')
@@ -941,6 +1006,7 @@ const fetchProxyGroups = async () => {
     if (res.code === 0) proxyGroups.value = res.data || []
   } catch (e) { }
 }
+
 
 const fetchAvatarGroups = async () => {
   try {

@@ -10,14 +10,12 @@ export default {
   deleteAccount: (account) => api.post(`/whatsapp/accounts/${account}/del`),
   online: (account) => api.post(`/whatsapp/accounts/${account}/online`),
   offline: (account) => api.post(`/whatsapp/accounts/${account}/offline`),
-
+  updateRemark: (account, remark) => api.put(`/whatsapp/accounts/${account}/remark`, { remark }),
   // 二维码登录 - 转发到协议服
-  getQRCodeLogin: (account, data) =>
-    api.post(`/whatsapp/accounts/${account}/qrcode`, data),
+  getQRCodeLogin: (account, data) => api.post(`/whatsapp/accounts/${account}/qrcode`, data),
 
   // 更新代理分组
-  updateProxyGroup: (account, data) =>
-    api.put(`/whatsapp/accounts/${account}/proxygroup`, data),
+  updateProxyGroup: (account, data) => api.put(`/whatsapp/accounts/${account}/proxygroup`, data),
 
   // ==================== 消息管理 ====================
   sendMessage: (data) => api.post("/whatsapp/messages/send", data),
@@ -26,8 +24,7 @@ export default {
 
   // ==================== 消息删除 ====================
   deleteMessage: (id) => api.delete(`/whatsapp/messages/${id}/delete`),
-  batchDeleteMessages: (data) =>
-    api.post("/whatsapp/messages/batch/delete", data),
+  batchDeleteMessages: (data) => api.post("/whatsapp/messages/batch/delete", data),
 
   // ==================== 联系人 ====================
   getContacts: (params) => api.get("/whatsapp/contacts", { params }),
@@ -46,8 +43,7 @@ export default {
   batchAddContacts: (data) => api.post("/whatsapp/contacts/batch/add", data),
   // ==================== 导出凭证 ====================
   exportCreds: (account) => api.get(`/whatsapp/accounts/${account}/export`),
-  batchImportAccount: (data) =>
-    api.post("/whatsapp/accounts/batch/import", data),
+  batchImportAccount: (data) => api.post("/whatsapp/accounts/batch/import", data),
 
   requestPairingCode: (data) =>
     api.post(`/whatsapp/accounts/${data.account}/request-pairing`, {
