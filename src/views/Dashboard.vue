@@ -32,27 +32,20 @@
     <!-- 最近消息 -->
     <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="24">
-        <el-card>
-          <template #header>
-            <span>最近消息</span>
-          </template>
-          <el-table :data="recentMessages" style="width: 100%" max-height="400">
-            <el-table-column prop="content" label="内容" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="account" label="账号" width="120" />
-            <el-table-column prop="to" label="对方" width="120" />
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getStatusType(row.status)" size="small">
-                  {{ getStatusLabel(row.status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="sentAt" label="时间" width="160">
-              <template #default="{ row }">
-                {{ dayjs(row.sentAt).format('MM-DD HH:mm') }}
-              </template>
-            </el-table-column>
-          </el-table>
+        <el-card style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span>协议服状态：</span>
+            <el-tag :type="protocolStatus.is_alive ? 'success' : 'danger'" size="large" effect="dark">
+              {{ protocolStatus.is_alive ? '🟢 正常运行' : '🔴 异常/失联' }}
+            </el-tag>
+            <span v-if="protocolStatus.is_alive" style="color:#999;font-size:13px;">
+              内存占用: {{ protocolStatus.memory_rss_mb?.toFixed(1) || 0 }} MB
+            </span>
+            <span v-else style="color:#f56c6c;font-size:13px;">
+              {{ protocolStatus.elapsed_seconds > 0 ? `已失联 ${Math.floor(protocolStatus.elapsed_seconds)} 秒` : '正在连接...'
+              }}
+            </span>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -65,6 +58,23 @@ import { ElMessage } from 'element-plus'
 import { Download, DataLine, Warning, SwitchButton } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import api from '@/api'
+
+
+const protocolStatus = ref({ is_alive: false })
+
+const fetchProtocolStatus = async () => {
+  try {
+    const res = await api.get('/system/protocol-status')
+    if (res.code === 0) {
+      protocolStatus.value = res.data
+    }
+  } catch (e) {}
+}
+
+onMounted(() => {
+  fetchProtocolStatus()
+  setInterval(fetchProtocolStatus, 10000)
+})
 
 // ============ 统计卡片 ============
 const stats = ref([
