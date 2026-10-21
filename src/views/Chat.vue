@@ -527,23 +527,33 @@
               <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:20px;">
 
                 <div v-if="msg.isSimulated" style="text-align:center; font-size:12px; color:#999; margin-bottom:10px;">
-                  -- 发送了模拟消息 --
+                  -- {{ msg.fromAccount }} 发送了模拟消息 --
                 </div>
 
-                <div v-else
-                  :style="{ display: 'flex', flexDirection: 'column', alignItems: msg.direction === 'send' ? 'flex-end' : 'flex-start' }">
+                <!-- ✅ 核心修改：通过 fromAccount 和 accountA 对比来决定靠左还是靠右 -->
+                <div v-else :style="{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? 'flex-end' : 'flex-start'
+                }">
 
                   <!-- 头部信息 -->
                   <div
                     style="font-size:12px; color:#999; margin-bottom:4px; padding: 0 4px; display: flex; align-items: center;">
+
+                    <!-- ✅ 直接显示号码，并加上 A/B 标识 -->
                     <span style="font-weight:600; color: #333; margin-right: 8px;">
-                      {{ msg.direction === 'send' ? '我' : '对方' }} ({{ msg.fromAccount }})
+                      {{ (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? 'A: ' : 'B: '
+                      }}{{ msg.fromAccount }}
                     </span>
+
                     <span style="margin-right: 8px;">{{ formatTime(msg.sentAt).slice(11, 16) }}</span>
+
                     <el-tag size="small" style="margin-right: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                       :type="getMessageStatusType(msg.status)">
                       {{ getMessageStatusLabel(msg.status) }}
                     </el-tag>
+
                     <el-tag size="small" style="padding: 0 4px; height: 18px; line-height: 16px;"
                       :style="{ background: msg.round % 2 === 0 ? '#ecf5ff' : '#f0f9eb', color: msg.round % 2 === 0 ? '#409eff' : '#67c23a' }">
                       {{ msg.round }}轮{{ msg.roundIndex }}句
@@ -553,8 +563,11 @@
                   <!-- 气泡本体 -->
                   <div :style="{
                     maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
-                    background: msg.direction === 'send' ? '#95ec69' : '#ffffff', color: '#333',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)', border: msg.direction === 'send' ? 'none' : '1px solid #ebeef5'
+                    // 如果是 A 发的（靠右），用绿色；如果是 B 发的（靠左），用白色
+                    background: (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? '#95ec69' : '#ffffff',
+                    color: '#333',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    border: (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? 'none' : '1px solid #ebeef5'
                   }">
                     {{ msg.content }}
                   </div>
