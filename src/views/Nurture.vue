@@ -443,29 +443,48 @@
                     <el-tab-pane label="会话消息" name="session">
                         <div style="display:flex; height: 500px; border: 1px solid #ebeef5;">
 
+
                             <!-- 左侧：会话列表 -->
                             <div
-                                style="width: 380px; border-right: 1px solid #ebeef5; overflow-y: auto; background: #fafafa;">
-                                <div v-for="item in sessionList" :key="item.session.id"
-                                    @click="selectSession(item.session)"
-                                    :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentSessionId === item.session.id ? '#e6f2ff' : '' }">
-                                    <div
-                                        style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px;">
-                                        <span>{{ item.session.nurtureAcc }} ↔ {{ item.session.newAcc }}</span>
-                                        <el-tag size="small"
-                                            :type="item.session.status === 'completed' ? 'success' : 'warning'">
-                                            {{ item.session.status }}
-                                        </el-tag>
+                                style="width: 350px; border-right: 1px solid #ebeef5; background: #fff; display: flex; flex-direction: column;">
+
+                                <!-- 列表区（占满剩余空间并滚动） -->
+                                <div style="flex: 1; overflow-y: auto; background: #fafafa;">
+                                    <div v-for="item in sessionList" :key="item.session.id"
+                                        @click="selectSession(item.session)"
+                                        :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentSessionId === item.session.id ? '#e6f2ff' : '' }">
+
+                                        <div
+                                            style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
+                                            <span
+                                                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
+                                                :title="`${item.session.nurtureAcc} ↔ ${item.session.newAcc}`">
+                                                {{ item.session.nurtureAcc }} <span style="color:#409eff;">↔</span> {{
+                                                    item.session.newAcc }}
+                                            </span>
+                                            <el-tag size="small" style="flex-shrink: 0;"
+                                                :type="item.session.status === 'completed' ? 'success' : 'warning'">
+                                                {{ item.session.status === 'completed' ? '完成' : '进行中' }}
+                                            </el-tag>
+                                        </div>
+
+                                        <div
+                                            style="font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
+                                        </div>
                                     </div>
-                                    <div
-                                        style="font-size:12px; color:#999; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                        {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
-                                    </div>
+                                    <div v-if="sessionList.length === 0"
+                                        style="text-align:center; padding:20px; color:#999;">
+                                        暂无会话记录</div>
                                 </div>
 
-                                <div v-if="sessionList.length === 0"
-                                    style="text-align:center; padding:20px; color:#999;">
-                                    暂无会话记录
+                                <!-- ✅ 底部：分页（固定在最下面，不随列表滚动） -->
+                                <div
+                                    style="height: 45px; border-top: 1px solid #ebeef5; background: #fff; display: flex; justify-content: center; align-items: center;">
+                                    <el-pagination v-model:current-page="sessionListPage"
+                                        :page-size="sessionListPageSize" :total="sessionListTotal"
+                                        layout="prev, pager, next" small background
+                                        @current-change="handleSessionPageChange" />
                                 </div>
                             </div>
                             <div
