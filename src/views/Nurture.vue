@@ -840,7 +840,6 @@ const handleDelete = async (row) => {
 
 // ============ 任务详情 ============
 
-// 获取任务详情
 const fetchTaskDetail = async () => {
     if (!detailTask.value) return
 
@@ -853,9 +852,12 @@ const fetchTaskDetail = async () => {
             repeat_page: repeatPage.value,
             repeat_page_size: repeatPageSize.value,
         }
+
+        // ✅ 核心修复：带上 session_id
         if (currentSessionId.value) {
             params.session_id = currentSessionId.value
         }
+
         if (messageFilterStatus.value) {
             params.status = messageFilterStatus.value
         }
@@ -872,16 +874,16 @@ const fetchTaskDetail = async () => {
         const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
         if (res.code === 0) {
             detailTask.value = res.data.task
-            detailMessages.value = res.data.messages || []
-            detailTask.value = res.data.task
             sessions.value = res.data.sessions || []
             sessionTotal.value = res.data.session_total || 0
             sessionStats.value = res.data.session_stats || { active: 0, completed: 0, failed: 0 }
+
+            // 更新右侧消息
             detailMessages.value = res.data.messages || []
             messageTotal.value = res.data.total || 0
+
             repeatMessages.value = res.data.repeat_messages || []
             repeatTotal.value = res.data.repeat_total || 0
-            // ✅ 接收配对统计
             pairStats.value = res.data.pair_stats || {}
         }
     } catch (error) {
@@ -925,11 +927,14 @@ const onResetSearch = () => {
     fetchTaskDetail()
 }
 
-// 显示任务详情
 const showTaskDetail = async (row) => {
     showDetailDialog.value = true
     detailLoading.value = true
     detailTask.value = row
+
+    // 1. 先清空会话状态
+    currentSessionId.value = ''
+    currentSessionInfo.value = null
 
     // 重置所有分页
     messagePage.value = 1
@@ -948,7 +953,6 @@ const showTaskDetail = async (row) => {
     repeatTotal.value = 0
     repeatPage.value = 1
     repeatPageSize.value = 20
-    // ✅ 重置搜索
     searchNurtureAcc.value = ''
     searchNewAcc.value = ''
 
@@ -956,7 +960,11 @@ const showTaskDetail = async (row) => {
     detailMessages.value = []
 
     try {
-        await fetchTaskDetail()
+        // 2. 先拉取左侧会话列表
+        await fetchSessionList(row.id)
+
+        // 注意：此时不查右侧消息，等用户点击左侧再查
+        messageTotal.value = 0
         await nextTick()
     } catch (error) {
         ElMessage.error('获取任务详情失败')
@@ -968,16 +976,12 @@ const showTaskDetail = async (row) => {
     if (detailTimer.value) clearInterval(detailTimer.value)
     detailTimer.value = setInterval(() => {
         if (showDetailDialog.value && detailTask.value) {
-            fetchTaskDetail()
+            // 只刷新选中的会话，或者仅刷新基础状态
+            if (currentSessionId.value) {
+                fetchTaskDetail()
+            }
         }
     }, 5000)
-
-    // 把 currentSessionId 清空
-    currentSessionId.value = ''
-    currentSessionInfo.value = null
-
-    // ✅ 新增：拉取会话列表
-    fetchSessionList(row.id)
 }
 const fetchSessionList = async (taskId) => {
     try {
@@ -985,7 +989,9 @@ const fetchSessionList = async (taskId) => {
         if (res.code === 0) {
             sessionList.value = res.data.data || []
         }
-    } catch (e) { }
+    } catch (e) {
+        console.error('获取会话列表失败', e)
+    }
 }
 
 // 点击左侧某个会话
@@ -993,8 +999,12 @@ const selectSession = (session) => {
     currentSessionId.value = session.id
     currentSessionInfo.value = session
 
-    // ✅ 重置消息分页并拉取该会话的消息
+    // 重置消息分页
     messagePage.value = 1
+    messageTotal.value = 0
+    detailMessages.value = []
+
+    // 去拉取这个会话的消息
     fetchTaskDetail()
 }
 // 关闭详情
