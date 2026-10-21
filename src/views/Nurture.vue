@@ -445,7 +445,7 @@
 
                             <!-- 左侧：会话列表 -->
                             <div
-                                style="width: 300px; border-right: 1px solid #ebeef5; overflow-y: auto; background: #fafafa;">
+                                style="width: 380px; border-right: 1px solid #ebeef5; overflow-y: auto; background: #fafafa;">
                                 <div v-for="item in sessionList" :key="item.session.id"
                                     @click="selectSession(item.session)"
                                     :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentSessionId === item.session.id ? '#e6f2ff' : '' }">
