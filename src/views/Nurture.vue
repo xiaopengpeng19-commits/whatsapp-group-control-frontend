@@ -1030,13 +1030,9 @@ const showTaskDetail = async (row) => {
         // ✅ 2. 核心：打开弹窗的第一时间，拉取当前任务的左侧会话列表
         await fetchSessionList(row.id)
 
-        // 3. 拉取任务的基础详情（不包含具体消息，只包含任务配置、统计等）
-        const res = await api.get(`/nurture/tasks/detail/${row.id}`)
-        if (res.code === 0) {
-            detailTask.value = res.data.task
-            pairStats.value = res.data.pair_stats || {}
-            // 这里不要把 res.data.sessions 赋给左侧列表，因为左侧列表已经用分页接口拉过了
-        }
+        await fetchTaskDetail()
+
+        await nextTick()
     } catch (error) {
         ElMessage.error('获取任务详情失败')
     } finally {
