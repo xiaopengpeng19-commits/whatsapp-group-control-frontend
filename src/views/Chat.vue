@@ -518,7 +518,8 @@
             </div>
 
             <!-- 消息气泡列表 -->
-            <div class="message-list" ref="messageListRef" style="flex:1; overflow-y:auto; padding:15px;" v-loading="!!currentChatSessionId && detailMessages.length === 0">
+            <div class="message-list" ref="messageListRef" style="flex:1; overflow-y:auto; padding:15px;"
+              v-loading="!!currentChatSessionId && detailMessages.length === 0">
               <div v-if="detailMessages.length === 0"
                 style="text-align:center; color:#999; padding:20px; font-size:13px;">
                 {{ currentChatSessionId ? '该会话暂无消息' : '请点击左侧会话查看记录' }}
@@ -645,7 +646,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
-
+const refreshAccountTimer = ref(null)
 
 const chatSessionList = ref([])
 const currentChatSessionId = ref('')
@@ -680,7 +681,7 @@ const selectChatSession = (session) => {
   // ✅ 1. 立刻清空当前消息，让右侧变白显示“加载中”，避免旧数据闪烁
   detailMessages.value = []
   messageTotal.value = 0
-  
+
   // 2. 重置分页去拉新数据
   messagePage.value = 1
   fetchTaskMessages()
@@ -1374,7 +1375,7 @@ const showTaskDetail = async (row) => {
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
     if (currentChatSessionInfo.value && currentChatSessionInfo.value.status === 'completed') {
-      return 
+      return
     }
     try {
       const params = {}
@@ -1399,14 +1400,25 @@ const showTaskDetail = async (row) => {
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
         accountUniquePairs.value = res.data.account_unique_pairs || {}
-        await refreshAccountsStatus()
+
       }
     } catch (error) { }
   }, 5000)
+
+  if (refreshAccountTimer.value) clearInterval(refreshAccountTimer.value)
+  refreshAccountTimer.value = setInterval(() => {
+    if (showDetailDialog.value) {
+      refreshAccountsStatus()
+    }
+  }, 60000)
 }
 
 const closeDetail = () => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
+  
+  // ✅ 清理账号刷新定时器
+  if (refreshAccountTimer.value) { clearInterval(refreshAccountTimer.value); refreshAccountTimer.value = null }
+  
   showAllAccounts.value = false
   showAllSessions.value = false
   clearPairSearch()
