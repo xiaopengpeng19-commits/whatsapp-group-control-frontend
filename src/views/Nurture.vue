@@ -258,14 +258,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -285,7 +285,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -519,7 +519,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                }}</span>
+                                                    }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -528,7 +528,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                }}轮]</span>
+                                                    }}轮]</span>
                                             </div>
 
                                             <!-- 气泡本体 -->
@@ -594,7 +594,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
@@ -998,57 +998,67 @@ const onResetSearch = () => {
 }
 
 const showTaskDetail = async (row) => {
-  showDetailDialog.value = true
-  detailLoading.value = true
-  detailTask.value = row
-  
-  // 1. 清空旧数据
-  currentSessionId.value = ''
-  currentSessionInfo.value = null
-  detailMessages.value = []
-  messageTotal.value = 0
-  sessionListPage.value = 1
-  sessionListTotal.value = 0
-  sessionList.value = []
-  
-  if (detailTimer.value) {
-    clearInterval(detailTimer.value)
-    detailTimer.value = null
-  }
+    showDetailDialog.value = true
+    detailLoading.value = true
+    detailTask.value = row
 
-  try {
-    // ✅ 2. 核心：打开弹窗的第一时间，拉取当前任务的左侧会话列表
-    await fetchSessionList(row.id)
+    // 1. 清空旧数据
+    currentSessionId.value = ''
+    currentSessionInfo.value = null
+    detailMessages.value = []
+    messageTotal.value = 0
+    sessionListPage.value = 1
+    sessionListTotal.value = 0
+    sessionList.value = []
 
-    // 3. 拉取任务的基础详情（不包含具体消息，只包含任务配置、统计等）
-    const res = await api.get(`/nurture/tasks/detail/${row.id}`)
-    if (res.code === 0) {
-      detailTask.value = res.data.task
-      pairStats.value = res.data.pair_stats || {}
-      // 这里不要把 res.data.sessions 赋给左侧列表，因为左侧列表已经用分页接口拉过了
+    if (detailTimer.value) {
+        clearInterval(detailTimer.value)
+        detailTimer.value = null
     }
-  } catch (error) {
-    ElMessage.error('获取任务详情失败')
-  } finally {
-    detailLoading.value = false
-  }
 
-  // 4. 开启定时刷新（20秒一次即可）
-  detailTimer.value = setInterval(async () => {
-    if (!showDetailDialog.value || !detailTask.value) return
-    if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') return
+
+    page.value = 1
+    pageSize.value = 20
+    sessionPage.value = 1
+    sessionPageSize.value = 20
+    repeatPage.value = 1
+    repeatPageSize.value = 20
+    currentSessionId.value = ''
+    currentSessionInfo.value = null
 
     try {
-      // 刷新当前会话的消息（如果选中了会话）
-      if (currentSessionId.value) {
-        // 注意：这里如果你有独立的单会话消息接口，最好换成 fetchMessagesOnly()
-        await fetchTaskDetail() 
-      }
-      
-      // 刷新左侧列表（如果需要实时看到新创建的会话）
-      // await fetchSessionList(detailTask.value.id) 
-    } catch (e) {}
-  }, 20000)
+        // ✅ 2. 核心：打开弹窗的第一时间，拉取当前任务的左侧会话列表
+        await fetchSessionList(row.id)
+
+        // 3. 拉取任务的基础详情（不包含具体消息，只包含任务配置、统计等）
+        const res = await api.get(`/nurture/tasks/detail/${row.id}`)
+        if (res.code === 0) {
+            detailTask.value = res.data.task
+            pairStats.value = res.data.pair_stats || {}
+            // 这里不要把 res.data.sessions 赋给左侧列表，因为左侧列表已经用分页接口拉过了
+        }
+    } catch (error) {
+        ElMessage.error('获取任务详情失败')
+    } finally {
+        detailLoading.value = false
+    }
+
+    // 4. 开启定时刷新（20秒一次即可）
+    detailTimer.value = setInterval(async () => {
+        if (!showDetailDialog.value || !detailTask.value) return
+        if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') return
+
+        try {
+            // 刷新当前会话的消息（如果选中了会话）
+            if (currentSessionId.value) {
+                // 注意：这里如果你有独立的单会话消息接口，最好换成 fetchMessagesOnly()
+                await fetchTaskDetail()
+            }
+
+            // 刷新左侧列表（如果需要实时看到新创建的会话）
+            // await fetchSessionList(detailTask.value.id) 
+        } catch (e) { }
+    }, 20000)
 }
 
 
