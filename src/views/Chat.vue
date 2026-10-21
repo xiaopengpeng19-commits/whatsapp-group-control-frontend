@@ -450,68 +450,101 @@
           </el-button>
         </div>
 
-        <!-- 对话记录 -->
-        <div style="margin-top:12px;">
-          <div
-            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
-            <span style="font-weight:bold;font-size:13px;">对话记录</span>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <!-- ✅ 按号码筛选 + 查询/重置 -->
-              <el-input v-model="messageFilterAccount" placeholder="按号码筛选" clearable size="small" style="width:160px;"
-                @keyup.enter="onMessageFilterChange" />
-              <el-button size="small" type="primary" @click="onMessageFilterChange">查询</el-button>
-              <el-button size="small" @click="resetMessageFilter">重置</el-button>
+        <!-- ✅ 对话记录（左右分栏版） -->
+        <div
+          style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
 
-              <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:120px"
-                @change="onMessageFilterChange">
-                <el-option label="全部" value="" />
-                <el-option label="已发送" value="sent" />
-                <el-option label="已送达" value="delivered" />
-                <el-option label="已读" value="read" />
-                <el-option label="失败" value="failed" />
-              </el-select>
-              <span style="color:#999;font-size:12px;">
-                共 {{ messageTotal }} 条
-                <el-tag v-if="failedCount > 0" type="danger" size="small" style="margin-left:4px;">失败 {{ failedCount
-                }}</el-tag>
-                <el-tag v-if="simulatedCount > 0" type="warning" size="small" style="margin-left:4px;">模拟 {{
-                  simulatedCount
-                }}</el-tag>
-              </span>
+          <!-- ============ 左侧：会话列表 ============ -->
+          <div style="width:320px; border-right:1px solid #ebeef5; overflow-y:auto; background:#fafafa;">
+            <div v-for="item in chatSessionList" :key="item.session.id" @click="selectChatSession(item.session)"
+              :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentChatSessionId === item.session.id ? '#e6f2ff' : '' }">
+
+              <!-- 账号对 -->
+              <div style="font-weight:bold; font-size:13px; margin-bottom:6px; word-break: break-all;">
+                {{ item.session.accountA }} <span style="color:#409eff;">↔</span> {{ item.session.accountB }}
+              </div>
+              <!-- 最后一条消息预览 -->
+              <div style="font-size:12px; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
+              </div>
             </div>
+            <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
           </div>
-          <div class="message-list" ref="messageListRef" style="max-height:350px;overflow-y:auto;">
-            <div v-if="detailMessages.length === 0" style="text-align:center;color:#999;padding:20px;font-size:13px;">
-              暂无消息
+
+          <!-- ============ 右侧：微信风气泡 ============ -->
+          <div style="flex:1; display:flex; flex-direction:column; background:#f5f5f5;">
+
+            <!-- 顶部工具栏 -->
+            <div
+              style="padding:10px; background:#fff; border-bottom:1px solid #ebeef5; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:bold; font-size:13px;">
+                {{ currentChatSessionInfo ? `${currentChatSessionInfo.accountA} ↔ ${currentChatSessionInfo.accountB}` :
+                  '请选择左侧会话' }}
+              </span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:100px"
+                  @change="onMessageFilterChange">
+                  <el-option label="全部" value="" />
+                  <el-option label="已发送" value="sent" />
+                  <el-option label="已送达" value="delivered" />
+                  <el-option label="已读" value="read" />
+                  <el-option label="失败" value="failed" />
+                </el-select>
+                <span style="color:#999;font-size:12px;">共 {{ messageTotal }} 条</span>
+              </div>
             </div>
-            <div v-for="msg in detailMessages" :key="msg.id" class="message-item" style="margin-bottom:6px;">
-              <div class="message-bubble" :class="[
-                msg.direction === 'send' ? 'message-send' : 'message-receive',
-                msg.isSimulated ? 'message-simulated' : ''
-              ]" style="padding:8px 12px;border-radius:6px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.08);">
-                <div class="message-header"
-                  style="display:flex;align-items:center;gap:6px;font-size:12px;color:#999;flex-wrap:wrap;">
-                  <span style="font-weight:600;color:#333;">{{ msg.fromAccount }}</span>
-                  <span>→</span>
-                  <span>{{ msg.toAccount }}</span>
-                  <el-tag size="small" style="font-size:10px;padding:0 6px;" :style="{
-                    background: msg.round % 2 === 0 ? '#ecf5ff' : '#f0f9eb',
-                    color: msg.round % 2 === 0 ? '#409eff' : '#67c23a'
-                  }">
-                    {{ msg.round }}轮{{ msg.roundIndex }}句
-                  </el-tag>
-                  <el-tag v-if="msg.isSimulated" type="warning" size="small"
-                    style="font-size:10px;padding:0 6px;">模拟</el-tag>
-                  <el-tag :type="getMessageStatusType(msg.status)" size="small" style="font-size:10px;padding:0 6px;">
-                    {{ getMessageStatusLabel(msg.status) }}
-                  </el-tag>
-                  <span style="font-size:11px;color:#bbb;margin-left:auto;">{{ formatTime(msg.sentAt) }}</span>
+
+            <!-- 消息气泡列表 -->
+            <div class="message-list" ref="messageListRef" style="flex:1; overflow-y:auto; padding:15px;">
+              <div v-if="detailMessages.length === 0"
+                style="text-align:center; color:#999; padding:20px; font-size:13px;">
+                {{ currentChatSessionId ? '该会话暂无消息' : '请点击左侧会话查看记录' }}
+              </div>
+
+              <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:20px;">
+
+                <div v-if="msg.isSimulated" style="text-align:center; font-size:12px; color:#999; margin-bottom:10px;">
+                  -- 发送了模拟消息 --
                 </div>
-                <div class="message-content" style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
-                  <span v-if="msg.isSimulated" style="color:#b3b3b3;font-style:italic;">[概率未命中，模拟跳过]</span>
-                  <span v-else>{{ msg.content }}</span>
+
+                <div v-else
+                  :style="{ display: 'flex', flexDirection: 'column', alignItems: msg.direction === 'send' ? 'flex-end' : 'flex-start' }">
+
+                  <!-- 头部信息 -->
+                  <div
+                    style="font-size:12px; color:#999; margin-bottom:4px; padding: 0 4px; display: flex; align-items: center;">
+                    <span style="font-weight:600; color: #333; margin-right: 8px;">
+                      {{ msg.direction === 'send' ? '我' : '对方' }} ({{ msg.fromAccount }})
+                    </span>
+                    <span style="margin-right: 8px;">{{ formatTime(msg.sentAt).slice(11, 16) }}</span>
+                    <el-tag size="small" style="margin-right: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
+                      :type="getMessageStatusType(msg.status)">
+                      {{ getMessageStatusLabel(msg.status) }}
+                    </el-tag>
+                    <el-tag size="small" style="padding: 0 4px; height: 18px; line-height: 16px;"
+                      :style="{ background: msg.round % 2 === 0 ? '#ecf5ff' : '#f0f9eb', color: msg.round % 2 === 0 ? '#409eff' : '#67c23a' }">
+                      {{ msg.round }}轮{{ msg.roundIndex }}句
+                    </el-tag>
+                  </div>
+
+                  <!-- 气泡本体 -->
+                  <div :style="{
+                    maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
+                    background: msg.direction === 'send' ? '#95ec69' : '#ffffff', color: '#333',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)', border: msg.direction === 'send' ? 'none' : '1px solid #ebeef5'
+                  }">
+                    {{ msg.content }}
+                  </div>
                 </div>
               </div>
+            </div>
+
+            <!-- 底部：分页 -->
+            <div
+              style="padding:10px; background:#fff; border-top:1px solid #ebeef5; display:flex; justify-content:flex-end;">
+              <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
+                :page-sizes="[20, 50, 100]" :total="messageTotal" layout="total, prev, pager, next" small
+                @size-change="fetchTaskMessages" @current-change="fetchTaskMessages" />
             </div>
           </div>
         </div>
@@ -576,6 +609,33 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+
+const chatSessionList = ref([])
+const currentChatSessionId = ref('')
+const currentChatSessionInfo = ref(null)
+
+// 1. 获取左侧会话列表
+const fetchChatSessions = async (taskId) => {
+  try {
+    const res = await api.get(`/chat/tasks/${taskId}/sessions`)
+    if (res.code === 0) {
+      chatSessionList.value = res.data.data || []
+    }
+  } catch (e) {
+    console.error('获取互聊会话列表失败', e)
+  }
+}
+
+// 2. 点击左侧会话
+const selectChatSession = (session) => {
+  currentChatSessionId.value = session.id
+  currentChatSessionInfo.value = session
+
+  // 重置分页并去拉右侧消息
+  messagePage.value = 1
+  fetchTaskMessages()
+}
 
 const removeFilterGroups = ref([])
 const accountUniquePairs = ref({})
@@ -1190,15 +1250,26 @@ const resetMessageFilter = () => {
 const fetchTaskMessages = async () => {
   if (!detailTask.value) return
   try {
-    const params = {}
+    const params = {
+      page: messagePage.value,
+      page_size: messagePageSize.value
+    }
     if (messageFilterStatus.value) params.status = messageFilterStatus.value
     if (messageFilterAccount.value) params.account = messageFilterAccount.value
+
+    // ✅ 核心：带上前端选中的会话ID
+    if (currentChatSessionId.value) {
+      params.session_id = currentChatSessionId.value
+    }
+
     const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
     if (res.code === 0) {
       detailMessages.value = res.data.messages || []
       messageTotal.value = res.data.total || 0
     }
-  } catch (error) { }
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 const showTaskDetail = async (row) => {
@@ -1211,9 +1282,12 @@ const showTaskDetail = async (row) => {
   messageFilterAccount.value = ''
   showAllAccounts.value = false
   showAllSessions.value = false
-
+  currentChatSessionId.value = ''
+  currentChatSessionInfo.value = null
+  detailMessages.value = []
+  messageTotal.value = 0
   clearPairSearch()
-
+  await fetchChatSessions(row.id)
   try {
     await refreshAccountsStatus()
     const res = await api.get(`/chat/tasks/${row.id}`)
