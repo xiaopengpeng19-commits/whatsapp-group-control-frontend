@@ -455,7 +455,7 @@
           style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
 
           <!-- ============ 左侧：会话列表 ============ -->
-          <div style="width:320px; border-right:1px solid #ebeef5; overflow-y:auto; background:#fafafa;">
+          <div style="width:380px; border-right:1px solid #ebeef5; overflow-y:auto; background:#fafafa;">
             <div v-for="item in chatSessionList" :key="item.session.id" @click="selectChatSession(item.session)"
               :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentChatSessionId === item.session.id ? '#e6f2ff' : '' }">
 
@@ -470,6 +470,9 @@
             </div>
             <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
           </div>
+          <!-- ✅ 底部固定分页 -->
+          <el-pagination v-model:current-page="sessionListPage" :page-size="sessionListPageSize"
+            :total="sessionListTotal" layout="prev, pager, next" small @current-change="handleChatSessionPageChange" />
 
           <!-- ============ 右侧：微信风气泡 ============ -->
           <div style="flex:1; display:flex; flex-direction:column; background:#f5f5f5;">
@@ -615,15 +618,24 @@ const chatSessionList = ref([])
 const currentChatSessionId = ref('')
 const currentChatSessionInfo = ref(null)
 
-// 1. 获取左侧会话列表
+const sessionListPage = ref(1)
+const sessionListPageSize = ref(20)
+const sessionListTotal = ref(0)
+
 const fetchChatSessions = async (taskId) => {
   try {
-    const res = await api.get(`/chat/tasks/${taskId}/sessions`)
+    const res = await api.get(`/chat/tasks/${taskId}/sessions`, {
+      params: {
+        page: sessionListPage.value,
+        page_size: sessionListPageSize.value
+      }
+    })
     if (res.code === 0) {
       chatSessionList.value = res.data.data || []
+      sessionListTotal.value = res.data.total || 0 // ✅ 记录总数
     }
   } catch (e) {
-    console.error('获取互聊会话列表失败', e)
+    console.error('获取会话列表失败', e)
   }
 }
 
@@ -1023,7 +1035,16 @@ const openManageAccounts = (row) => {
   addAccountsText.value = ''
   showManageDialog.value = true
 }
+const handleChatSessionPageChange = () => {
+  currentChatSessionId.value = ''
+  currentChatSessionInfo.value = null
+  detailMessages.value = []
+  messageTotal.value = 0
 
+  if (detailTask.value) {
+    fetchChatSessions(detailTask.value.id)
+  }
+}
 const handleAddAccounts = async () => {
   if (!manageTask.value) return
 

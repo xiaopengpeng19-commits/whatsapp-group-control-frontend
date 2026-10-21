@@ -258,14 +258,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                    }}分钟</el-descriptions-item>
+                        }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -285,7 +285,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -462,12 +462,18 @@
                                         {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
                                     </div>
                                 </div>
+
                                 <div v-if="sessionList.length === 0"
                                     style="text-align:center; padding:20px; color:#999;">
                                     暂无会话记录
                                 </div>
                             </div>
-
+                            <div
+                                style="padding: 10px; border-top: 1px solid #ebeef5; background: #fff; display: flex; justify-content: center;">
+                                <el-pagination v-model:current-page="sessionListPage" :page-size="sessionListPageSize"
+                                    :total="sessionListTotal" layout="prev, pager, next" small
+                                    @current-change="handleSessionPageChange" />
+                            </div>
                             <!-- 右侧：聊天内容 -->
                             <div style="flex:1; display:flex; flex-direction:column;">
                                 <div
@@ -500,16 +506,16 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
                                                     {{ msg.status === 'read' ? '已读' : msg.status === 'delivered' ? '已送达'
-                                                    : '已发送'
+                                                        : '已发送'
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
 
                                             <!-- 气泡本体 -->
@@ -575,7 +581,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
@@ -610,6 +616,11 @@ import { Plus, Refresh } from '@element-plus/icons-vue'
 import nurtureApi from '@/api/nurture'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+const sessionList = ref([]) // (互聊叫 chatSessionList，养号叫 sessionList)
+const sessionListPage = ref(1)
+const sessionListPageSize = ref(20)
+const sessionListTotal = ref(0)
 
 const sessionList = ref([])
 const currentSessionId = ref('')
@@ -800,7 +811,18 @@ const fetchTasks = async () => {
         loading.value = false
     }
 }
+const handleSessionPageChange = () => {
+    // 翻页时，清空右侧选中的会话状态，避免数据错乱
+    currentSessionId.value = ''
+    currentSessionInfo.value = null
+    detailMessages.value = []
+    messageTotal.value = 0
 
+    // 重新拉取当前页的会话列表
+    if (detailTask.value) {
+        fetchSessionList(detailTask.value.id)
+    }
+}
 // ============ 创建任务 ============
 const handleCreate = async () => {
     if (!createForm.name) { ElMessage.warning('请输入任务名称'); return }
@@ -1021,9 +1043,15 @@ const showTaskDetail = async (row) => {
 }
 const fetchSessionList = async (taskId) => {
     try {
-        const res = await api.get(`/nurture/tasks/sessions/${taskId}`, { params: { page: 1, page_size: 100 } })
+        const res = await api.get(`/nurture/tasks/sessions/${taskId}`, {
+            params: {
+                page: sessionListPage.value,
+                page_size: sessionListPageSize.value
+            }
+        })
         if (res.code === 0) {
             sessionList.value = res.data.data || []
+            sessionListTotal.value = res.data.total || 0 // ✅ 记录总数
         }
     } catch (e) {
         console.error('获取会话列表失败', e)
