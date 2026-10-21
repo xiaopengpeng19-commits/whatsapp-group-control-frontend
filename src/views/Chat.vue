@@ -278,7 +278,7 @@
     <!-- ========================================== -->
     <el-dialog v-model="showDetailDialog" :title="`任务详情 - ${detailTask?.name || ''}`" width="1000px"
       :close-on-click-modal="false" @close="closeDetail">
-      <div v-if="detailTask" v-loading="detailLoading">
+      <div v-if="detailTask">
         <!-- 基本信息 - 4列 -->
         <el-descriptions :column="4" border size="small">
           <el-descriptions-item label="任务名称">{{ detailTask.name }}</el-descriptions-item>
@@ -518,7 +518,7 @@
             </div>
 
             <!-- 消息气泡列表 -->
-            <div class="message-list" ref="messageListRef" style="flex:1; overflow-y:auto; padding:15px;">
+            <div class="message-list" ref="messageListRef" style="flex:1; overflow-y:auto; padding:15px;" v-loading="!!currentChatSessionId && detailMessages.length === 0">
               <div v-if="detailMessages.length === 0"
                 style="text-align:center; color:#999; padding:20px; font-size:13px;">
                 {{ currentChatSessionId ? '该会话暂无消息' : '请点击左侧会话查看记录' }}
@@ -677,7 +677,11 @@ const selectChatSession = (session) => {
   currentChatSessionId.value = session.id
   currentChatSessionInfo.value = session
 
-  // 重置分页并去拉右侧消息
+  // ✅ 1. 立刻清空当前消息，让右侧变白显示“加载中”，避免旧数据闪烁
+  detailMessages.value = []
+  messageTotal.value = 0
+  
+  // 2. 重置分页去拉新数据
   messagePage.value = 1
   fetchTaskMessages()
 }
@@ -1311,7 +1315,6 @@ const fetchTaskMessages = async () => {
     if (messageFilterStatus.value) params.status = messageFilterStatus.value
     if (messageFilterAccount.value) params.account = messageFilterAccount.value
 
-    // ✅ 核心：带上前端选中的会话ID
     if (currentChatSessionId.value) {
       params.session_id = currentChatSessionId.value
     }
