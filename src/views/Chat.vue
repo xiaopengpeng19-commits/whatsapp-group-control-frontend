@@ -449,7 +449,17 @@
             {{ showAllSessions ? '收起' : `查看全部 (${activeSessions.length}个)` }}
           </el-button>
         </div>
+        <div
+          style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:bold; font-size:13px;">对话记录</span>
 
+          <!-- ✅ 加在这里：手动刷新按钮 -->
+          <el-button size="small" type="primary" plain @click="manualRefreshList" :loading="listRefreshing">
+            <el-icon>
+              <Refresh />
+            </el-icon> 刷新列表
+          </el-button>
+        </div>
         <!-- ✅ 对话记录（左右分栏版） -->
         <div
           style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
@@ -646,6 +656,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+
+
+
+
 const refreshAccountTimer = ref(null)
 
 const chatSessionList = ref([])
@@ -658,6 +673,34 @@ const sessionListTotal = ref(0)
 
 const messagePage = ref(1)
 const messagePageSize = ref(20)
+
+
+// 刷新状态
+const listRefreshing = ref(false)
+
+// 手动刷新列表
+const manualRefreshList = async () => {
+  if (!detailTask.value) return
+  listRefreshing.value = true
+  try {
+    // 1. 刷新左侧会话列表
+    await fetchChatSessions(detailTask.value.id)
+    
+    // 2. 重新拉取任务详情，更新顶部的“活跃会话”和统计数据
+    const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
+    if (res.code === 0) {
+      sessions.value = res.data.sessions || []
+      detailTask.value = res.data.task
+      accountPairs.value = res.data.account_pairs || {}
+      accountUniquePairs.value = res.data.account_unique_pairs || {}
+    }
+    ElMessage.success('列表已刷新')
+  } catch (e) {
+    ElMessage.error('刷新失败')
+  } finally {
+    listRefreshing.value = false
+  }
+}
 
 const fetchChatSessions = async (taskId) => {
   try {
