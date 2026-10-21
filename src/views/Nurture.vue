@@ -487,12 +487,6 @@
                                         @current-change="handleSessionPageChange" />
                                 </div>
                             </div>
-                            <div
-                                style="padding: 10px; border-top: 1px solid #ebeef5; background: #fff; display: flex; justify-content: center;">
-                                <el-pagination v-model:current-page="sessionListPage" :page-size="sessionListPageSize"
-                                    :total="sessionListTotal" layout="prev, pager, next" small
-                                    @current-change="handleSessionPageChange" />
-                            </div>
                             <!-- 右侧：聊天内容 -->
                             <div style="flex:1; display:flex; flex-direction:column;">
                                 <div
