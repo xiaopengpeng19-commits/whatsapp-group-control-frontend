@@ -91,7 +91,7 @@
             <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" @click="showTaskDetail(row)">详情</el-button>
-                    <el-button v-if="row.status === 'pending' " size="small" type="success"
+                    <el-button v-if="row.status === 'pending'" size="small" type="success"
                         @click="handleStart(row)">启动</el-button>
                     <el-button v-if="row.status === 'running'" size="small" type="warning"
                         @click="handlePause(row)">暂停</el-button>
@@ -440,68 +440,63 @@
                 <!-- 在消息记录下方或旁边新增复活消息 Tab -->
 
                 <el-tabs v-model="activeTab" style="margin-top:12px;">
-                    <!-- ========================================== -->
-                    <!-- Tab 1: 会话消息 -->
-                    <!-- ========================================== -->
                     <el-tab-pane label="会话消息" name="session">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                            <span style="font-weight:bold;font-size:13px;">会话消息 ({{ messageTotal }})</span>
-                            <div style="display:flex;gap:6px;align-items:center;">
-                                <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small"
-                                    style="width:100px" @change="onMessageFilterChange">
-                                    <el-option label="全部" value="" />
-                                    <el-option label="已发送" value="sent" />
-                                    <el-option label="已送达" value="delivered" />
-                                    <el-option label="已读" value="read" />
-                                    <el-option label="失败" value="failed" />
-                                </el-select>
-                                <el-tag v-if="simulatedCount > 0" type="warning" size="small">模拟 {{ simulatedCount
-                                }}</el-tag>
-                                <el-tag v-if="msgFailedCount > 0" type="danger" size="small">失败 {{ msgFailedCount
-                                }}</el-tag>
-                            </div>
-                        </div>
+                        <div style="display:flex; height: 500px; border: 1px solid #ebeef5;">
 
-                        <div class="message-list" style="max-height:350px;overflow-y:auto;">
-                            <div v-if="detailMessages.length === 0"
-                                style="text-align:center;color:#999;padding:20px;font-size:13px;">
-                                暂无消息
-                            </div>
-                            <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:6px;">
-                                <div
-                                    style="padding:6px 10px;border-radius:4px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.06);">
+                            <!-- 左侧：会话列表 -->
+                            <div
+                                style="width: 300px; border-right: 1px solid #ebeef5; overflow-y: auto; background: #fafafa;">
+                                <div v-for="item in sessionList" :key="item.session.id"
+                                    @click="selectSession(item.session)"
+                                    :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentSessionId === item.session.id ? '#e6f2ff' : '' }">
                                     <div
-                                        style="display:flex;align-items:center;gap:6px;font-size:12px;color:#999;flex-wrap:wrap;">
-                                        <span style="font-weight:600;color:#333;">{{ msg.fromAccount }}</span>
-                                        <span>→</span>
-                                        <span>{{ msg.toAccount }}</span>
-                                        <el-tag size="small" style="font-size:10px;padding:0 6px;">{{ msg.round
-                                        }}轮</el-tag>
-                                        <el-tag v-if="msg.isSimulated" type="warning" size="small"
-                                            style="font-size:10px;padding:0 6px;">模拟</el-tag>
-                                        <el-tag :type="getMessageStatusType(msg.status)" size="small"
-                                            style="font-size:10px;padding:0 6px;">
-                                            {{ getMessageStatusLabel(msg.status) }}
+                                        style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px;">
+                                        <span>{{ item.session.nurtureAcc }} ↔ {{ item.session.newAcc }}</span>
+                                        <el-tag size="small"
+                                            :type="item.session.status === 'completed' ? 'success' : 'warning'">
+                                            {{ item.session.status }}
                                         </el-tag>
-                                        <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
-                                            formatTime(msg.sentAt)
-                                        }}</span>
                                     </div>
-                                    <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
-                                        <span v-if="msg.isSimulated"
-                                            style="color:#b3b3b3;font-style:italic;">[概率未命中，模拟跳过]</span>
-                                        <span v-else>{{ msg.content }}</span>
+                                    <div
+                                        style="font-size:12px; color:#999; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
                                     </div>
                                 </div>
+                                <div v-if="sessionList.length === 0"
+                                    style="text-align:center; padding:20px; color:#999;">
+                                    暂无会话记录
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- 会话消息分页 -->
-                        <div style="margin-top:10px;display:flex;justify-content:flex-end;">
-                            <el-pagination v-model:current-page="messagePage" v-model:page-size="messagePageSize"
-                                :page-sizes="[10, 20, 50, 100]" :total="messageTotal"
-                                layout="total, sizes, prev, pager, next" small @size-change="onMessagePageChange"
-                                @current-change="onMessagePageChange" />
+                            <!-- 右侧：聊天内容 -->
+                            <div style="flex:1; display:flex; flex-direction:column;">
+                                <div
+                                    style="padding:10px; border-bottom:1px solid #ebeef5; background:#fff; font-weight:bold;">
+                                    {{ currentSessionInfo ? `${currentSessionInfo.nurtureAcc} ↔
+                                    ${currentSessionInfo.newAcc}` :
+                                        '请选择左侧会话' }}
+                                </div>
+
+                                <div style="flex:1; overflow-y: auto; padding:15px; background:#f5f7fa;">
+                                    <div v-if="!currentSessionId"
+                                        style="text-align:center; margin-top:100px; color:#999;">
+                                        选择会话后查看聊天记录</div>
+
+                                    <div v-for="msg in detailMessages" :key="msg.id"
+                                        style="margin-bottom:15px; text-align: left;">
+                                        <!-- 消息气泡简版 -->
+                                        <div style="font-size:12px; color:#999; margin-bottom:4px;">
+                                            {{ msg.fromAccount }} · {{ msg.round }}轮 · {{ formatTime(msg.sentAt) }}
+                                        </div>
+                                        <div
+                                            style="background:#fff; padding:8px 12px; border-radius:4px; display:inline-block; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                                            {{ msg.content }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 右侧底部可以加上翻页，或者直接只显示最近100条 -->
+                            </div>
                         </div>
                     </el-tab-pane>
 
@@ -579,6 +574,10 @@ import { Plus, Refresh } from '@element-plus/icons-vue'
 import nurtureApi from '@/api/nurture'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+const sessionList = ref([])
+const currentSessionId = ref('')
+const currentSessionInfo = ref(null)
 
 // ============ 状态 ============
 const tasks = ref([])
@@ -854,6 +853,9 @@ const fetchTaskDetail = async () => {
             repeat_page: repeatPage.value,
             repeat_page_size: repeatPageSize.value,
         }
+        if (currentSessionId.value) {
+            params.session_id = currentSessionId.value
+        }
         if (messageFilterStatus.value) {
             params.status = messageFilterStatus.value
         }
@@ -869,6 +871,8 @@ const fetchTaskDetail = async () => {
 
         const res = await api.get(`/nurture/tasks/detail/${detailTask.value.id}`, { params })
         if (res.code === 0) {
+            detailTask.value = res.data.task
+            detailMessages.value = res.data.messages || []
             detailTask.value = res.data.task
             sessions.value = res.data.sessions || []
             sessionTotal.value = res.data.session_total || 0
@@ -967,8 +971,32 @@ const showTaskDetail = async (row) => {
             fetchTaskDetail()
         }
     }, 5000)
+
+    // 把 currentSessionId 清空
+    currentSessionId.value = ''
+    currentSessionInfo.value = null
+
+    // ✅ 新增：拉取会话列表
+    fetchSessionList(row.id)
+}
+const fetchSessionList = async (taskId) => {
+    try {
+        const res = await api.get(`/nurture/tasks/sessions/${taskId}`, { params: { page: 1, page_size: 100 } })
+        if (res.code === 0) {
+            sessionList.value = res.data.data || []
+        }
+    } catch (e) { }
 }
 
+// 点击左侧某个会话
+const selectSession = (session) => {
+    currentSessionId.value = session.id
+    currentSessionInfo.value = session
+
+    // ✅ 重置消息分页并拉取该会话的消息
+    messagePage.value = 1
+    fetchTaskDetail()
+}
 // 关闭详情
 const closeDetail = () => {
     if (detailTimer.value) {

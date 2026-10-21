@@ -11,4 +11,5 @@ export default {
   pauseTask: (id) => api.post(`/nurture/tasks/pause/${id}`),
   resumeTask: (id) => api.post(`/nurture/tasks/resume/${id}`),
   deleteTask: (id) => api.delete(`/nurture/tasks/delete/${id}`),
+  getSessionList: (id, params) => api.get(`/nurture/tasks/sessions/${id}`, { params }),
 }
