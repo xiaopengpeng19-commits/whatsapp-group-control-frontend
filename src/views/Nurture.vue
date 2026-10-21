@@ -258,14 +258,14 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -285,7 +285,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -482,15 +482,51 @@
                                         style="text-align:center; margin-top:100px; color:#999;">
                                         选择会话后查看聊天记录</div>
 
-                                    <div v-for="msg in detailMessages" :key="msg.id"
-                                        style="margin-bottom:15px; text-align: left;">
-                                        <!-- 消息气泡简版 -->
-                                        <div style="font-size:12px; color:#999; margin-bottom:4px;">
-                                            {{ msg.fromAccount }} · {{ msg.round }}轮 · {{ formatTime(msg.sentAt) }}
+                                    <div v-for="msg in detailMessages" :key="msg.id" style="margin-bottom:20px;">
+
+                                        <!-- 系统提示（比如模拟消息）居中显示 -->
+                                        <div v-if="msg.isSimulated"
+                                            style="text-align:center; font-size:12px; color:#999; margin-bottom:10px;">
+                                            -- {{ msg.fromAccount }} 发送了模拟消息 --
                                         </div>
-                                        <div
-                                            style="background:#fff; padding:8px 12px; border-radius:4px; display:inline-block; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                                            {{ msg.content }}
+
+                                        <!-- 聊天气泡容器 -->
+                                        <div v-else
+                                            :style="{ display: 'flex', flexDirection: 'column', alignItems: msg.fromAccount === currentSessionInfo?.nurtureAcc ? 'flex-end' : 'flex-start' }">
+
+                                            <!-- 名字 + 时间 -->
+                                            <div style="font-size:12px; color:#999; margin-bottom:4px; padding: 0 4px;">
+                                                <span v-if="msg.fromAccount === currentSessionInfo?.nurtureAcc">我 ({{
+                                                    msg.fromAccount }})</span>
+                                                <span v-else>{{ msg.fromAccount }}</span>
+                                                <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
+                                                    }}</span>
+                                                <el-tag size="small"
+                                                    style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
+                                                    :type="msg.status === 'read' ? 'success' : 'info'">
+                                                    {{ msg.status === 'read' ? '已读' : msg.status === 'delivered' ? '已送达'
+                                                    : '已发送'
+                                                    }}
+                                                </el-tag>
+                                                <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
+                                                    }}轮]</span>
+                                            </div>
+
+                                            <!-- 气泡本体 -->
+                                            <div :style="{
+                                                maxWidth: '70%',
+                                                padding: '10px 14px',
+                                                borderRadius: '8px',
+                                                fontSize: '14px',
+                                                lineHeight: '1.5',
+                                                wordBreak: 'break-word',
+                                                background: msg.fromAccount === currentSessionInfo?.nurtureAcc ? '#95ec69' : '#ffffff',
+                                                color: '#333',
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                                border: msg.fromAccount === currentSessionInfo?.nurtureAcc ? 'none' : '1px solid #ebeef5'
+                                            }">
+                                                {{ msg.content }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -539,7 +575,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
