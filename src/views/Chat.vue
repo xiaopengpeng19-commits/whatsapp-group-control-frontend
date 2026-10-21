@@ -1373,6 +1373,9 @@ const showTaskDetail = async (row) => {
   if (detailTimer.value) clearInterval(detailTimer.value)
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
+    if (currentChatSessionInfo.value && currentChatSessionInfo.value.status === 'completed') {
+      return 
+    }
     try {
       const params = {}
       if (messageFilterStatus.value) params.status = messageFilterStatus.value
