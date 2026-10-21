@@ -1373,23 +1373,40 @@ const showTaskDetail = async (row) => {
   if (detailTimer.value) clearInterval(detailTimer.value)
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
-    if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') return
+
+    // ✅ 1. 如果整个任务已经完成或停止，彻底不轮询
+    if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') {
+      return
+    }
 
     try {
-      // 1. 任务整体的状态更新（左侧列表等），频率可以低一点，或者只拉基础信息
       const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
       if (res.code === 0) {
+        // 更新左侧会话列表
         sessions.value = res.data.sessions || []
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
+        accountUniquePairs.value = res.data.account_unique_pairs || {}
+
+        // ✅ 2. 顺便同步一下当前选中会话的最新状态
+        if (currentChatSessionId.value) {
+          const latestSession = sessions.value.find(s => s.id === currentChatSessionId.value)
+          if (latestSession) {
+            currentChatSessionInfo.value = latestSession
+          }
+        }
       }
 
-      // 2. 如果当前有选中会话，单独拉当前会话的消息
-      if (currentChatSessionId.value) {
+      // ✅ 3. 判断当前选中会话的状态（这时候拿到的是最新的）
+      const isSessionCompleted = currentChatSessionInfo.value && currentChatSessionInfo.value.status === 'completed'
+
+      // 4. 只有会话还在进行中，才去拉具体的聊天消息
+      if (currentChatSessionId.value && !isSessionCompleted) {
         await fetchChatMessagesOnly()
       }
+
     } catch (error) { }
-  }, 5000)
+  }, 20000)
 
   if (refreshAccountTimer.value) clearInterval(refreshAccountTimer.value)
   refreshAccountTimer.value = setInterval(() => {
