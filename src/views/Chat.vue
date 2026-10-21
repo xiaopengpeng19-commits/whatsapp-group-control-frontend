@@ -656,6 +656,9 @@ const sessionListPage = ref(1)
 const sessionListPageSize = ref(20)
 const sessionListTotal = ref(0)
 
+const messagePage = ref(1)
+const messagePageSize = ref(20)
+
 const fetchChatSessions = async (taskId) => {
   try {
     const res = await api.get(`/chat/tasks/${taskId}/sessions`, {
