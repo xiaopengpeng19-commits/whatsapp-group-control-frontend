@@ -998,61 +998,60 @@ const onResetSearch = () => {
 }
 
 const showTaskDetail = async (row) => {
-    showDetailDialog.value = true
-    detailLoading.value = true
-    detailTask.value = row
+  showDetailDialog.value = true
+  detailLoading.value = true
+  detailTask.value = row
+  
+  // 1. 清空旧数据
+  currentSessionId.value = ''
+  currentSessionInfo.value = null
+  detailMessages.value = []
+  messageTotal.value = 0
+  sessionListPage.value = 1
+  sessionListTotal.value = 0
+  sessionList.value = []
+  
+  if (detailTimer.value) {
+    clearInterval(detailTimer.value)
+    detailTimer.value = null
+  }
 
-    // 1. 先清空会话状态
-    currentSessionId.value = ''
-    currentSessionInfo.value = null
+  try {
+    // ✅ 2. 核心：打开弹窗的第一时间，拉取当前任务的左侧会话列表
+    await fetchSessionList(row.id)
 
-    // 重置所有分页
-    messagePage.value = 1
-    messagePageSize.value = 20
-    messageTotal.value = 0
-    messageFilterStatus.value = ''
+    // 3. 拉取任务的基础详情（不包含具体消息，只包含任务配置、统计等）
+    const res = await api.get(`/nurture/tasks/detail/${row.id}`)
+    if (res.code === 0) {
+      detailTask.value = res.data.task
+      pairStats.value = res.data.pair_stats || {}
+      // 这里不要把 res.data.sessions 赋给左侧列表，因为左侧列表已经用分页接口拉过了
+    }
+  } catch (error) {
+    ElMessage.error('获取任务详情失败')
+  } finally {
+    detailLoading.value = false
+  }
 
-    sessionPage.value = 1
-    sessionPageSize.value = 20
-    sessionTotal.value = 0
-    sessionFilterStatus.value = ''
-    sessionStats.value = { active: 0, completed: 0, failed: 0 }
-
-    // 重置复活消息
-    repeatMessages.value = []
-    repeatTotal.value = 0
-    repeatPage.value = 1
-    repeatPageSize.value = 20
-    searchNurtureAcc.value = ''
-    searchNewAcc.value = ''
-
-    sessions.value = []
-    detailMessages.value = []
+  // 4. 开启定时刷新（20秒一次即可）
+  detailTimer.value = setInterval(async () => {
+    if (!showDetailDialog.value || !detailTask.value) return
+    if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') return
 
     try {
-        // 2. 先拉取左侧会话列表
-        await fetchSessionList(row.id)
-
-        // 注意：此时不查右侧消息，等用户点击左侧再查
-        messageTotal.value = 0
-        await nextTick()
-    } catch (error) {
-        ElMessage.error('获取任务详情失败')
-    } finally {
-        detailLoading.value = false
-    }
-
-    // 定时刷新
-    if (detailTimer.value) clearInterval(detailTimer.value)
-    detailTimer.value = setInterval(() => {
-        if (showDetailDialog.value && detailTask.value) {
-            // 只刷新选中的会话，或者仅刷新基础状态
-            if (currentSessionId.value) {
-                fetchTaskDetail()
-            }
-        }
-    }, 5000)
+      // 刷新当前会话的消息（如果选中了会话）
+      if (currentSessionId.value) {
+        // 注意：这里如果你有独立的单会话消息接口，最好换成 fetchMessagesOnly()
+        await fetchTaskDetail() 
+      }
+      
+      // 刷新左侧列表（如果需要实时看到新创建的会话）
+      // await fetchSessionList(detailTask.value.id) 
+    } catch (e) {}
+  }, 20000)
 }
+
+
 const fetchSessionList = async (taskId) => {
     try {
         const res = await api.get(`/nurture/tasks/sessions/${taskId}`, {
