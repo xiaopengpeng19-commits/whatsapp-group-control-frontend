@@ -675,16 +675,12 @@ const fetchChatSessions = async (taskId) => {
 
 // 2. 点击左侧会话
 const selectChatSession = (session) => {
+  if (currentChatSessionId.value === session.id) return
   currentChatSessionId.value = session.id
   currentChatSessionInfo.value = session
-
-  // ✅ 1. 立刻清空当前消息，让右侧变白显示“加载中”，避免旧数据闪烁
-  detailMessages.value = []
-  messageTotal.value = 0
-
-  // 2. 重置分页去拉新数据
+  detailMessages.value = [] // 秒清空
   messagePage.value = 1
-  fetchTaskMessages()
+  fetchChatMessagesOnly()   // ✅ 只查这个
 }
 
 const removeFilterGroups = ref([])
@@ -1374,33 +1370,20 @@ const showTaskDetail = async (row) => {
   if (detailTimer.value) clearInterval(detailTimer.value)
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
-    if (currentChatSessionInfo.value && currentChatSessionInfo.value.status === 'completed') {
-      return
-    }
+    if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') return
+
     try {
-      const params = {}
-      if (messageFilterStatus.value) params.status = messageFilterStatus.value
-      if (messageFilterAccount.value) params.account = messageFilterAccount.value
-
-      // ✅ 核心修复：定时刷新也必须带上 session_id！
-      if (currentChatSessionId.value) {
-        params.session_id = currentChatSessionId.value
-      }
-
-      const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
+      // 1. 任务整体的状态更新（左侧列表等），频率可以低一点，或者只拉基础信息
+      const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
       if (res.code === 0) {
-        // 如果当前已经选中了某个会话，只更新该会话的消息，不要覆盖全局
-        if (currentChatSessionId.value) {
-          detailMessages.value = res.data.messages || []
-          messageTotal.value = res.data.total || 0
-        }
-
-        // 更新其他基础数据
         sessions.value = res.data.sessions || []
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
-        accountUniquePairs.value = res.data.account_unique_pairs || {}
+      }
 
+      // 2. 如果当前有选中会话，单独拉当前会话的消息
+      if (currentChatSessionId.value) {
+        await fetchChatMessagesOnly()
       }
     } catch (error) { }
   }, 5000)
@@ -1412,13 +1395,30 @@ const showTaskDetail = async (row) => {
     }
   }, 60000)
 }
+const fetchChatMessagesOnly = async () => {
+  if (!detailTask.value || !currentChatSessionId.value) return
+  try {
+    const params = {
+      session_id: currentChatSessionId.value,
+      page: messagePage.value,
+      page_size: messagePageSize.value
+    }
+    if (messageFilterStatus.value) params.status = messageFilterStatus.value
 
+    // ✅ 调新接口，只查这几十条消息，不查整个任务详情
+    const res = await api.get(`/chat/tasks/${detailTask.value.id}/messages`, { params })
+    if (res.code === 0) {
+      detailMessages.value = res.data.messages || []
+      messageTotal.value = res.data.total || 0
+    }
+  } catch (error) { }
+}
 const closeDetail = () => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
-  
+
   // ✅ 清理账号刷新定时器
   if (refreshAccountTimer.value) { clearInterval(refreshAccountTimer.value); refreshAccountTimer.value = null }
-  
+
   showAllAccounts.value = false
   showAllSessions.value = false
   clearPairSearch()
