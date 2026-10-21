@@ -454,26 +454,46 @@
         <div
           style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
 
-          <!-- ============ 左侧：会话列表 ============ -->
-          <div style="width:380px; border-right:1px solid #ebeef5; overflow-y:auto; background:#fafafa;">
-            <div v-for="item in chatSessionList" :key="item.session.id" @click="selectChatSession(item.session)"
-              :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentChatSessionId === item.session.id ? '#e6f2ff' : '' }">
+          <!-- 左侧：会话列表 -->
+          <div
+            style="width: 350px; border-right: 1px solid #ebeef5; background: #fff; display: flex; flex-direction: column;">
 
-              <!-- 账号对 -->
-              <div style="font-weight:bold; font-size:13px; margin-bottom:6px; word-break: break-all;">
-                {{ item.session.accountA }} <span style="color:#409eff;">↔</span> {{ item.session.accountB }}
+            <!-- 列表区（占满剩余空间并滚动） -->
+            <div style="flex: 1; overflow-y: auto; background: #fafafa;">
+              <div v-for="item in chatSessionList" :key="item.session.id" @click="selectChatSession(item.session)"
+                :style="{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #ebeef5', background: currentChatSessionId === item.session.id ? '#e6f2ff' : '' }">
+
+                <!-- 账号对 -->
+                <div
+                  style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
+                  <span
+                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
+                    :title="`${item.session.accountA} ↔ ${item.session.accountB}`">
+                    {{ item.session.accountA }} <span style="color:#409eff;">↔</span> {{ item.session.accountB }}
+                  </span>
+                  <el-tag size="small" style="flex-shrink: 0;"
+                    :type="item.session.status === 'active' ? 'warning' : 'success'">
+                    {{ item.session.status === 'active' ? '进行中' : '完成' }}
+                  </el-tag>
+                </div>
+
+                <!-- 最后一条消息预览 -->
+                <div
+                  style="font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
+                </div>
               </div>
-              <!-- 最后一条消息预览 -->
-              <div style="font-size:12px; color:#999; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
-              </div>
+              <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
             </div>
-            <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
-          </div>
-          <!-- ✅ 底部固定分页 -->
-          <el-pagination v-model:current-page="sessionListPage" :page-size="sessionListPageSize"
-            :total="sessionListTotal" layout="prev, pager, next" small @current-change="handleChatSessionPageChange" />
 
+            <!-- ✅ 底部：分页（固定在最下面） -->
+            <div
+              style="height: 45px; border-top: 1px solid #ebeef5; background: #fff; display: flex; justify-content: center; align-items: center;">
+              <el-pagination v-model:current-page="sessionListPage" :page-size="sessionListPageSize"
+                :total="sessionListTotal" layout="prev, pager, next" small background
+                @current-change="handleChatSessionPageChange" />
+            </div>
+          </div>
           <!-- ============ 右侧：微信风气泡 ============ -->
           <div style="flex:1; display:flex; flex-direction:column; background:#f5f5f5;">
 
