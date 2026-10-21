@@ -622,7 +622,6 @@ const sessionListPage = ref(1)
 const sessionListPageSize = ref(20)
 const sessionListTotal = ref(0)
 
-const sessionList = ref([])
 const currentSessionId = ref('')
 const currentSessionInfo = ref(null)
 
