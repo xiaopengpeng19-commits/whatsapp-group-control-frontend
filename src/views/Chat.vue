@@ -1323,22 +1323,28 @@ const showTaskDetail = async (row) => {
   messageFilterAccount.value = ''
   showAllAccounts.value = false
   showAllSessions.value = false
+
+  // 清空会话状态
   currentChatSessionId.value = ''
   currentChatSessionInfo.value = null
-  detailMessages.value = []
   messageTotal.value = 0
+  sessionListPage.value = 1
   clearPairSearch()
-  await fetchChatSessions(row.id)
+
   try {
+    // 1. 拉取左侧会话列表（分页 20 条）
+    await fetchChatSessions(row.id)
+
+    // 2. 刷新账号状态
     await refreshAccountsStatus()
+
+    // 3. 获取任务基本参数（此时不查具体消息，因为没选会话）
     const res = await api.get(`/chat/tasks/${row.id}`)
     if (res.code === 0) {
       detailTask.value = res.data.task
       sessions.value = res.data.sessions || []
-      detailMessages.value = res.data.messages || []
-      messageTotal.value = res.data.total || 0
       accountPairs.value = res.data.account_pairs || {}
-      accountUniquePairs.value = res.data.account_unique_pairs || {}   // ✅ 新增
+      accountUniquePairs.value = res.data.account_unique_pairs || {}
       await nextTick()
     }
   } catch (error) {
@@ -1347,6 +1353,7 @@ const showTaskDetail = async (row) => {
     detailLoading.value = false
   }
 
+  // 4. 定时刷新
   if (detailTimer.value) clearInterval(detailTimer.value)
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
@@ -1354,10 +1361,21 @@ const showTaskDetail = async (row) => {
       const params = {}
       if (messageFilterStatus.value) params.status = messageFilterStatus.value
       if (messageFilterAccount.value) params.account = messageFilterAccount.value
+
+      // ✅ 核心修复：定时刷新也必须带上 session_id！
+      if (currentChatSessionId.value) {
+        params.session_id = currentChatSessionId.value
+      }
+
       const res = await api.get(`/chat/tasks/${detailTask.value.id}`, { params })
       if (res.code === 0) {
-        detailMessages.value = res.data.messages || []
-        messageTotal.value = res.data.total || 0
+        // 如果当前已经选中了某个会话，只更新该会话的消息，不要覆盖全局
+        if (currentChatSessionId.value) {
+          detailMessages.value = res.data.messages || []
+          messageTotal.value = res.data.total || 0
+        }
+
+        // 更新其他基础数据
         sessions.value = res.data.sessions || []
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
