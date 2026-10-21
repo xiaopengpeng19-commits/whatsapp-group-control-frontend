@@ -1433,6 +1433,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
+  // ✅ 清理
+  if (refreshAccountTimer.value) { clearInterval(refreshAccountTimer.value); refreshAccountTimer.value = null }
 })
 </script>
 
