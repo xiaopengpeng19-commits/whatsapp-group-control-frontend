@@ -258,17 +258,25 @@
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
+
+                    <!-- ✅ 新增：最大并发修改 -->
+                    <el-descriptions-item label="最大并发">
+                        <span>{{ detailTask.maxConcurrent || 3 }}</span>
+                        <el-button size="small" type="primary" link style="margin-left:8px;"
+                            @click="openEditMaxConcurrent">修改</el-button>
+                    </el-descriptions-item>
+
                     <el-descriptions-item label="总配对">
                         <el-tag type="info" size="small">{{ pairStats.total || 0 }}</el-tag>
                     </el-descriptions-item>
@@ -285,7 +293,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -437,7 +445,6 @@
                 <!-- ========================================== -->
                 <!-- 消息记录 -->
                 <!-- ========================================== -->
-                <!-- 在消息记录下方或旁边新增复活消息 Tab -->
 
                 <el-tabs v-model="activeTab" style="margin-top:12px;">
                     <el-tab-pane label="会话消息" name="session">
@@ -465,8 +472,8 @@
                                             <el-tag size="small" style="flex-shrink: 0;"
                                                 :type="item.session.status === 'completed' ? 'success' : item.session.status === 'failed' ? 'danger' : 'warning'">
                                                 {{ item.session.status === 'completed' ? '完成' : item.session.status ===
-                                                'failed'
-                                                ? '失败' : '进行中' }}
+                                                    'failed'
+                                                    ? '失败' : '进行中' }}
                                             </el-tag>
                                         </div>
 
@@ -485,7 +492,7 @@
                                     style="height: 45px; border-top: 1px solid #ebeef5; background: #fff; display: flex; justify-content: center; align-items: center;">
                                     <el-pagination v-model:current-page="sessionListPage"
                                         :page-size="sessionListPageSize" :total="sessionListTotal"
-                                        layout="prev, pager, next" small background
+                                        layout="prev, pager, next" size="small" background
                                         @current-change="handleSessionPageChange" />
                                 </div>
                             </div>
@@ -521,7 +528,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                }}</span>
+                                                    }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -530,7 +537,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                }}轮]</span>
+                                                    }}轮]</span>
                                             </div>
 
                                             <!-- 气泡本体 -->
@@ -551,8 +558,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- 右侧底部可以加上翻页，或者直接只显示最近100条 -->
                             </div>
                         </div>
                     </el-tab-pane>
@@ -596,7 +601,7 @@
                                         </el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">
                                         {{ msg.content }}
@@ -609,7 +614,7 @@
                         <div style="margin-top:10px;display:flex;justify-content:flex-end;">
                             <el-pagination v-model:current-page="repeatPage" v-model:page-size="repeatPageSize"
                                 :page-sizes="[10, 20, 50, 100]" :total="repeatTotal"
-                                layout="total, sizes, prev, pager, next" small @size-change="fetchRepeatMessages"
+                                layout="total, sizes, prev, pager, next" size="small" @size-change="fetchRepeatMessages"
                                 @current-change="fetchRepeatMessages" />
                         </div>
                     </el-tab-pane>
@@ -619,6 +624,25 @@
             <template #footer>
                 <el-button @click="showDetailDialog = false">关闭</el-button>
                 <el-button type="primary" @click="refreshDetail">刷新</el-button>
+            </template>
+        </el-dialog>
+
+        <!-- ========================================== -->
+        <!-- 修改最大并发弹窗 (新增) -->
+        <!-- ========================================== -->
+        <el-dialog v-model="showEditMaxConcurrentDialog" title="修改最大并发" width="400px">
+            <el-form label-width="120px">
+                <el-form-item label="最大并发">
+                    <el-input-number v-model="editMaxConcurrentValue" :min="1" :max="999" style="width:100%" />
+                    <div style="font-size:12px;color:#999;margin-top:4px;">
+                        同时进行的会话数上限；调小后已进行的会话不受影响
+                    </div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showEditMaxConcurrentDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleUpdateMaxConcurrent"
+                    :loading="updatingMaxConcurrent">确定</el-button>
             </template>
         </el-dialog>
     </div>
@@ -700,6 +724,39 @@ const repeatTotal = ref(0)
 const repeatPage = ref(1)
 const repeatPageSize = ref(20)
 const repeatFilterStatus = ref('')
+
+// ✅ 修改最大并发
+const showEditMaxConcurrentDialog = ref(false)
+const editMaxConcurrentValue = ref(3)
+const updatingMaxConcurrent = ref(false)
+
+const openEditMaxConcurrent = () => {
+    if (!detailTask.value) return
+    editMaxConcurrentValue.value = detailTask.value.maxConcurrent || 3
+    showEditMaxConcurrentDialog.value = true
+}
+
+const handleUpdateMaxConcurrent = async () => {
+    if (!detailTask.value) return
+    updatingMaxConcurrent.value = true
+    try {
+        const res = await api.put(`/nurture/tasks/max-concurrent/${detailTask.value.id}`, {
+            maxConcurrent: editMaxConcurrentValue.value
+        })
+        if (res.code === 0) {
+            ElMessage.success('修改成功')
+            showEditMaxConcurrentDialog.value = false
+            detailTask.value.maxConcurrent = editMaxConcurrentValue.value
+        } else {
+            ElMessage.error(res.message || '修改失败')
+        }
+    } catch (error) {
+        ElMessage.error('修改失败: ' + (error.message || ''))
+    } finally {
+        updatingMaxConcurrent.value = false
+    }
+}
+
 const fetchRepeatMessages = async () => {
     if (!detailTask.value) return
     try {
