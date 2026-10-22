@@ -33,7 +33,9 @@
     <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="24">
         <el-card style="margin-bottom:20px">
-          <div style="display:flex;align-items:center;gap:10px;">
+          <!-- 协议服状态 -->
+          <div style="display:flex;align-items:center;gap:10px;"
+            v-if="protocolStatus && protocolStatus.last_heartbeat && protocolStatus.last_heartbeat !== '0001-01-01T00:00:00Z'">
             <span>协议服状态：</span>
             <el-tag :type="protocolStatus.is_alive ? 'success' : 'danger'" size="large" effect="dark">
               {{ protocolStatus.is_alive ? '🟢 正常运行' : '🔴 异常/失联' }}
@@ -42,8 +44,7 @@
               内存占用: {{ protocolStatus.memory_rss_mb?.toFixed(1) || 0 }} MB
             </span>
             <span v-else style="color:#f56c6c;font-size:13px;">
-              {{ protocolStatus.elapsed_seconds > 0 ? `已失联 ${Math.floor(protocolStatus.elapsed_seconds)} 秒` : '正在连接...'
-              }}
+              {{ protocolStatus.elapsed_seconds > 0 ? `已失联 ${Math.floor(protocolStatus.elapsed_seconds)} 秒` : '' }}
             </span>
           </div>
         </el-card>
@@ -68,7 +69,7 @@ const fetchProtocolStatus = async () => {
     if (res.code === 0) {
       protocolStatus.value = res.data
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 onMounted(() => {
