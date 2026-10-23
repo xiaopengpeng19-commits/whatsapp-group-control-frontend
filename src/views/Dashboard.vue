@@ -72,10 +72,7 @@ const fetchProtocolStatus = async () => {
   } catch (e) { }
 }
 
-onMounted(() => {
-  fetchProtocolStatus()
-  intervalProtocol = setInterval(fetchProtocolStatus, 10000)
-})
+
 
 // ============ 统计卡片 ============
 const stats = ref([
@@ -176,6 +173,9 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
   intervalId = setInterval(fetchData, 30000)
+
+  fetchProtocolStatus()
+  intervalProtocol = setInterval(fetchProtocolStatus, 10000)
 })
 
 onBeforeUnmount(() => {
