@@ -464,9 +464,22 @@
         <div
           style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
 
-          <!-- 左侧：会话列表 -->
           <div
             style="width: 350px; border-right: 1px solid #ebeef5; background: #fff; display: flex; flex-direction: column;">
+
+            <!-- ✅ 新增：搜索框 -->
+            <div style="padding: 10px; border-bottom: 1px solid #ebeef5; background: #fff;">
+              <el-input v-model="searchChatAccount" placeholder="按号码筛选" clearable size="small"
+                @keyup.enter="handleSearchChat" @clear="handleSearchChat">
+                <template #append>
+                  <el-button @click="handleSearchChat">
+                    <el-icon>
+                      <Search />
+                    </el-icon>
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
 
             <!-- 列表区（占满剩余空间并滚动） -->
             <div style="flex: 1; overflow-y: auto; background: #fafafa;">
@@ -653,13 +666,13 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Timer } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
 
 
-
+const searchChatAccount = ref('')
 
 const refreshAccountTimer = ref(null)
 
@@ -677,7 +690,10 @@ const messagePageSize = ref(20)
 
 // 刷新状态
 const listRefreshing = ref(false)
-
+const handleSearchChat = () => {
+  sessionListPage.value = 1 // 搜索时重置到第一页
+  fetchChatSessions(detailTask.value.id)
+}
 // 手动刷新列表
 const manualRefreshList = async () => {
   if (!detailTask.value) return
@@ -685,7 +701,7 @@ const manualRefreshList = async () => {
   try {
     // 1. 刷新左侧会话列表
     await fetchChatSessions(detailTask.value.id)
-    
+
     // 2. 重新拉取任务详情，更新顶部的“活跃会话”和统计数据
     const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
     if (res.code === 0) {
