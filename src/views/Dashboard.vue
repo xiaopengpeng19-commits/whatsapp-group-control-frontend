@@ -74,7 +74,7 @@ const fetchProtocolStatus = async () => {
 
 onMounted(() => {
   fetchProtocolStatus()
-  setInterval(fetchProtocolStatus, 10000)
+  intervalProtocol = setInterval(fetchProtocolStatus, 10000)
 })
 
 // ============ 统计卡片 ============
@@ -87,6 +87,7 @@ const stats = ref([
 
 const recentMessages = ref([])
 let intervalId = null
+let intervalProtocol = null
 
 // ============ 导出 ============
 const exporting = ref(false)
@@ -180,6 +181,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (intervalId) {
     clearInterval(intervalId)
+    intervalId = null
+  }
+  if (intervalProtocol) {
+    clearInterval(intervalProtocol)
     intervalId = null
   }
 })
