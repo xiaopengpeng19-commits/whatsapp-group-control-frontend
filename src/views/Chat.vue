@@ -1047,7 +1047,7 @@ const searchPairRecord = () => {
       const key = acc < other ? `${acc}|${other}` : `${other}|${acc}`
       return {
         account: other,
-        count: pairCount[key]
+        count: pairCount[key] || 0
       }
     })
     list.sort((a, b) => b.count - a.count)
