@@ -501,9 +501,9 @@
                 </div>
 
                 <!-- 最后一条消息预览 -->
-                <div
-                  style="font-size: 12px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  {{ item.last_msg ? item.last_msg.content : '暂无消息' }}
+                <div style="font-size: 12px; color: #999; display: flex; justify-content: space-between;">
+                  <span>最后活跃:</span>
+                  <span>{{ item.session.lastTime ? formatTime(item.session.lastTime).slice(5, 16) : '暂无记录' }}</span>
                 </div>
               </div>
               <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
