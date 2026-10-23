@@ -141,12 +141,18 @@
     <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
-      <el-table-column prop="remark" label="备注" width="200" show-overflow-tooltip>
+      <el-table-column prop="remark" label="备注" width="200">
         <template #default="{ row }">
-          <div style="display:flex;align-items:center;gap:4px;">
-            <span v-if="row.remark" style="font-size:12px;color:#666;">{{ row.remark }}</span>
-            <span v-else style="font-size:12px;color:#bbb;">-</span>
-            <el-button link type="primary" size="small" @click="openRemarkDialog(row)">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <!-- 文字部分：固定最大宽度 + 截断 -->
+            <div
+              style="width: 160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; color:#666; margin-right: 8px;"
+              :title="row.remark || '-'">
+              {{ row.remark || '-' }}
+            </div>
+
+            <!-- 编辑按钮：固定宽度，永远在右侧 -->
+            <el-button link type="primary" size="small" @click="openRemarkDialog(row)" style="flex-shrink: 0;">
               <el-icon>
                 <Edit />
               </el-icon>
