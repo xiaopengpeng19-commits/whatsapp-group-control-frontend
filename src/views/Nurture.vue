@@ -223,19 +223,21 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
-                    <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
-                        detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    <el-descriptions-item label="新号冷却">
+                        <span>{{ detailTask.newCooldownMin || 60 }}~{{ detailTask.newCooldownMax || 90 }}分钟</span>
+                        <el-button size="small" type="primary" link style="margin-left:8px;"
+                            @click="openEditNewCooldown">修改</el-button>
+                    </el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -260,7 +262,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -296,7 +298,7 @@
                                         style="margin:2px;">
                                         {{ acc }}:
                                         <strong>{{ accountPairStats[acc]?.processed || 0 }}</strong> / {{
-                                        accountPairStats[acc]?.total || 0 }}
+                                            accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
                                 </template>
                                 <span v-if="!detailTask.nurtureAccounts || detailTask.nurtureAccounts.length === 0"
@@ -314,7 +316,7 @@
                                         style="margin:2px;">
                                         {{ acc }}:
                                         <strong>{{ accountPairStats[acc]?.processed || 0 }}</strong> / {{
-                                        accountPairStats[acc]?.total || 0 }}
+                                            accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
                                 </template>
                                 <span v-if="!detailTask.newAccounts || detailTask.newAccounts.length === 0"
@@ -338,12 +340,12 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -476,7 +478,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -485,7 +487,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -534,7 +536,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
@@ -556,7 +558,24 @@
                 <el-button type="primary" @click="refreshDetail">刷新</el-button>
             </template>
         </el-dialog>
-
+        <!-- 修改新号冷却弹窗 -->
+        <el-dialog v-model="showEditNewCooldownDialog" title="修改新号冷却" width="400px">
+            <el-form label-width="120px">
+                <el-form-item label="冷却时间">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <el-input-number v-model="editNewCooldownMin" :min="1" :max="9999" />
+                        <span>~</span>
+                        <el-input-number v-model="editNewCooldownMax" :min="1" :max="9999" />
+                        <span>分钟</span>
+                    </div>
+                    <div style="font-size:12px;color:#999;margin-top:4px;">新号配对完成后的冷却时间，冷却期间不再参与配对</div>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showEditNewCooldownDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleUpdateNewCooldown" :loading="updatingNewCooldown">确定</el-button>
+            </template>
+        </el-dialog>
         <!-- 修改最大并发弹窗 -->
         <el-dialog v-model="showEditMaxConcurrentDialog" title="修改最大并发" width="400px">
             <el-form label-width="120px">
@@ -653,6 +672,48 @@ const repeatFilterStatus = ref('')
 const showEditMaxConcurrentDialog = ref(false)
 const editMaxConcurrentValue = ref(3)
 const updatingMaxConcurrent = ref(false)
+
+
+// ✅ 修改新号冷却
+const showEditNewCooldownDialog = ref(false)
+const editNewCooldownMin = ref(60)
+const editNewCooldownMax = ref(90)
+const updatingNewCooldown = ref(false)
+
+const openEditNewCooldown = () => {
+    if (!detailTask.value) return
+    editNewCooldownMin.value = detailTask.value.newCooldownMin || 60
+    editNewCooldownMax.value = detailTask.value.newCooldownMax || 90
+    showEditNewCooldownDialog.value = true
+}
+
+const handleUpdateNewCooldown = async () => {
+    if (!detailTask.value) return
+    if (editNewCooldownMin.value > editNewCooldownMax.value) {
+        ElMessage.warning('最小冷却不能大于最大冷却')
+        return
+    }
+
+    updatingNewCooldown.value = true
+    try {
+        const res = await api.put(`/nurture/tasks/new-cooldown/${detailTask.value.id}`, {
+            newCooldownMin: editNewCooldownMin.value,
+            newCooldownMax: editNewCooldownMax.value
+        })
+        if (res.code === 0) {
+            ElMessage.success('修改成功')
+            showEditNewCooldownDialog.value = false
+            detailTask.value.newCooldownMin = editNewCooldownMin.value
+            detailTask.value.newCooldownMax = editNewCooldownMax.value
+        } else {
+            ElMessage.error(res.message || '修改失败')
+        }
+    } catch (error) {
+        ElMessage.error('修改失败: ' + (error.message || ''))
+    } finally {
+        updatingNewCooldown.value = false
+    }
+}
 
 // ============ 方法 ============
 const openEditMaxConcurrent = () => {
