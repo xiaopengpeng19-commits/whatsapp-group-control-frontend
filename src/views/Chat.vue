@@ -723,12 +723,13 @@ const fetchChatSessions = async (taskId) => {
     const res = await api.get(`/chat/tasks/${taskId}/sessions`, {
       params: {
         page: sessionListPage.value,
-        page_size: sessionListPageSize.value
+        page_size: sessionListPageSize.value,
+        account: searchChatAccount.value // ✅ 把搜索号码传给后端
       }
     })
     if (res.code === 0) {
       chatSessionList.value = res.data.data || []
-      sessionListTotal.value = res.data.total || 0 // ✅ 记录总数
+      sessionListTotal.value = res.data.total || 0
     }
   } catch (e) {
     console.error('获取会话列表失败', e)
