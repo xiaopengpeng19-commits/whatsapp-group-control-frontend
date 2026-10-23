@@ -223,19 +223,19 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">{{ detailTask.newCooldownMin || 60 }}~{{
                         detailTask.newCooldownMax || 90
-                        }}分钟</el-descriptions-item>
+                    }}分钟</el-descriptions-item>
                     <el-descriptions-item label="总配对数">{{ detailTask.totalPairs || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="总消息">{{ detailTask.totalMessages || 0 }}</el-descriptions-item>
                     <el-descriptions-item label="活跃会话">{{ detailTask.activeSessions || 0 }}</el-descriptions-item>
@@ -260,7 +260,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -279,50 +279,40 @@
                         <span v-if="runningPairs.length === 0" style="color:#999;font-size:13px;">暂无进行中的配对</span>
                     </div>
                 </div>
-
-                <!-- 冷却状态 -->
-                <div style="margin-top:12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">冷却状态</span>
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
-                        <template v-for="(cooldownAt, account) in detailTask.nurtureCooldowns" :key="account">
-                            <el-tag size="small" :type="isCooldownActive(cooldownAt) ? 'warning' : 'success'"
-                                style="margin:2px;">
-                                🟡 {{ account }}: {{ formatCooldown(cooldownAt) }}
-                            </el-tag>
-                        </template>
-                        <template v-for="(cooldownAt, account) in detailTask.newCooldowns" :key="account">
-                            <el-tag size="small" :type="isCooldownActive(cooldownAt) ? 'warning' : 'success'"
-                                style="margin:2px;">
-                                🔵 {{ account }}: {{ formatCooldown(cooldownAt) }}
-                            </el-tag>
-                        </template>
-                        <span
-                            v-if="Object.keys(detailTask.nurtureCooldowns || {}).length === 0 && Object.keys(detailTask.newCooldowns || {}).length === 0"
-                            style="color:#999;font-size:13px;">暂无冷却中的账号</span>
-                    </div>
-                </div>
-
-                <!-- ✅ 新增：配对统计 (当前任务) -->
+                <!-- ✅ 配对统计 (当前任务) -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                         <span style="font-weight:bold;font-size:13px;">配对统计 (当前任务)</span>
                     </div>
-                    <div
-                        style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px; max-height: 100px; overflow-y: auto;">
-                        <!-- 养号账号统计 -->
-                        <template v-for="acc in detailTask.nurtureAccounts" :key="'nurture-' + acc">
-                            <el-tag size="small" type="success" style="margin:2px;">
-                                🟡 {{ acc }}: 配对 {{ accountPairCounts[acc] || 0 }} 次
-                            </el-tag>
-                        </template>
-                        <!-- 新号账号统计 -->
-                        <template v-for="acc in detailTask.newAccounts" :key="'new-' + acc">
-                            <el-tag size="small" type="info" style="margin:2px;">
-                                🔵 {{ acc }}: 配对 {{ accountPairCounts[acc] || 0 }} 次
-                            </el-tag>
-                        </template>
+
+                    <div style="display:flex;gap:12px;">
+                        <!-- 左侧：养号账号 -->
+                        <div style="flex:1; background:#f5f7fa; padding:10px; border-radius:4px;">
+                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🟡 养号账号</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:120px; overflow-y:auto;">
+                                <template v-for="acc in detailTask.nurtureAccounts" :key="'nurture-' + acc">
+                                    <el-tag size="small" type="success" style="margin:2px;">
+                                        {{ acc }}: {{ accountPairCounts[acc] || 0 }} 次
+                                    </el-tag>
+                                </template>
+                                <span v-if="!detailTask.nurtureAccounts || detailTask.nurtureAccounts.length === 0"
+                                    style="color:#999;font-size:12px;">无</span>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：新号 -->
+                        <div style="flex:1; background:#f5f7fa; padding:10px; border-radius:4px;">
+                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🔵 新号</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:120px; overflow-y:auto;">
+                                <template v-for="acc in detailTask.newAccounts" :key="'new-' + acc">
+                                    <el-tag size="small" type="info" style="margin:2px;">
+                                        {{ acc }}: {{ accountPairCounts[acc] || 0 }} 次
+                                    </el-tag>
+                                </template>
+                                <span v-if="!detailTask.newAccounts || detailTask.newAccounts.length === 0"
+                                    style="color:#999;font-size:12px;">无</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -333,19 +323,19 @@
                             会话列表 ({{ sessionTotal }})
                             <span style="font-size:12px;color:#999;font-weight:normal;margin-left:8px;">
                                 显示第 {{ (sessionPage - 1) * sessionPageSize + 1 }} - {{ Math.min(sessionPage *
-                                sessionPageSize,
-                                sessionTotal) }} 条
+                                    sessionPageSize,
+                                    sessionTotal) }} 条
                             </span>
                         </span>
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -396,7 +386,7 @@
                             <template #default="{ row }">
                                 <span v-if="row.endReason"
                                     :style="{ color: row.status === 'completed' ? '#67c23a' : '#f56c6c', fontSize: '12px' }">{{
-                                    row.endReason }}</span>
+                                        row.endReason }}</span>
                                 <span v-else style="color:#999;font-size:12px;">-</span>
                             </template>
                         </el-table-column>
@@ -427,13 +417,13 @@
                                                 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
                                                 :title="`${item.session.nurtureAcc} ↔ ${item.session.newAcc}`">
                                                 {{ item.session.nurtureAcc }} <span style="color:#409eff;">↔</span> {{
-                                                item.session.newAcc }}
+                                                    item.session.newAcc }}
                                             </span>
                                             <el-tag size="small" style="flex-shrink: 0;"
                                                 :type="item.session.status === 'completed' ? 'success' : item.session.status === 'failed' ? 'danger' : 'warning'">
                                                 {{ item.session.status === 'completed' ? '完成' : item.session.status ===
-                                                'failed'
-                                                ? '失败' : '进行中' }}
+                                                    'failed'
+                                                    ? '失败' : '进行中' }}
                                             </el-tag>
                                         </div>
                                         <div
@@ -460,7 +450,7 @@
                                     style="padding:10px; border-bottom:1px solid #ebeef5; background:#fff; font-weight:bold;">
                                     {{ currentSessionInfo ? `${currentSessionInfo.nurtureAcc} ↔
                                     ${currentSessionInfo.newAcc}` :
-                                    '请选择左侧会话' }}
+                                        '请选择左侧会话' }}
                                 </div>
                                 <div style="flex:1; overflow-y: auto; padding:15px; background:#f5f7fa;">
                                     <div v-if="!currentSessionId"
@@ -470,7 +460,7 @@
                                         <div v-if="msg.isSimulated"
                                             style="text-align:center; font-size:12px; color:#999; margin-bottom:10px;">
                                             -- {{
-                                            msg.fromAccount }} 发送了模拟消息 --</div>
+                                                msg.fromAccount }} 发送了模拟消息 --</div>
                                         <div v-else
                                             :style="{ display: 'flex', flexDirection: 'column', alignItems: msg.fromAccount === currentSessionInfo?.nurtureAcc ? 'flex-end' : 'flex-start' }">
                                             <div style="font-size:12px; color:#999; margin-bottom:4px; padding: 0 4px;">
@@ -478,16 +468,16 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
                                                     {{ msg.status === 'read' ? '已读' : msg.status === 'delivered' ? '已送达'
-                                                    : '已发送'
+                                                        : '已发送'
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -536,7 +526,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
