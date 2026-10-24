@@ -284,7 +284,7 @@
                 <!-- ✅ 配对进度统计 -->
                 <div style="margin-top:12px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-weight:bold;font-size:13px;">配对进度 (已执行 / 总分配)</span>
+                        <span style="font-weight:bold;font-size:13px;">配对进度 (已完成 / 总分配)</span>
                     </div>
 
                     <div style="display:flex;gap:12px;">
