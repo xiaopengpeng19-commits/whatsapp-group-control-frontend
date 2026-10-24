@@ -223,14 +223,14 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">
@@ -262,7 +262,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -293,11 +293,11 @@
                             <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🟡 养号账号</div>
                             <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:160px; overflow-y:auto;">
                                 <template v-for="acc in detailTask.nurtureAccounts" :key="'nurture-' + acc">
+                                    <!-- ✅ 优先判断未登录为 danger(红) -->
                                     <el-tag size="small"
-                                        :type="(accountPairStats[acc]?.completed || 0) === (accountPairStats[acc]?.total || 0) ? 'success' : 'warning'"
+                                        :type="isAccountBanned(acc) ? 'danger' : ((accountPairStats[acc]?.completed || 0) === (accountPairStats[acc]?.total || 0) ? 'success' : 'warning')"
                                         style="margin:2px;">
                                         {{ acc }}:
-                                        <!-- ✅ 这里把 processed 换成了 completed -->
                                         <strong>{{ accountPairStats[acc]?.completed || 0 }}</strong> / {{
                                         accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
@@ -312,11 +312,11 @@
                             <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🔵 新号</div>
                             <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:160px; overflow-y:auto;">
                                 <template v-for="acc in detailTask.newAccounts" :key="'new-' + acc">
+                                    <!-- ✅ 优先判断未登录为 danger(红) -->
                                     <el-tag size="small"
-                                        :type="(accountPairStats[acc]?.completed || 0) === (accountPairStats[acc]?.total || 0) ? 'success' : 'info'"
+                                        :type="isAccountBanned(acc) ? 'danger' : ((accountPairStats[acc]?.completed || 0) === (accountPairStats[acc]?.total || 0) ? 'success' : 'info')"
                                         style="margin:2px;">
                                         {{ acc }}:
-                                        <!-- ✅ 这里把 processed 换成了 completed -->
                                         <strong>{{ accountPairStats[acc]?.completed || 0 }}</strong> / {{
                                         accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
@@ -342,12 +342,12 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -480,7 +480,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -489,7 +489,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -538,7 +538,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
@@ -642,7 +642,13 @@ const createForm = reactive({
     newCooldownMin: 10,
     newCooldownMax: 20,
 })
-
+// ✅ 判断账号是否未登录（封禁）
+const isAccountBanned = (acc) => {
+    const found = allAccounts.value.find(a => a.account === acc)
+    if (!found) return false
+    // ✅ 只要未登录，就视为封禁
+    return !found.isLogin
+}
 // 详情
 const showDetailDialog = ref(false)
 const detailTask = ref(null)
