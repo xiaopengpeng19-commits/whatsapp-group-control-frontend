@@ -223,14 +223,14 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                        }}</el-tag>
+                            }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                    }}s</el-descriptions-item>
+                        }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">
@@ -256,13 +256,13 @@
                         <el-tag type="success" size="small">{{ pairStats.completed || 0 }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="封禁">
-                        <el-tag type="danger" size="small">{{ pairStats.banned || 0 }}</el-tag>
+                        <el-tag type="danger" size="small">{{ bannedCount || 0 }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                    }}</el-descriptions-item>
+                        }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -299,7 +299,7 @@
                                         style="margin:2px;">
                                         {{ acc }}:
                                         <strong>{{ accountPairStats[acc]?.completed || 0 }}</strong> / {{
-                                        accountPairStats[acc]?.total || 0 }}
+                                            accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
                                 </template>
                                 <span v-if="!detailTask.nurtureAccounts || detailTask.nurtureAccounts.length === 0"
@@ -318,7 +318,7 @@
                                         style="margin:2px;">
                                         {{ acc }}:
                                         <strong>{{ accountPairStats[acc]?.completed || 0 }}</strong> / {{
-                                        accountPairStats[acc]?.total || 0 }}
+                                            accountPairStats[acc]?.total || 0 }}
                                     </el-tag>
                                 </template>
                                 <span v-if="!detailTask.newAccounts || detailTask.newAccounts.length === 0"
@@ -342,12 +342,12 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                            }}</el-tag>
+                                }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                            }}</el-tag>
+                                }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                            }}</el-tag>
+                                }}</el-tag>
                         </div>
                     </div>
 
@@ -480,7 +480,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                }}</span>
+                                                    }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -489,7 +489,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                }}轮]</span>
+                                                    }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -538,7 +538,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                        }}</span>
+                                            }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
@@ -781,6 +781,15 @@ const runningPairs = computed(() => {
     return detailTask.value.pairList.filter(p => p.status === 'running')
 })
 
+const bannedCount = computed(() => {
+    let count = 0
+    // 遍历所有账号的登录状态
+    Object.values(accountStatuses.value).forEach(isLogin => {
+        if (!isLogin) count++
+    })
+    return count
+})
+
 const getStatusLabel = (status) => statusMap[status] || status
 const getStatusType = (status) => statusTypeMap[status] || 'info'
 const formatTime = (time) => time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : '-'
@@ -952,7 +961,7 @@ const fetchTaskDetail = async () => {
             repeatMessages.value = res.data.repeat_messages || []
             repeatTotal.value = res.data.repeat_total || 0
             pairStats.value = res.data.pair_stats || {}
-            
+
             // ✅ 赋值配对统计
             accountPairCounts.value = res.data.account_pair_counts || {}
             accountPairStats.value = res.data.account_pair_stats || {} // ✅ 接收
