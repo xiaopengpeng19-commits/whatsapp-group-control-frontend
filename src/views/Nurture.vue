@@ -603,6 +603,7 @@ import nurtureApi from '@/api/nurture'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+const accountStatuses = ref({})
 const sessionList = ref([])
 const sessionListPage = ref(1)
 const sessionListPageSize = ref(20)
@@ -644,10 +645,8 @@ const createForm = reactive({
 })
 // ✅ 判断账号是否未登录（封禁）
 const isAccountBanned = (acc) => {
-    const found = allAccounts.value.find(a => a.account === acc)
-    if (!found) return false
-    // ✅ 只要未登录，就视为封禁
-    return !found.isLogin
+    // 如果后端明确返回了 false，说明掉线/封禁
+    return accountStatuses.value[acc] === false
 }
 // 详情
 const showDetailDialog = ref(false)
@@ -953,10 +952,11 @@ const fetchTaskDetail = async () => {
             repeatMessages.value = res.data.repeat_messages || []
             repeatTotal.value = res.data.repeat_total || 0
             pairStats.value = res.data.pair_stats || {}
-
+            
             // ✅ 赋值配对统计
             accountPairCounts.value = res.data.account_pair_counts || {}
             accountPairStats.value = res.data.account_pair_stats || {} // ✅ 接收
+            accountStatuses.value = res.data.account_statuses || {} // ✅ 接收状态
         }
     } catch (error) {
         console.error('获取详情失败:', error)
