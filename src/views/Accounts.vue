@@ -280,21 +280,25 @@
             </el-button>
 
             <!-- 私聊按钮 -->
-            <el-button size="small" type="info" @click="showPrivateMessages(row.account)">
-              <el-icon>
-                <ChatDotRound />
-              </el-icon> 私聊
-            </el-button>
+            <!--
+<el-button size="small" type="info" @click="showPrivateMessages(row.account)">
+  <el-icon>
+    <ChatDotRound />
+  </el-icon> 私聊
+</el-button>
+-->
 
             <!-- 二维码 -->
             <el-button size="small" type="info" @click="showQRCode(row)">二维码</el-button>
 
             <!-- 删除 -->
-            <el-button size="small" type="danger" @click="handleDelete(row.account)">
-              <el-icon>
-                <Delete />
-              </el-icon> 删除
-            </el-button>
+            <!--
+<el-button size="small" type="danger" @click="handleDelete(row.account)">
+  <el-icon>
+    <Delete />
+  </el-icon> 删除
+</el-button>
+-->
           </div>
         </template>
       </el-table-column>
