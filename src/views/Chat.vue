@@ -301,25 +301,18 @@
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
         </el-descriptions>
 
-        <!-- 参与账号 -->
-        <div style="margin-top:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-weight:bold;font-size:13px;">参与账号</span>
-            <span style="color:#999;font-size:12px;">
-              共 {{ detailTask.accounts?.length || 0 }} 个
-              <el-tag size="small" type="success" v-if="onlineCount > 0">在线 {{ onlineCount }}</el-tag>
-              <el-tag size="small" type="info" v-if="offlineCount > 0">离线 {{ offlineCount }}</el-tag>
-              <el-tag size="small" type="warning" v-if="cooldownCount > 0">冷却中 {{ cooldownCount }}</el-tag>
-              <el-tag size="small" type="danger" v-if="bannedCount > 0">封禁 {{ bannedCount }}</el-tag>
-              <el-tag size="small" type="warning" v-if="loggingCount > 0">登录中 {{ loggingCount }}</el-tag>
-              <el-tag size="small" type="info" v-if="unknownCount > 0">未知 {{ unknownCount }}</el-tag>
-            </span>
-          </div>
-          <div
-            style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;max-height:60px;overflow:hidden;"
-            :style="showAllAccounts ? 'max-height:none;' : ''">
-            <template v-for="(acc, index) in detailTask.accounts" :key="acc">
-              <el-tag v-if="index < 10 || showAllAccounts" :type="getAccountStatusType(acc)" size="small"
+        <div
+          style="display:flex;flex-direction:column;gap:8px; padding:10px; background:#f5f7fa; border-radius:4px; max-height:200px; overflow-y:auto;">
+          <div v-for="group in groupedAccounts" :key="group.groupName">
+            <!-- 分组标题 -->
+            <div
+              style="font-size:12px; color:#409eff; font-weight:bold; margin-bottom:6px; border-bottom:1px dashed #dcdfe6; padding-bottom:2px;">
+              📁 {{ group.groupName }} ({{ group.accounts.length }}个)
+            </div>
+
+            <!-- 组内账号 -->
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <el-tag v-for="acc in group.accounts" :key="acc" :type="getAccountStatusType(acc)" size="small"
                 style="margin:2px;">
                 {{ acc }}
                 <span style="margin-left:4px;font-size:10px;color:#999;">
@@ -334,16 +327,8 @@
                   </span>
                 </span>
               </el-tag>
-            </template>
-            <el-tag v-if="detailTask.accounts?.length > 10 && !showAllAccounts" size="small" type="info"
-              style="margin:2px;cursor:pointer;" @click="showAllAccounts = true">
-              +{{ detailTask.accounts.length - 10 }}
-            </el-tag>
+            </div>
           </div>
-          <el-button v-if="detailTask.accounts?.length > 10" size="small" type="primary" plain
-            @click="showAllAccounts = !showAllAccounts" style="margin-top:4px;">
-            {{ showAllAccounts ? '收起' : `展开全部 (${detailTask.accounts.length}个)` }}
-          </el-button>
         </div>
 
         <!-- 参数和统计 -->
@@ -1388,7 +1373,7 @@ const fetchTaskMessages = async () => {
     console.error(error)
   }
 }
-
+const groupedAccounts = ref([])
 const showTaskDetail = async (row) => {
   showDetailDialog.value = true
   detailLoading.value = true
@@ -1420,6 +1405,7 @@ const showTaskDetail = async (row) => {
       detailTask.value = res.data.task
       sessions.value = res.data.sessions || []
       accountPairs.value = res.data.account_pairs || {}
+      groupedAccounts.value = res.data.grouped_accounts || []
       accountUniquePairs.value = res.data.account_unique_pairs || {}
       await nextTick()
     }
