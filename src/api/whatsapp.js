@@ -16,7 +16,7 @@ export default {
 
   // 更新代理分组
   updateProxyGroup: (account, data) => api.put(`/whatsapp/accounts/${account}/proxygroup`, data),
-
+  updateTag: (account, data) => api.put(`/whatsapp/accounts/${account}/tag`, data),
   // ==================== 消息管理 ====================
   sendMessage: (data) => api.post("/whatsapp/messages/send", data),
   getMessages: (params) => api.get("/whatsapp/messages/get", { params }),

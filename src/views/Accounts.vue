@@ -6,7 +6,8 @@
         <!-- 搜索框 -->
         <el-input v-model="searchKeyword" placeholder="搜索账号" clearable prefix-icon="Search" style="width:200px"
           @input="debounceFetchAccounts" />
-
+        <!-- ✅ 新增：按手机编号筛选 -->
+        <el-input v-model="filterPhoneTag" placeholder="手机编号" clearable style="width:120px" @change="fetchAccounts" />
         <!-- 状态筛选 -->
         <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchAccounts" style="width:120px">
           <el-option label="全部状态" value="" />
@@ -153,6 +154,24 @@
 
             <!-- 编辑按钮：固定宽度，永远在右侧 -->
             <el-button link type="primary" size="small" @click="openRemarkDialog(row)" style="flex-shrink: 0;">
+              <el-icon>
+                <Edit />
+              </el-icon>
+            </el-button>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="tag" label="标记" width="120">
+        <template #default="{ row }">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <!-- 拼接展示：1-1 这种格式 -->
+            <div style="font-size:13px; color:#409eff; margin-right: 8px;">
+              <span v-if="row.phoneTag || row.positionTag">
+                {{ row.phoneTag || '-' }} - {{ row.positionTag || '-' }}
+              </span>
+              <span v-else style="color:#999;">-</span>
+            </div>
+            <el-button link type="primary" size="small" @click="openTagDialog(row)" style="flex-shrink: 0;">
               <el-icon>
                 <Edit />
               </el-icon>
@@ -310,6 +329,24 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- ✅ 标记编辑弹窗 -->
+    <el-dialog v-model="showTagDialog" title="编辑标记" width="400px">
+      <el-form label-width="80px">
+        <el-form-item label="账号">
+          <span style="font-family:monospace;">{{ tagForm.account }}</span>
+        </el-form-item>
+        <el-form-item label="手机编号">
+          <el-input v-model="tagForm.phoneTag" placeholder="如：1" />
+        </el-form-item>
+        <el-form-item label="位置编号">
+          <el-input v-model="tagForm.positionTag" placeholder="如：2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showTagDialog = false">取消</el-button>
+        <el-button type="primary" :loading="tagSaving" @click="handleSaveTag">保存</el-button>
+      </template>
+    </el-dialog>
     <!-- 备注编辑弹窗 -->
     <el-dialog v-model="showRemarkDialog" title="编辑备注" width="500px">
       <el-form label-width="80px">
@@ -742,6 +779,44 @@ import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+
+const showTagDialog = ref(false)
+const tagSaving = ref(false)
+const tagForm = reactive({
+  account: '',
+  phoneTag: '',
+  positionTag: ''
+})
+
+const openTagDialog = (row) => {
+  tagForm.account = row.account
+  tagForm.phoneTag = row.phoneTag || ''
+  tagForm.positionTag = row.positionTag || ''
+  showTagDialog.value = true
+}
+
+const handleSaveTag = async () => {
+  if (!tagForm.account) return
+  tagSaving.value = true
+  try {
+    const res = await api.put(`/whatsapp/accounts/${tagForm.account}/tag`, {
+      phoneTag: tagForm.phoneTag.trim(),
+      positionTag: tagForm.positionTag.trim()
+    })
+    if (res.code === 0) {
+      ElMessage.success('标记已保存')
+      showTagDialog.value = false
+      fetchAccounts()
+    } else {
+      ElMessage.error(res.message || '保存失败')
+    }
+  } catch (e) {
+    ElMessage.error('保存失败: ' + (e.message || ''))
+  } finally {
+    tagSaving.value = false
+  }
+}
+
 // 备注弹窗
 const showRemarkDialog = ref(false)
 const remarkSaving = ref(false)
@@ -879,6 +954,7 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
+const filterPhoneTag = ref('')
 const filterStatus = ref('')
 const clearQueueLoading = ref(false)
 const filterGroup = ref('')
@@ -1032,6 +1108,7 @@ const fetchAccounts = async () => {
     if (filterGroup.value) params.group = filterGroup.value
     if (filterStatus.value) params.status = filterStatus.value
     if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (filterPhoneTag.value) params.phone_tag = filterPhoneTag.value // ✅ 新增
     if (filterIsLogin.value !== '') params.is_login = filterIsLogin.value
     const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
