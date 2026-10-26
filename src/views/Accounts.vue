@@ -237,14 +237,17 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="配对" width="130" align="center">
+      <el-table-column label="配对" width="140" align="center">
         <template #default="{ row }">
-          <el-tag size="small" type="info">
-            {{ row.chatPairs || 0 }}
-            <span style="color:#409eff;">
-              ({{ (row.chatPairedWith || []).length }})
-            </span>
-          </el-tag>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <el-tag size="small" type="info">
+              {{ row.chatPairs || 0 }}
+              <span style="color:#409eff;">({{ (row.chatPairedWith || []).length }})</span>
+            </el-tag>
+            <el-button link type="primary" size="small" @click="openPairsDialog(row)" style="flex-shrink: 0;">
+              查看
+            </el-button>
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="groupMsgSent" label="群发消息" width="100" align="center">
@@ -329,6 +332,53 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+    <!-- 配对详情弹窗 -->
+    <el-dialog v-model="showPairsDialog" :title="`配对详情 - ${pairInfo.account}`" width="650px">
+      <div v-loading="pairsLoading">
+        <!-- 顶部信息 -->
+        <div
+          style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; background: #f5f7fa; padding: 10px 15px; border-radius: 4px;">
+          <span>
+            当前账号标记:
+            <el-tag v-if="pairInfo.phoneTag || pairInfo.positionTag" type="success" size="small">
+              {{ pairInfo.phoneTag || '-' }} - {{ pairInfo.positionTag || '-' }}
+            </el-tag>
+            <span v-else style="color:#999;">未设置</span>
+          </span>
+          <el-divider direction="vertical" />
+          <span>发起配对总次数: <strong style="color:#409eff;">{{ pairInfo.totalPairs }}</strong></span>
+          <el-divider direction="vertical" />
+          <span>配对不同账号数: <strong style="color:#409eff;">{{ pairInfo.pairedList.length }}</strong></span>
+        </div>
+
+        <!-- 列表 -->
+        <el-table :data="pairInfo.pairedList" border max-height="400" size="small" stripe>
+          <el-table-column type="index" label="#" width="50" align="center" />
+          <el-table-column prop="account" label="配对账号" min-width="140">
+            <template #default="{ row }">
+              <span style="font-family: monospace; font-weight: 500;">{{ row.account }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="对方标记" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.phoneTag || row.positionTag" type="warning" size="small">
+                {{ row.phoneTag || '-' }} - {{ row.positionTag || '-' }}
+              </el-tag>
+              <span v-else style="color: #999;">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="对方备注" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ row.remark || '-' }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <template #footer>
+        <el-button @click="showPairsDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
     <!-- ✅ 标记编辑弹窗 -->
     <el-dialog v-model="showTagDialog" title="编辑标记" width="400px">
       <el-form label-width="80px">
@@ -779,7 +829,40 @@ import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+// ✅ 配对详情弹窗状态
+const showPairsDialog = ref(false)
+const pairsLoading = ref(false)
+const pairInfo = reactive({
+  account: '',
+  phoneTag: '',
+  positionTag: '',
+  totalPairs: 0,
+  pairedList: []
+})
 
+const openPairsDialog = async (row) => {
+  pairInfo.account = row.account
+  pairInfo.phoneTag = row.phoneTag || ''
+  pairInfo.positionTag = row.positionTag || ''
+  pairInfo.totalPairs = row.chatPairs || 0
+  pairInfo.pairedList = []
+  showPairsDialog.value = true
+  pairsLoading.value = true
+
+  try {
+    const res = await api.get(`/whatsapp/accounts/${row.account}/pairs`)
+    if (res.code === 0) {
+      pairInfo.totalPairs = res.data.total_pairs
+      pairInfo.pairedList = res.data.paired_list || []
+    } else {
+      ElMessage.error(res.message || '获取配对记录失败')
+    }
+  } catch (e) {
+    ElMessage.error('获取失败: ' + (e.message || ''))
+  } finally {
+    pairsLoading.value = false
+  }
+}
 const showTagDialog = ref(false)
 const tagSaving = ref(false)
 const tagForm = reactive({
