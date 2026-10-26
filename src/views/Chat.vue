@@ -301,8 +301,20 @@
           <el-descriptions-item label="消息间隔">{{ detailTask.minDelay }}~{{ detailTask.maxDelay }}s</el-descriptions-item>
         </el-descriptions>
 
+        <!-- ✅ 账号状态统计 -->
         <div
-          style="display:flex;flex-direction:column;gap:8px; padding:10px; background:#f5f7fa; border-radius:4px; max-height:200px; overflow-y:auto;">
+          style="margin-top:12px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; padding: 8px 12px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ebeef5; font-size: 13px;">
+          <span style="font-weight:bold; color:#606266;">账号统计:</span>
+          <span style="color:#67c23a;">🟢 在线: <strong>{{ onlineCount }}</strong></span>
+          <span style="color:#f56c6c;">🚫 封禁: <strong>{{ bannedCount }}</strong></span>
+          <span style="color:#e6a23c;">⏳ 冷却中: <strong>{{ cooldownCount }}</strong></span>
+          <span style="color:#909399;">⚪ 离线: <strong>{{ offlineCount }}</strong></span>
+          <span style="color:#409eff;">🟡 登录中: <strong>{{ loggingCount }}</strong></span>
+          <span style="color:#909399;">❓ 未知: <strong>{{ unknownCount }}</strong></span>
+        </div>
+
+        <div
+          style="margin-top:12px; display:flex;flex-direction:column;gap:8px; padding:10px; background:#f5f7fa; border-radius:4px; max-height:200px; overflow-y:auto;">
           <div v-for="group in groupedAccounts" :key="group.groupName">
             <!-- 分组标题 -->
             <div
@@ -419,7 +431,7 @@
             style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
             <el-tag v-for="session in displaySessions" :key="session.id" type="success" size="small"
               style="margin:2px;">
-              {{ session.accountA }} ↔ {{ session.accountB }}
+              {{ formatAccount(session.accountA) }} ↔ {{ formatAccount(session.accountB) }}
               <span style="margin-left:4px;font-size:11px;color:#999;">
                 {{ getCurrentRound(session) }}/{{ session.maxRounds }}轮
               </span>
@@ -476,9 +488,9 @@
                   style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
                   <span
                     style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
-                    :title="`${item.session.displayAccountA || item.session.accountA} ↔ ${item.session.displayAccountB || item.session.accountB}`">
-                    {{ item.session.displayAccountA || item.session.accountA }} <span style="color:#409eff;">↔</span> {{
-                      item.session.displayAccountB || item.session.accountB }}
+                    :title="`${formatAccount(item.session.accountA)} ↔ ${formatAccount(item.session.accountB)}`">
+                    {{ formatAccount(item.session.accountA) }} <span style="color:#409eff;">↔</span> {{
+                      formatAccount(item.session.accountB) }}
                   </span>
                   <el-tag size="small" style="flex-shrink: 0;"
                     :type="item.session.status === 'active' ? 'warning' : 'success'">
@@ -510,9 +522,8 @@
             <div
               style="padding:10px; background:#fff; border-bottom:1px solid #ebeef5; display:flex; justify-content:space-between; align-items:center;">
               <span style="font-weight:bold; font-size:13px;">
-                {{ currentChatSessionInfo ? `${currentChatSessionInfo.displayAccountA ||
-                  currentChatSessionInfo.accountA} ↔
-                ${currentChatSessionInfo.displayAccountB || currentChatSessionInfo.accountB}` : '请选择左侧会话' }}
+                {{ currentChatSessionInfo ? `${formatAccount(currentChatSessionInfo.accountA)} ↔
+                ${formatAccount(currentChatSessionInfo.accountB)}` : '请选择左侧会话' }}
               </span>
               <div style="display:flex; align-items:center; gap:8px;">
                 <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:100px"
@@ -657,10 +668,7 @@ import { Plus, Refresh, Search, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
 
-
-
 const searchChatAccount = ref('')
-
 const refreshAccountTimer = ref(null)
 
 const chatSessionList = ref([])
@@ -674,22 +682,19 @@ const sessionListTotal = ref(0)
 const messagePage = ref(1)
 const messagePageSize = ref(20)
 
-
 // 刷新状态
 const listRefreshing = ref(false)
 const handleSearchChat = () => {
-  sessionListPage.value = 1 // 搜索时重置到第一页
+  sessionListPage.value = 1
   fetchChatSessions(detailTask.value.id)
 }
+
 // 手动刷新列表
 const manualRefreshList = async () => {
   if (!detailTask.value) return
   listRefreshing.value = true
   try {
-    // 1. 刷新左侧会话列表
     await fetchChatSessions(detailTask.value.id)
-
-    // 2. 重新拉取任务详情，更新顶部的“活跃会话”和统计数据
     const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
     if (res.code === 0) {
       sessions.value = res.data.sessions || []
@@ -711,7 +716,7 @@ const fetchChatSessions = async (taskId) => {
       params: {
         page: sessionListPage.value,
         page_size: sessionListPageSize.value,
-        account: searchChatAccount.value // ✅ 把搜索号码传给后端
+        account: searchChatAccount.value
       }
     })
     if (res.code === 0) {
@@ -723,18 +728,19 @@ const fetchChatSessions = async (taskId) => {
   }
 }
 
-// 2. 点击左侧会话
+// 点击左侧会话
 const selectChatSession = (session) => {
   if (currentChatSessionId.value === session.id) return
   currentChatSessionId.value = session.id
   currentChatSessionInfo.value = session
-  detailMessages.value = [] // 秒清空
+  detailMessages.value = []
   messagePage.value = 1
-  fetchChatMessagesOnly()   // ✅ 只查这个
+  fetchChatMessagesOnly()
 }
 
 const removeFilterGroups = ref([])
 const accountUniquePairs = ref({})
+
 // ============ 状态 ============
 const tasks = ref([])
 const allAccounts = ref([])
@@ -777,7 +783,6 @@ const showEditMaxConcurrentDialog = ref(false)
 const editMaxConcurrentValue = ref(2)
 const updatingMaxConcurrent = ref(false)
 
-
 const showEditMaxRepeatDialog = ref(false)
 const editMaxRepeatValue = ref(0)
 const updatingMaxRepeat = ref(false)
@@ -817,7 +822,6 @@ const addAccountsGroup = ref([])
 const addAccountsText = ref('')
 const managingAccounts = ref(false)
 
-
 const handleRemoveByGroups = async () => {
   if (!manageTask.value || removeFilterGroups.value.length === 0) return
 
@@ -838,17 +842,11 @@ const handleRemoveByGroups = async () => {
     })
     if (res.code === 0) {
       ElMessage.success(`已移除 ${res.data.removed} 个账号`)
-
-      // 刷新任务
       await fetchTasks()
-
-      // 刷新管理弹窗里的任务数据
       const detailRes = await api.get(`/chat/tasks/${manageTask.value.id}`)
       if (detailRes.code === 0) {
         manageTask.value = detailRes.data.task
       }
-
-      // 清空
       removeFilterGroups.value = []
       selectedRemove.value = []
     } else {
@@ -860,18 +858,13 @@ const handleRemoveByGroups = async () => {
     managingAccounts.value = false
   }
 }
+
 // 管理账号：按状态排序
 const sortedManageAccounts = computed(() => {
   if (!manageTask.value || !manageTask.value.accounts) return []
 
   const statusOrder = {
-    'online': 1,
-    'normal': 1,
-    'logging': 2,
-    'offline': 3,
-    'banned': 4,
-    'expired': 4,
-    'unknown': 5
+    'online': 1, 'normal': 1, 'logging': 2, 'offline': 3, 'banned': 4, 'expired': 4, 'unknown': 5
   }
 
   return [...manageTask.value.accounts].sort((a, b) => {
@@ -883,6 +876,7 @@ const sortedManageAccounts = computed(() => {
     return a.localeCompare(b)
   })
 })
+
 // ============ 创建表单 ============
 const createForm = reactive({
   name: '',
@@ -898,7 +892,7 @@ const createForm = reactive({
   pairIntervalMin: 30,
   pairIntervalMax: 99,
   maxPairsPerAccount: 0,
-  maxRepeatPairs: 2,  // ✅ 默认允许同两个人聊 2 次
+  maxRepeatPairs: 2,
   allowSameCountry: false
 })
 
@@ -914,23 +908,18 @@ const displaySessions = computed(() => activeSessions.value.length > 10 && !show
 const onlineCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🟢').length || 0
 )
-
 const offlineCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '⚪').length || 0
 )
-
 const bannedCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🚫').length || 0
 )
-
 const cooldownCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '⏳').length || 0
 )
-
 const loggingCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '🟡').length || 0
 )
-
 const unknownCount = computed(() =>
   detailTask.value?.accounts.filter(a => getAccountStatusShort(a) === '❓').length || 0
 )
@@ -964,6 +953,16 @@ const getMessageStatusLabel = (status) => {
 const formatTime = (time) => {
   if (!time) return '-'
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+}
+
+// ✅ 新增：前端自动拼接号码和分组
+const formatAccount = (acc) => {
+  if (!acc) return ''
+  const found = allAccounts.value.find(a => a.account === acc)
+  if (found && found.group) {
+    return `${acc}(${found.group})`
+  }
+  return acc
 }
 
 // ============ 账号状态函数 ============
@@ -1114,21 +1113,22 @@ const handleUpdateMaxConcurrent = async () => {
 const openManageAccounts = (row) => {
   manageTask.value = row
   selectedRemove.value = []
-  removeFilterGroups.value = []   // ✅ 清空
+  removeFilterGroups.value = []
   addAccountsGroup.value = []
   addAccountsText.value = ''
   showManageDialog.value = true
 }
+
 const handleChatSessionPageChange = () => {
   currentChatSessionId.value = ''
   currentChatSessionInfo.value = null
   detailMessages.value = []
   messageTotal.value = 0
-
   if (detailTask.value) {
     fetchChatSessions(detailTask.value.id)
   }
 }
+
 const handleAddAccounts = async () => {
   if (!manageTask.value) return
 
@@ -1340,12 +1340,10 @@ const refreshAccountsStatus = async () => {
   } catch (error) { }
 }
 
-// ✅ 消息筛选变化
 const onMessageFilterChange = () => {
   fetchTaskMessages()
 }
 
-// ✅ 重置消息筛选
 const resetMessageFilter = () => {
   messageFilterAccount.value = ''
   messageFilterStatus.value = ''
@@ -1375,6 +1373,7 @@ const fetchTaskMessages = async () => {
     console.error(error)
   }
 }
+
 const groupedAccounts = ref([])
 const showTaskDetail = async (row) => {
   showDetailDialog.value = true
@@ -1387,7 +1386,6 @@ const showTaskDetail = async (row) => {
   showAllAccounts.value = false
   showAllSessions.value = false
 
-  // 清空会话状态
   currentChatSessionId.value = ''
   currentChatSessionInfo.value = null
   messageTotal.value = 0
@@ -1395,13 +1393,9 @@ const showTaskDetail = async (row) => {
   clearPairSearch()
 
   try {
-    // 1. 拉取左侧会话列表（分页 20 条）
     await fetchChatSessions(row.id)
-
-    // 2. 刷新账号状态
     await refreshAccountsStatus()
 
-    // 3. 获取任务基本参数（此时不查具体消息，因为没选会话）
     const res = await api.get(`/chat/tasks/${row.id}`)
     if (res.code === 0) {
       detailTask.value = res.data.task
@@ -1417,12 +1411,9 @@ const showTaskDetail = async (row) => {
     detailLoading.value = false
   }
 
-  // 4. 定时刷新
   if (detailTimer.value) clearInterval(detailTimer.value)
   detailTimer.value = setInterval(async () => {
     if (!showDetailDialog.value || !detailTask.value) return
-
-    // ✅ 1. 如果整个任务已经完成或停止，彻底不轮询
     if (detailTask.value.status === 'completed' || detailTask.value.status === 'stopped') {
       return
     }
@@ -1430,13 +1421,11 @@ const showTaskDetail = async (row) => {
     try {
       const res = await api.get(`/chat/tasks/${detailTask.value.id}`)
       if (res.code === 0) {
-        // 更新左侧会话列表
         sessions.value = res.data.sessions || []
         detailTask.value = res.data.task
         accountPairs.value = res.data.account_pairs || {}
         accountUniquePairs.value = res.data.account_unique_pairs || {}
 
-        // ✅ 2. 顺便同步一下当前选中会话的最新状态
         if (currentChatSessionId.value) {
           const latestSession = sessions.value.find(s => s.id === currentChatSessionId.value)
           if (latestSession) {
@@ -1445,10 +1434,8 @@ const showTaskDetail = async (row) => {
         }
       }
 
-      // ✅ 3. 判断当前选中会话的状态（这时候拿到的是最新的）
       const isSessionCompleted = currentChatSessionInfo.value && currentChatSessionInfo.value.status === 'completed'
 
-      // 4. 只有会话还在进行中，才去拉具体的聊天消息
       if (currentChatSessionId.value && !isSessionCompleted) {
         await fetchChatMessagesOnly()
       }
@@ -1463,6 +1450,7 @@ const showTaskDetail = async (row) => {
     }
   }, 60000)
 }
+
 const fetchChatMessagesOnly = async () => {
   if (!detailTask.value || !currentChatSessionId.value) return
   try {
@@ -1473,7 +1461,6 @@ const fetchChatMessagesOnly = async () => {
     }
     if (messageFilterStatus.value) params.status = messageFilterStatus.value
 
-    // ✅ 调新接口，只查这几十条消息，不查整个任务详情
     const res = await api.get(`/chat/tasks/${detailTask.value.id}/messages`, { params })
     if (res.code === 0) {
       detailMessages.value = res.data.messages || []
@@ -1481,12 +1468,10 @@ const fetchChatMessagesOnly = async () => {
     }
   } catch (error) { }
 }
+
 const closeDetail = () => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
-
-  // ✅ 清理账号刷新定时器
   if (refreshAccountTimer.value) { clearInterval(refreshAccountTimer.value); refreshAccountTimer.value = null }
-
   showAllAccounts.value = false
   showAllSessions.value = false
   clearPairSearch()
@@ -1501,7 +1486,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (detailTimer.value) { clearInterval(detailTimer.value); detailTimer.value = null }
-  // ✅ 清理
   if (refreshAccountTimer.value) { clearInterval(refreshAccountTimer.value); refreshAccountTimer.value = null }
 })
 </script>
