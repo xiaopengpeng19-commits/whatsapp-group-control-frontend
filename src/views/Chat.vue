@@ -462,7 +462,7 @@
           style="margin-top:12px; display:flex; height:550px; border:1px solid #ebeef5; background:#fff; border-radius: 4px;">
 
           <div
-            style="width: 350px; border-right: 1px solid #ebeef5; background: #fff; display: flex; flex-direction: column;">
+            style="width: 420px; border-right: 1px solid #ebeef5; background: #fff; display: flex; flex-direction: column;">
 
             <!-- ✅ 新增：搜索框 -->
             <div style="padding: 10px; border-bottom: 1px solid #ebeef5; background: #fff;">
