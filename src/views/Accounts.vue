@@ -206,19 +206,7 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="proxyGroup" label="代理分组" width="100">
-        <template #default="{ row }">
-          <el-tag size="small" :type="row.proxyGroup ? 'primary' : 'info'">
-            {{ row.proxyGroup || '未分配' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="proxy" label="代理IP" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">
-          <span v-if="row.proxy" style="font-size:12px;font-family:monospace;">{{ row.proxy }}</span>
-          <span v-else style="color:#999;font-size:12px;">未分配</span>
-        </template>
-      </el-table-column>
+
       <el-table-column prop="status" label="状态" width="130">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
@@ -248,6 +236,19 @@
               查看
             </el-button>
           </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="proxyGroup" label="代理分组" width="100">
+        <template #default="{ row }">
+          <el-tag size="small" :type="row.proxyGroup ? 'primary' : 'info'">
+            {{ row.proxyGroup || '未分配' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="proxy" label="代理IP" min-width="180" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span v-if="row.proxy" style="font-size:12px;font-family:monospace;">{{ row.proxy }}</span>
+          <span v-else style="color:#999;font-size:12px;">未分配</span>
         </template>
       </el-table-column>
       <el-table-column prop="groupMsgSent" label="群发消息" width="100" align="center">
