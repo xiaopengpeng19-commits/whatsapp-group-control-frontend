@@ -476,8 +476,9 @@
                   style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
                   <span
                     style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
-                    :title="`${item.session.accountA} ↔ ${item.session.accountB}`">
-                    {{ item.session.accountA }} <span style="color:#409eff;">↔</span> {{ item.session.accountB }}
+                    :title="`${item.session.displayAccountA || item.session.accountA} ↔ ${item.session.displayAccountB || item.session.accountB}`">
+                    {{ item.session.displayAccountA || item.session.accountA }} <span style="color:#409eff;">↔</span> {{
+                      item.session.displayAccountB || item.session.accountB }}
                   </span>
                   <el-tag size="small" style="flex-shrink: 0;"
                     :type="item.session.status === 'active' ? 'warning' : 'success'">
@@ -509,8 +510,9 @@
             <div
               style="padding:10px; background:#fff; border-bottom:1px solid #ebeef5; display:flex; justify-content:space-between; align-items:center;">
               <span style="font-weight:bold; font-size:13px;">
-                {{ currentChatSessionInfo ? `${currentChatSessionInfo.accountA} ↔ ${currentChatSessionInfo.accountB}` :
-                  '请选择左侧会话' }}
+                {{ currentChatSessionInfo ? `${currentChatSessionInfo.displayAccountA ||
+                  currentChatSessionInfo.accountA} ↔
+                ${currentChatSessionInfo.displayAccountB || currentChatSessionInfo.accountB}` : '请选择左侧会话' }}
               </span>
               <div style="display:flex; align-items:center; gap:8px;">
                 <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:100px"
