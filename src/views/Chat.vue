@@ -1087,7 +1087,7 @@ const handleUpdateMaxPairs = async () => {
   }
 }
 
-// ✅ 新增：判断配对记录里账号的状态标签
+// ✅ 修正后的判断逻辑
 const getPairTagType = (acc) => {
   // 1. 如果已经被踢出任务，直接标红
   if (!(detailTask.value.accounts || []).includes(acc)) {
@@ -1096,11 +1096,13 @@ const getPairTagType = (acc) => {
 
   // 2. 如果还在任务里，查一下状态
   const statusInfo = getAccountStatus(acc)
-  if (statusInfo.status === 'banned' || statusInfo.status === 'expired' || statusInfo.status === 'offline') {
-    return 'danger' // 封禁、过期、离线都是红色
+
+  // 只有明确被封禁或过期，才标红
+  if (statusInfo.status === 'banned' || statusInfo.status === 'expired') {
+    return 'danger'
   }
 
-  // 3. 正常在线/登录中的，显示绿色
+  // 3. 正常在线、离线、登录中，都显示绿色
   return 'success'
 }
 
