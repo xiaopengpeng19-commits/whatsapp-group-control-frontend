@@ -499,9 +499,14 @@
                     <span style="color:#909399; font-weight: normal; margin: 0 4px;">↔</span>
                     <span style="color: #67c23a; font-weight: 600;">{{ formatAccount(item.session.accountB) }}</span>
                   </span>
-                  <el-tag size="small" style="flex-shrink: 0;"
-                    :type="item.session.status === 'active' ? 'warning' : 'success'">
-                    {{ item.session.status === 'active' ? '进行中' : '完成' }}
+                  <el-tag size="small" style="flex-shrink: 0;" :type="item.session.status === 'active' ? 'warning' :
+                      (item.session.status === 'failed' || item.session.status === 'ended' ? 'danger' : 'success')
+                    ">
+                    {{
+                      item.session.status === 'active' ? '进行中' :
+                        (item.session.status === 'failed' ? '失败' :
+                          (item.session.status === 'ended' ? '中断' : '完成'))
+                    }}
                   </el-tag>
                 </div>
 
