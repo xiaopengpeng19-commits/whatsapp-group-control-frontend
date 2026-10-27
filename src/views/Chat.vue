@@ -500,7 +500,8 @@
                     <span style="color: #67c23a; font-weight: 600;">{{ formatAccount(item.session.accountB) }}</span>
                   </span>
                   <el-tag size="small" style="flex-shrink: 0;" :type="item.session.status === 'active' ? 'warning' :
-                      (item.session.status === 'failed' || item.session.status === 'ended' ? 'danger' : 'success')
+                      (item.session.status === 'failed' ? 'danger' :
+                        (item.session.status === 'ended' ? 'info' : 'success'))
                     ">
                     {{
                       item.session.status === 'active' ? '进行中' :
