@@ -411,10 +411,10 @@
 
                 {{ formatAccount(item.account) }}
 
-                <!-- 如果是封禁、掉线或者不在任务里，加个小提示 -->
+                <!-- 只有红色（被移除或封禁）时才显示提示字眼 -->
                 <span v-if="getPairTagType(item.account) === 'danger'"
                   style="font-size:10px; margin-left:4px; font-weight:normal;">
-                  ({{ (detailTask.accounts || []).includes(item.account) ? '状态异常' : '已移出' }})
+                  ({{ (detailTask.accounts || []).includes(item.account) ? '已封禁' : '已移出' }})
                 </span>
 
                 <span style="margin-left:4px;font-weight:bold;">×{{ item.count }}</span>
