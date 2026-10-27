@@ -435,9 +435,11 @@
           </div>
           <div v-if="activeSessions.length > 0"
             style="display:flex;flex-wrap:wrap;gap:4px;padding:6px;background:#f5f7fa;border-radius:4px;">
-            <el-tag v-for="session in displaySessions" :key="session.id" type="success" size="small"
+            <el-tag v-for="session in displaySessions" :key="session.id" type="info" effect="plain" size="small"
               style="margin:2px;">
-              {{ formatAccount(session.accountA) }} ↔ {{ formatAccount(session.accountB) }}
+              <span style="color: #409eff; font-weight: bold;">{{ formatAccount(session.accountA) }}</span>
+              <span style="color:#909399;">↔</span>
+              <span style="color: #67c23a; font-weight: bold;">{{ formatAccount(session.accountB) }}</span>
               <span style="margin-left:4px;font-size:11px;color:#999;">
                 {{ getCurrentRound(session) }}/{{ session.maxRounds }}轮
               </span>
@@ -492,11 +494,10 @@
                 <!-- 账号对 -->
                 <div
                   style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 13px; margin-bottom: 6px;">
-                  <span
-                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 8px;"
-                    :title="`${formatAccount(item.session.accountA)} ↔ ${formatAccount(item.session.accountB)}`">
-                    {{ formatAccount(item.session.accountA) }} <span style="color:#409eff;">↔</span> {{
-                      formatAccount(item.session.accountB) }}
+                  <span style="flex: 1; margin-right: 8px; word-break: break-all; line-height: 1.4;">
+                    <span style="color: #409eff; font-weight: 600;">{{ formatAccount(item.session.accountA) }}</span>
+                    <span style="color:#909399; font-weight: normal; margin: 0 4px;">↔</span>
+                    <span style="color: #67c23a; font-weight: 600;">{{ formatAccount(item.session.accountB) }}</span>
                   </span>
                   <el-tag size="small" style="flex-shrink: 0;"
                     :type="item.session.status === 'active' ? 'warning' : 'success'">
@@ -528,8 +529,12 @@
             <div
               style="padding:10px; background:#fff; border-bottom:1px solid #ebeef5; display:flex; justify-content:space-between; align-items:center;">
               <span style="font-weight:bold; font-size:13px;">
-                {{ currentChatSessionInfo ? `${formatAccount(currentChatSessionInfo.accountA)} ↔
-                ${formatAccount(currentChatSessionInfo.accountB)}` : '请选择左侧会话' }}
+                <template v-if="currentChatSessionInfo">
+                  <span style="color: #409eff;">{{ formatAccount(currentChatSessionInfo.accountA) }}</span>
+                  <span style="color:#909399; font-weight: normal; margin: 0 6px;">↔</span>
+                  <span style="color: #67c23a;">{{ formatAccount(currentChatSessionInfo.accountB) }}</span>
+                </template>
+                <span v-else>请选择左侧会话</span>
               </span>
               <div style="display:flex; align-items:center; gap:8px;">
                 <el-select v-model="messageFilterStatus" placeholder="全部状态" clearable size="small" style="width:100px"
@@ -570,7 +575,11 @@
                     style="font-size:12px; color:#999; margin-bottom:4px; padding: 0 4px; display: flex; align-items: center;">
 
                     <!-- ✅ 直接显示号码，并加上 A/B 标识 -->
-                    <span style="font-weight:600; color: #333; margin-right: 8px;">
+                    <span :style="{
+                      fontWeight: 600,
+                      marginRight: '8px',
+                      color: (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? '#409eff' : '#67c23a'
+                    }">
                       {{ (currentChatSessionInfo && msg.fromAccount === currentChatSessionInfo.accountA) ? 'A: ' : 'B: '
                       }}{{ msg.fromAccount }}
                     </span>
