@@ -399,7 +399,8 @@
           <!-- 查询结果 -->
           <div v-if="pairSearchResult" style="padding:8px 12px;background:#f5f7fa;border-radius:4px;">
             <div style="font-size:13px;margin-bottom:6px;">
-              <strong>{{ pairSearchResult.account }}</strong>
+              <!-- 这里也加上 ✅ -->
+              <strong>{{ formatAccount(pairSearchResult.account) }}</strong>
               共配过
               <el-tag size="small" type="primary">{{ pairSearchResult.pairedWith.length }}</el-tag>
               个账号
@@ -407,7 +408,8 @@
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <el-tag v-for="item in pairSearchResult.pairedWith" :key="item.account" size="small" type="success"
                 style="margin:2px;">
-                {{ item.account }}
+                <!-- 这里用 formatAccount 包裹 ✅ -->
+                {{ formatAccount(item.account) }}
                 <span style="margin-left:4px;font-weight:bold;">×{{ item.count }}</span>
               </el-tag>
               <span v-if="pairSearchResult.pairedWith.length === 0" style="color:#999;font-size:13px;">
