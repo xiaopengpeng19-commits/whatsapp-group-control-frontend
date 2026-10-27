@@ -406,9 +406,8 @@
               个账号
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
-              <el-tag v-for="item in pairSearchResult.pairedWith" :key="item.account" size="small" type="success"
-                style="margin:2px;">
-                <!-- 这里用 formatAccount 包裹 ✅ -->
+              <el-tag v-for="item in pairSearchResult.pairedWith" :key="item.account" size="small"
+                :type="(detailTask.accounts || []).includes(item.account) ? 'success' : 'info'" style="margin:2px;">
                 {{ formatAccount(item.account) }}
                 <span style="margin-left:4px;font-weight:bold;">×{{ item.count }}</span>
               </el-tag>
