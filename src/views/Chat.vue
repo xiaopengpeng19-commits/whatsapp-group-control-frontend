@@ -407,13 +407,18 @@
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <el-tag v-for="item in pairSearchResult.pairedWith" :key="item.account" size="small"
-                :type="(detailTask.accounts || []).includes(item.account) ? 'success' : 'info'" style="margin:2px;">
+                :type="getPairTagType(item.account)" effect="plain" style="margin:2px;">
+
                 {{ formatAccount(item.account) }}
+
+                <!-- 如果是封禁、掉线或者不在任务里，加个小提示 -->
+                <span v-if="getPairTagType(item.account) === 'danger'"
+                  style="font-size:10px; margin-left:4px; font-weight:normal;">
+                  ({{ (detailTask.accounts || []).includes(item.account) ? '状态异常' : '已移出' }})
+                </span>
+
                 <span style="margin-left:4px;font-weight:bold;">×{{ item.count }}</span>
               </el-tag>
-              <span v-if="pairSearchResult.pairedWith.length === 0" style="color:#999;font-size:13px;">
-                没有配对记录
-              </span>
             </div>
           </div>
 
@@ -1080,6 +1085,23 @@ const handleUpdateMaxPairs = async () => {
   } finally {
     updatingMaxPairs.value = false
   }
+}
+
+// ✅ 新增：判断配对记录里账号的状态标签
+const getPairTagType = (acc) => {
+  // 1. 如果已经被踢出任务，直接标红
+  if (!(detailTask.value.accounts || []).includes(acc)) {
+    return 'danger'
+  }
+
+  // 2. 如果还在任务里，查一下状态
+  const statusInfo = getAccountStatus(acc)
+  if (statusInfo.status === 'banned' || statusInfo.status === 'expired' || statusInfo.status === 'offline') {
+    return 'danger' // 封禁、过期、离线都是红色
+  }
+
+  // 3. 正常在线/登录中的，显示绿色
+  return 'success'
 }
 
 // ============ 修改最大并发 ============
