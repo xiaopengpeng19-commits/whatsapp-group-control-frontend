@@ -360,6 +360,16 @@
               <span style="font-family: monospace; font-weight: 500;">{{ row.account }}</span>
             </template>
           </el-table-column>
+
+          <!-- ✅ 新增：凭证状态列 -->
+          <el-table-column label="凭证状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small" effect="plain">
+                {{ row.isLogin ? '正常' : '丢失' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
           <el-table-column label="对方标记" width="120" align="center">
             <template #default="{ row }">
               <el-tag v-if="row.phoneTag || row.positionTag" type="warning" size="small">
