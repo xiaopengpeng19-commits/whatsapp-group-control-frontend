@@ -361,11 +361,12 @@
             </template>
           </el-table-column>
 
-          <!-- ✅ 新增：凭证状态列 -->
-          <el-table-column label="凭证状态" width="100" align="center">
+
+          <!-- ✅ 修改：登录状态列 -->
+          <el-table-column label="登录状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small" effect="plain">
-                {{ row.isLogin ? '正常' : '丢失' }}
+                {{ row.isLogin ? '已登录' : '未登录' }}
               </el-tag>
             </template>
           </el-table-column>
