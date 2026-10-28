@@ -114,12 +114,12 @@
               <Delete />
             </el-icon> 清空重连队列
           </el-button>
-          <el-button type="danger" @click="handleBatchDelete" :disabled="selectedAccounts.length === 0"
+          <!-- <el-button type="danger" @click="handleBatchDelete" :disabled="selectedAccounts.length === 0"
             :loading="batchDeleteLoading" size="default">
             <el-icon>
               <Delete />
             </el-icon> 批量删除
-          </el-button>
+          </el-button> -->
         </div>
       </div>
     </div>
