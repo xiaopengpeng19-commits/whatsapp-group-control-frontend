@@ -309,7 +309,11 @@
                     <div style="display:flex;gap:12px;">
                         <!-- 左侧：养号账号 -->
                         <div style="flex:1; background:#f5f7fa; padding:10px; border-radius:4px;">
-                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🟡 养号账号</div>
+                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🟡 养号账号
+                                <span style="color:#409eff; font-weight:normal; margin-left:4px;">
+                                    ({{ detailTask.nurtureGroup || '未分组' }})
+                                </span>
+                            </div>
                             <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:160px; overflow-y:auto;">
                                 <template v-for="acc in detailTask.nurtureAccounts" :key="'nurture-' + acc">
                                     <!-- ✅ 优先判断未登录为 danger(红) -->
@@ -328,7 +332,11 @@
 
                         <!-- 右侧：新号 -->
                         <div style="flex:1; background:#f5f7fa; padding:10px; border-radius:4px;">
-                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🔵 新号</div>
+                            <div style="font-size:12px; color:#666; margin-bottom:8px; font-weight:bold;">🔵 新号
+                                <span style="color:#409eff; font-weight:normal; margin-left:4px;">
+                                    ({{ detailTask.newGroup || '未分组' }})
+                                </span>
+                            </div>
                             <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:160px; overflow-y:auto;">
                                 <template v-for="acc in detailTask.newAccounts" :key="'new-' + acc">
                                     <!-- ✅ 优先判断未登录为 danger(红) -->
