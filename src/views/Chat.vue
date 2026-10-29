@@ -305,6 +305,7 @@
         <div
           style="margin-top:12px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; padding: 8px 12px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ebeef5; font-size: 13px;">
           <span style="font-weight:bold; color:#606266;">账号统计:</span>
+          <span style="color:#606266;">总数: <strong>{{ detailTask.accounts?.length || 0 }}</strong></span>
           <span style="color:#67c23a;">🟢 在线: <strong>{{ onlineCount }}</strong></span>
           <span style="color:#f56c6c;">🚫 封禁: <strong>{{ bannedCount }}</strong></span>
           <span style="color:#e6a23c;">⏳ 冷却中: <strong>{{ cooldownCount }}</strong></span>
@@ -500,8 +501,8 @@
                     <span style="color: #67c23a; font-weight: 600;">{{ formatAccount(item.session.accountB) }}</span>
                   </span>
                   <el-tag size="small" style="flex-shrink: 0;" :type="item.session.status === 'active' ? 'warning' :
-                      (item.session.status === 'failed' ? 'danger' :
-                        (item.session.status === 'ended' ? 'info' : 'success'))
+                    (item.session.status === 'failed' ? 'danger' :
+                      (item.session.status === 'ended' ? 'info' : 'success'))
                     ">
                     {{
                       item.session.status === 'active' ? '进行中' :
