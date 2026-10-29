@@ -338,7 +338,7 @@
       <div v-loading="pairsLoading">
         <!-- 顶部信息 -->
         <div
-          style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; background: #f5f7fa; padding: 10px 15px; border-radius: 4px;">
+          style="margin-bottom: 15px; display: flex; gap: 15px; align-items: center; background: #f5f7fa; padding: 10px 15px; border-radius: 4px; flex-wrap: wrap;">
           <span>
             当前账号标记:
             <el-tag v-if="pairInfo.phoneTag || pairInfo.positionTag" type="success" size="small">
@@ -350,10 +350,19 @@
           <span>发起配对总次数: <strong style="color:#409eff;">{{ pairInfo.totalPairs }}</strong></span>
           <el-divider direction="vertical" />
           <span>配对不同账号数: <strong style="color:#409eff;">{{ pairInfo.pairedList.length }}</strong></span>
+
+          <!-- ✅ 新增：搜索过滤 -->
+          <div style="margin-left: auto;">
+            <el-select v-model="pairFilterLogin" placeholder="筛选登录状态" clearable size="small" style="width: 130px;">
+              <el-option label="全部" value="" />
+              <el-option label="已登录" value="true" />
+              <el-option label="未登录" value="false" />
+            </el-select>
+          </div>
         </div>
 
         <!-- 列表 -->
-        <el-table :data="pairInfo.pairedList" border max-height="400" size="small" stripe>
+        <el-table :data="filteredPairs" border max-height="400" size="small" stripe>
           <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="account" label="配对账号" min-width="140">
             <template #default="{ row }">
@@ -842,6 +851,8 @@ import api from '@/api'
 import dayjs from 'dayjs'
 
 // ✅ 配对详情弹窗状态
+
+const pairFilterLogin = ref('')
 const showPairsDialog = ref(false)
 const pairsLoading = ref(false)
 const pairInfo = reactive({
@@ -851,7 +862,13 @@ const pairInfo = reactive({
   totalPairs: 0,
   pairedList: []
 })
-
+const filteredPairs = computed(() => {
+  if (!pairInfo.pairedList) return []
+  if (pairFilterLogin.value === '') return pairInfo.pairedList
+  
+  const targetVal = pairFilterLogin.value === 'true'
+  return pairInfo.pairedList.filter(item => item.isLogin === targetVal)
+})
 const openPairsDialog = async (row) => {
   pairInfo.account = row.account
   pairInfo.phoneTag = row.phoneTag || ''
