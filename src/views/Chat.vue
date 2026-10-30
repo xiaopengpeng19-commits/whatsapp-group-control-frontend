@@ -198,17 +198,27 @@
             <span class="section-line"></span>
             配对间隔
           </div>
-          <el-form-item label="配对间隔">
+          <el-form-item label="配对间隔" v-if="createForm.accountGroups.length === 0">
             <div class="range-wrapper">
-              <el-input-number v-model="createForm.pairIntervalMin" :min="1" :max="999" size="large"
-                controls-position="right" style="width: 130px;" />
-              <span class="range-sep">~</span>
-              <el-input-number v-model="createForm.pairIntervalMax" :min="2" :max="999" size="large"
-                controls-position="right" style="width: 130px;" />
-              <span class="range-unit">分钟</span>
+              <!-- 原本的全局配对间隔设置 -->
             </div>
-            <div class="form-tip">账号完成对话后，在此范围内随机冷却，冷却结束后可再次配对</div>
+            <div class="form-tip">请先选择账号分组，然后设置各个分组的专属间隔</div>
           </el-form-item>
+
+          <!-- ✅ 新增：分组独立冷却配置 -->
+          <template v-if="createForm.accountGroups.length > 0">
+            <el-form-item v-for="group in createForm.accountGroups" :key="group" :label="`[${group}] 冷却间隔`">
+              <div class="range-wrapper">
+                <el-input-number v-model="createForm.groupCooldowns[group].min" :min="1" :max="9999" size="large"
+                  controls-position="right" style="width: 130px;" />
+                <span class="range-sep">~</span>
+                <el-input-number v-model="createForm.groupCooldowns[group].max" :min="2" :max="9999" size="large"
+                  controls-position="right" style="width: 130px;" />
+                <span class="range-unit">分钟</span>
+              </div>
+              <div class="form-tip">账号完成对话后，在此范围内随机冷却</div>
+            </el-form-item>
+          </template>
         </div>
       </el-form>
 
@@ -915,8 +925,19 @@ const createForm = reactive({
   pairIntervalMax: 99,
   maxPairsPerAccount: 0,
   maxRepeatPairs: 2,
-  allowSameCountry: false
+  allowSameCountry: false,
+  groupCooldowns: {} // ✅ 新增
 })
+
+// 监听分组选择的变化
+watch(() => createForm.accountGroups, (newGroups) => {
+  newGroups.forEach(g => {
+    // 如果这个分组还没配置，给个默认值 30~45
+    if (!createForm.groupCooldowns[g]) {
+      createForm.groupCooldowns[g] = { min: 30, max: 45 }
+    }
+  })
+}, { deep: true })
 
 // ============ 计算属性 ============
 const simulatedCount = computed(() => detailMessages.value.filter(m => m.isSimulated).length)
