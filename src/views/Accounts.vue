@@ -393,11 +393,37 @@
               {{ row.remark || '-' }}
             </template>
           </el-table-column>
+          <!-- ✅ 新增：发消息列 -->
+          <el-table-column label="操作" width="100" align="center">
+            <template #default="{ row }">
+              <el-button size="small" type="primary" plain @click="openSendMsg(row)">
+                发消息
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
 
       <template #footer>
         <el-button @click="showPairsDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
+    <!-- ✅ 新增：快捷发消息弹窗 -->
+    <el-dialog v-model="showSendMsgDialog" :title="`代发消息 - 以 ${sendMsgForm.to} 的身份`" width="500px">
+      <el-form label-width="80px">
+        <el-form-item label="发送方">
+          <span style="font-family: monospace;">{{ sendMsgForm.to }}</span> <!-- ✅ 这里改成对方 -->
+        </el-form-item>
+        <el-form-item label="接收方">
+          <span style="font-family: monospace;">{{ pairInfo.account }}</span> <!-- ✅ 这里改成自己 -->
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input v-model="sendMsgForm.content" type="textarea" :rows="4" placeholder="请输入要代发的文本内容" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showSendMsgDialog = false">取消</el-button>
+        <el-button type="primary" :loading="sendingMsg" @click="handleSendMsg">发送</el-button>
       </template>
     </el-dialog>
     <!-- ✅ 标记编辑弹窗 -->
@@ -850,6 +876,51 @@ import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
+// ✅ 新增：发消息相关状态
+const showSendMsgDialog = ref(false)
+const sendingMsg = ref(false)
+const sendMsgForm = reactive({
+  to: '',
+  content: ''
+})
+
+// 打开弹窗
+const openSendMsg = (row) => {
+  sendMsgForm.to = row.account
+  sendMsgForm.content = ''
+  showSendMsgDialog.value = true
+}
+
+// 发送请求
+
+const handleSendMsg = async () => {
+  if (!sendMsgForm.content.trim()) {
+    ElMessage.warning('请输入消息内容')
+    return
+  }
+
+  sendingMsg.value = true
+  try {
+    // ✅ 修改：用对方账号作为发送方，当前账号作为接收方
+    const res = await api.post('/whatsapp/messages/send', {
+      account: sendMsgForm.to,        // 发送方：配对账号（对方）
+      to: pairInfo.account,           // 接收方：当前打开的账号
+      type: 'text',
+      content: sendMsgForm.content.trim()
+    })
+
+    if (res.code === 0) {
+      ElMessage.success('消息发送成功')
+      showSendMsgDialog.value = false
+    } else {
+      ElMessage.error(res.message || '发送失败')
+    }
+  } catch (e) {
+    ElMessage.error('发送失败: ' + (e.message || ''))
+  } finally {
+    sendingMsg.value = false
+  }
+}
 // ✅ 配对详情弹窗状态
 
 const pairFilterLogin = ref('')
@@ -865,7 +936,7 @@ const pairInfo = reactive({
 const filteredPairs = computed(() => {
   if (!pairInfo.pairedList) return []
   if (pairFilterLogin.value === '') return pairInfo.pairedList
-  
+
   const targetVal = pairFilterLogin.value === 'true'
   return pairInfo.pairedList.filter(item => item.isLogin === targetVal)
 })
