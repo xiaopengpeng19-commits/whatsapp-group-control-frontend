@@ -394,11 +394,17 @@
             </template>
           </el-table-column>
           <!-- ✅ 新增：发消息列 -->
-          <el-table-column label="操作" width="100" align="center">
+          <!-- ✅ 修改：操作列 -->
+          <el-table-column label="操作" width="180" align="center">
             <template #default="{ row }">
-              <el-button size="small" type="primary" plain @click="openSendMsg(row)">
-                发消息
-              </el-button>
+              <div style="display:flex; gap: 4px; justify-content: center;">
+                <el-button size="small" type="primary" plain @click="openSendMsg(row, 'send')">
+                  发消息
+                </el-button>
+                <el-button size="small" type="success" plain @click="openSendMsg(row, 'reply')">
+                  回消息
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -408,17 +414,24 @@
         <el-button @click="showPairsDialog = false">关闭</el-button>
       </template>
     </el-dialog>
-    <!-- ✅ 新增：快捷发消息弹窗 -->
-    <el-dialog v-model="showSendMsgDialog" :title="`代发消息 - 以 ${sendMsgForm.to} 的身份`" width="500px">
+    <!-- ✅ 修改：快捷发消息弹窗 -->
+    <el-dialog v-model="showSendMsgDialog"
+      :title="sendMsgForm.actionType === 'send' ? `发送消息 - 发给 ${sendMsgForm.to}` : `回消息 - 模拟 ${sendMsgForm.to} 回复`"
+      width="500px">
       <el-form label-width="80px">
         <el-form-item label="发送方">
-          <span style="font-family: monospace;">{{ sendMsgForm.to }}</span> <!-- ✅ 这里改成对方 -->
+          <span style="font-family: monospace; color: #409eff;">
+            {{ sendMsgForm.actionType === 'send' ? pairInfo.account : sendMsgForm.to }}
+          </span>
         </el-form-item>
         <el-form-item label="接收方">
-          <span style="font-family: monospace;">{{ pairInfo.account }}</span> <!-- ✅ 这里改成自己 -->
+          <span style="font-family: monospace; color: #67c23a;">
+            {{ sendMsgForm.actionType === 'send' ? sendMsgForm.to : pairInfo.account }}
+          </span>
         </el-form-item>
         <el-form-item label="内容">
-          <el-input v-model="sendMsgForm.content" type="textarea" :rows="4" placeholder="请输入要代发的文本内容" />
+          <el-input v-model="sendMsgForm.content" type="textarea" :rows="4"
+            :placeholder="sendMsgForm.actionType === 'send' ? '请输入要发送的文本内容' : '请输入要模拟对方回复的内容'" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -881,13 +894,15 @@ const showSendMsgDialog = ref(false)
 const sendingMsg = ref(false)
 const sendMsgForm = reactive({
   to: '',
-  content: ''
+  content: '',
+  actionType: 'send' // ✅ 新增：记录是 'send' (A发给B) 还是 'reply' (B发给A)
 })
 
 // 打开弹窗
-const openSendMsg = (row) => {
+const openSendMsg = (row, type) => {
   sendMsgForm.to = row.account
   sendMsgForm.content = ''
+  sendMsgForm.actionType = type // ✅ 赋值
   showSendMsgDialog.value = true
 }
 
@@ -901,16 +916,20 @@ const handleSendMsg = async () => {
 
   sendingMsg.value = true
   try {
-    // ✅ 修改：用对方账号作为发送方，当前账号作为接收方
+    // ✅ 动态判断谁是发送方，谁是接收方
+    const isSend = sendMsgForm.actionType === 'send'
+    const senderAccount = isSend ? pairInfo.account : sendMsgForm.to
+    const receiverAccount = isSend ? sendMsgForm.to : pairInfo.account
+
     const res = await api.post('/whatsapp/messages/send', {
-      account: sendMsgForm.to,        // 发送方：配对账号（对方）
-      to: pairInfo.account,           // 接收方：当前打开的账号
+      account: senderAccount,   // 发送方
+      to: receiverAccount,      // 接收方
       type: 'text',
       content: sendMsgForm.content.trim()
     })
 
     if (res.code === 0) {
-      ElMessage.success('消息发送成功')
+      ElMessage.success(isSend ? '发送成功' : '模拟回复成功')
       showSendMsgDialog.value = false
     } else {
       ElMessage.error(res.message || '发送失败')
