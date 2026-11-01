@@ -334,7 +334,7 @@
         @current-change="fetchAccounts" />
     </div>
     <!-- 配对详情弹窗 -->
-    <el-dialog v-model="showPairsDialog" :title="`配对详情 - ${pairInfo.account}`" width="650px">
+    <el-dialog v-model="showPairsDialog" :title="`配对详情 - ${pairInfo.account}`" width="750px">
       <div v-loading="pairsLoading">
         <!-- 顶部信息 -->
         <div
