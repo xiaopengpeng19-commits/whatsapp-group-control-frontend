@@ -523,9 +523,17 @@
                 </div>
 
                 <!-- 最后一条消息预览 -->
+                <!-- ✅ 修改后：展示最后活跃时间或失败原因 -->
                 <div style="font-size: 12px; color: #999; display: flex; justify-content: space-between;">
-                  <span>最后活跃:</span>
-                  <span>{{ item.session.lastTime ? formatTime(item.session.lastTime).slice(5, 16) : '暂无记录' }}</span>
+                  <span v-if="item.session.status === 'failed' || item.session.status === 'ended'"
+                    style="color: #f56c6c; font-weight: bold;" :title="item.session.endReason">
+                    失败原因: {{ item.session.endReason || '未知异常' }}
+                  </span>
+                  <span v-else>最后活跃:</span>
+
+                  <span v-if="item.session.status !== 'failed' && item.session.status !== 'ended'">
+                    {{ item.session.lastTime ? formatTime(item.session.lastTime).slice(5, 16) : '暂无记录' }}
+                  </span>
                 </div>
               </div>
               <div v-if="chatSessionList.length === 0" style="text-align:center; padding:20px; color:#999;">暂无会话记录</div>
