@@ -362,7 +362,7 @@
         </div>
 
         <!-- 列表 -->
-        <el-table :data="filteredPairs" border max-height="400" size="small" stripe>
+        <el-table :data="filteredPairs" border max-height="500" size="small" stripe>
           <el-table-column type="index" label="#" width="50" align="center" />
           <el-table-column prop="account" label="配对账号" min-width="140">
             <template #default="{ row }">
@@ -394,11 +394,15 @@
             </template>
           </el-table-column>
           <!-- 操作列 -->
-          <el-table-column label="操作" width="180" align="center">
+          <!-- ✅ 完整的操作列：发消息、回消息、解除配对 -->
+          <el-table-column label="操作" width="260" align="center">
             <template #default="{ row }">
-              <div style="display:flex; gap: 4px; justify-content: center;">
+              <div style="display: flex; gap: 4px; justify-content: center;">
                 <el-button size="small" type="primary" plain @click="openSendMsg(row, 'send')">
                   发消息
+                </el-button>
+                <el-button size="small" type="success" plain @click="openSendMsg(row, 'reply')">
+                  回消息
                 </el-button>
                 <el-button size="small" type="danger" plain @click="handleRemovePair(row)">
                   解除配对
