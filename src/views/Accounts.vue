@@ -393,16 +393,15 @@
               {{ row.remark || '-' }}
             </template>
           </el-table-column>
-          <!-- ✅ 新增：发消息列 -->
-          <!-- ✅ 修改：操作列 -->
+          <!-- 操作列 -->
           <el-table-column label="操作" width="180" align="center">
             <template #default="{ row }">
               <div style="display:flex; gap: 4px; justify-content: center;">
                 <el-button size="small" type="primary" plain @click="openSendMsg(row, 'send')">
                   发消息
                 </el-button>
-                <el-button size="small" type="success" plain @click="openSendMsg(row, 'reply')">
-                  回消息
+                <el-button size="small" type="danger" plain @click="handleRemovePair(row)">
+                  解除配对
                 </el-button>
               </div>
             </template>
@@ -888,6 +887,32 @@ import {
 import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+// 解除配对
+const handleRemovePair = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要解除与 ${row.account} 的配对关系吗？`,
+      '提示',
+      { type: 'warning' }
+    )
+
+    const res = await api.post('/whatsapp/accounts/remove-pair', {
+      account: pairInfo.account, // 当前弹窗的账号
+      peer: row.account          // 列表里的配对账号
+    })
+
+    if (res.code === 0) {
+      ElMessage.success('已解除配对')
+      // 重新拉取当前账号的配对列表刷新页面
+      openPairsDialog({ account: pairInfo.account })
+    } else {
+      ElMessage.error(res.message || '解除失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('解除失败')
+  }
+}
 
 // ✅ 新增：发消息相关状态
 const showSendMsgDialog = ref(false)
