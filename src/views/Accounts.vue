@@ -139,20 +139,18 @@
     </el-card>
 
     <!-- 账号列表 -->
-    <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account">
+    <el-table :data="accounts" v-loading="loading" border @selection-change="handleSelectionChange" row-key="account"
+      @sort-change="handleSortChange">
       <el-table-column type="selection" width="55" />
       <el-table-column prop="account" label="账号" width="140" />
       <el-table-column prop="remark" label="备注" width="200">
         <template #default="{ row }">
           <div style="display:flex; align-items:center; justify-content:space-between;">
-            <!-- 文字部分：固定最大宽度 + 截断 -->
             <div
               style="width: 160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; color:#666; margin-right: 8px;"
               :title="row.remark || '-'">
               {{ row.remark || '-' }}
             </div>
-
-            <!-- 编辑按钮：固定宽度，永远在右侧 -->
             <el-button link type="primary" size="small" @click="openRemarkDialog(row)" style="flex-shrink: 0;">
               <el-icon>
                 <Edit />
@@ -161,10 +159,11 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="tag" label="标记" width="120">
+
+      <!-- ✅ 标记 -->
+      <el-table-column prop="phoneTag" label="标记" width="120" sortable="custom">
         <template #default="{ row }">
           <div style="display:flex; align-items:center; justify-content:space-between;">
-            <!-- 拼接展示：1-1 这种格式 -->
             <div style="font-size:13px; color:#409eff; margin-right: 8px;">
               <span v-if="row.phoneTag || row.positionTag">
                 {{ row.phoneTag || '-' }} - {{ row.positionTag || '-' }}
@@ -179,19 +178,24 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="banCount" label="封禁次数" width="90" align="center">
+
+      <!-- ✅ 封禁次数 -->
+      <el-table-column prop="banCount" label="封禁次数" width="90" align="center" sortable="custom">
         <template #default="{ row }">
           <el-tag v-if="row.banCount > 0" type="danger" size="small">{{ row.banCount }}</el-tag>
           <span v-else style="color:#999;">0</span>
         </template>
       </el-table-column>
-      <el-table-column label="类型" width="80" align="center">
+
+      <!-- ✅ 类型 -->
+      <el-table-column prop="isBusiness" label="类型" width="80" align="center" sortable="custom">
         <template #default="{ row }">
           <el-tag :type="row.isBusiness ? 'warning' : 'info'" size="small">
             {{ row.isBusiness ? '商业' : '个人' }}
           </el-tag>
         </template>
       </el-table-column>
+
       <el-table-column prop="group" label="账号分组" width="100">
         <template #default="{ row }">
           <el-tag size="small" :type="row.group ? 'primary' : 'info'">
@@ -199,7 +203,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="contactCount" label="联系人" width="90" align="center">
+
+      <!-- ✅ 联系人 -->
+      <el-table-column prop="contactCount" label="联系人" width="90" align="center" sortable="custom">
         <template #default="{ row }">
           <el-tag size="small" type="info">
             {{ row.contactCount || 0 }}
@@ -225,7 +231,9 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="配对" width="140" align="center">
+
+      <!-- ✅ 配对 -->
+      <el-table-column prop="chatPairs" label="配对" width="140" align="center" sortable="custom">
         <template #default="{ row }">
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <el-tag size="small" type="info">
@@ -266,10 +274,14 @@
           <el-tag size="small" type="info">{{ row.privateMsgReceived || 0 }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="160">
+
+      <!-- ✅ 创建时间 -->
+      <el-table-column prop="createdAt" label="创建时间" width="160" sortable="custom">
         <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
       </el-table-column>
-      <el-table-column prop="statusAt" label="状态更新时间" width="160">
+
+      <!-- ✅ 状态更新时间 -->
+      <el-table-column prop="statusAt" label="状态更新时间" width="160" sortable="custom">
         <template #default="{ row }">{{ formatTime(row.statusAt) }}</template>
       </el-table-column>
 
@@ -277,8 +289,6 @@
       <el-table-column label="操作" width="280" fixed="right">
         <template #default="{ row }">
           <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <!-- 上线/下线按钮 -->
-            <!-- 上线/下线按钮 -->
             <el-button
               v-if="row.status !== 'online' && row.status !== 'normal' && row.status !== 'logging' && row.status !== 'banned'"
               size="small" type="success" @click="handleOnline(row.account)">
@@ -295,33 +305,13 @@
             <el-button v-else-if="row.status === 'logging'" size="small" type="info" disabled>登录中...</el-button>
             <el-button v-else-if="row.status === 'banned'" size="small" type="danger" disabled>已封禁</el-button>
 
-            <!-- ✅ 新增：联系人按钮 -->
             <el-button size="small" type="primary" @click="showContacts(row.account)">
               <el-icon>
                 <User />
               </el-icon> 联系人
             </el-button>
 
-            <!-- 私聊按钮 -->
-            <!--
-<el-button size="small" type="info" @click="showPrivateMessages(row.account)">
-  <el-icon>
-    <ChatDotRound />
-  </el-icon> 私聊
-</el-button>
--->
-
-            <!-- 二维码 -->
             <el-button size="small" type="info" @click="showQRCode(row)">二维码</el-button>
-
-            <!-- 删除 -->
-            <!--
-<el-button size="small" type="danger" @click="handleDelete(row.account)">
-  <el-icon>
-    <Delete />
-  </el-icon> 删除
-</el-button>
--->
           </div>
         </template>
       </el-table-column>
@@ -333,6 +323,7 @@
         :total="total" layout="total, sizes, prev, pager, next, jumper" @size-change="fetchAccounts"
         @current-change="fetchAccounts" />
     </div>
+
     <!-- 配对详情弹窗 -->
     <el-dialog v-model="showPairsDialog" :title="`配对详情 - ${pairInfo.account}`" width="750px">
       <div v-loading="pairsLoading">
@@ -351,7 +342,6 @@
           <el-divider direction="vertical" />
           <span>配对不同账号数: <strong style="color:#409eff;">{{ pairInfo.pairedList.length }}</strong></span>
 
-          <!-- ✅ 新增：搜索过滤 -->
           <div style="margin-left: auto;">
             <el-select v-model="pairFilterLogin" placeholder="筛选登录状态" clearable size="small" style="width: 130px;">
               <el-option label="全部" value="" />
@@ -370,8 +360,6 @@
             </template>
           </el-table-column>
 
-
-          <!-- ✅ 修改：登录状态列 -->
           <el-table-column label="登录状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="row.isLogin ? 'success' : 'danger'" size="small" effect="plain">
@@ -393,8 +381,7 @@
               {{ row.remark || '-' }}
             </template>
           </el-table-column>
-          <!-- 操作列 -->
-          <!-- ✅ 完整的操作列：发消息、回消息、解除配对 -->
+
           <el-table-column label="操作" width="260" align="center">
             <template #default="{ row }">
               <div style="display: flex; gap: 4px; justify-content: center;">
@@ -417,6 +404,7 @@
         <el-button @click="showPairsDialog = false">关闭</el-button>
       </template>
     </el-dialog>
+
     <!-- ✅ 修改：快捷发消息弹窗 -->
     <el-dialog v-model="showSendMsgDialog"
       :title="sendMsgForm.actionType === 'send' ? `发送消息 - 发给 ${sendMsgForm.to}` : `回消息 - 模拟 ${sendMsgForm.to} 回复`"
@@ -442,6 +430,7 @@
         <el-button type="primary" :loading="sendingMsg" @click="handleSendMsg">发送</el-button>
       </template>
     </el-dialog>
+
     <!-- ✅ 标记编辑弹窗 -->
     <el-dialog v-model="showTagDialog" title="编辑标记" width="400px">
       <el-form label-width="80px">
@@ -460,6 +449,7 @@
         <el-button type="primary" :loading="tagSaving" @click="handleSaveTag">保存</el-button>
       </template>
     </el-dialog>
+
     <!-- 备注编辑弹窗 -->
     <el-dialog v-model="showRemarkDialog" title="编辑备注" width="500px">
       <el-form label-width="80px">
@@ -476,9 +466,8 @@
         <el-button type="primary" :loading="remarkSaving" @click="handleSaveRemark">保存</el-button>
       </template>
     </el-dialog>
-    <!-- ========================================== -->
+
     <!-- 联系人列表弹窗 -->
-    <!-- ========================================== -->
     <el-dialog v-model="showContactsDialog" :title="`联系人 - ${currentContactAccount}`" width="800px"
       :close-on-click-modal="false">
       <div>
@@ -525,6 +514,7 @@
         <el-button type="primary" @click="fetchContacts">刷新</el-button>
       </template>
     </el-dialog>
+
     <!-- 私聊消息弹窗 -->
     <el-dialog v-model="showPrivateDialog" :title="`私聊消息 - ${currentAccount}`" width="900px"
       :close-on-click-modal="false">
@@ -892,85 +882,217 @@ import { whatsapp } from '@/api'
 import api from '@/api'
 import dayjs from 'dayjs'
 
-// 解除配对
-const handleRemovePair = async (row) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要解除与 ${row.account} 的配对关系吗？`,
-      '提示',
-      { type: 'warning' }
-    )
+// ============ 状态 ============
+const filterIsLogin = ref('')
+const accounts = ref([])
+const accountGroups = ref([])
+const proxyGroups = ref([])
+const avatarGroups = ref([])
+const loading = ref(false)
+const qrLoading = ref(false)
+const selectedAccounts = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const searchKeyword = ref('')
+const filterPhoneTag = ref('')
+const filterStatus = ref('')
+const clearQueueLoading = ref(false)
+const filterGroup = ref('')
+const qrCode = ref('')
 
-    const res = await api.post('/whatsapp/accounts/remove-pair', {
-      account: pairInfo.account, // 当前弹窗的账号
-      peer: row.account          // 列表里的配对账号
-    })
+// ✅ 新增：排序状态
+const sortField = ref('')
+const sortOrder = ref('')
 
-    if (res.code === 0) {
-      ElMessage.success('已解除配对')
-      // 重新拉取当前账号的配对列表刷新页面
-      openPairsDialog({ account: pairInfo.account })
-    } else {
-      ElMessage.error(res.message || '解除失败')
-    }
-  } catch (e) {
-    if (e !== 'cancel') ElMessage.error('解除失败')
-  }
-}
+// 弹窗状态
+const showBatchAddDialog = ref(false)
+const showImportDialog = ref(false)
+const showBatchGroupDialog = ref(false)
+const showBatchProxyDialog = ref(false)
+const showGroupProxyDialog = ref(false)
+const showBatchProfileDialog = ref(false)
+const showGroupProfileDialog = ref(false)
+const showQRDialog = ref(false)
+const importing = ref(false)
+const uploadRef = ref(null)
+const importFiles = ref([])
 
-// ✅ 新增：发消息相关状态
-const showSendMsgDialog = ref(false)
-const sendingMsg = ref(false)
-const sendMsgForm = reactive({
-  to: '',
-  content: '',
-  actionType: 'send' // ✅ 新增：记录是 'send' (A发给B) 还是 'reply' (B发给A)
+// 分组上线/下线
+const showGroupOnlineDialog = ref(false)
+const onlineGroup = ref('')
+const groupOnlineLoading = ref(false)
+const showGroupOfflineDialog = ref(false)
+const offlineGroup = ref('')
+const groupOfflineLoading = ref(false)
+
+// 批量改代理
+const batchProxyGroup = ref('')
+const batchProxyLoading = ref(false)
+
+// 分组改代理
+const groupProxyLoading = ref(false)
+const groupProxyForm = reactive({
+  accountGroup: '',
+  proxyGroup: ''
 })
 
-// 打开弹窗
-const openSendMsg = (row, type) => {
-  sendMsgForm.to = row.account
-  sendMsgForm.content = ''
-  sendMsgForm.actionType = type // ✅ 赋值
-  showSendMsgDialog.value = true
+// 分组改资料
+const groupProfileLoading = ref(false)
+const groupProfileForm = reactive({
+  accountGroup: '',
+  nickname: '',
+  avatarType: 'group',
+  avatarGroup: '',
+  imageUrl: '',
+  status: ''
+})
+
+// 批量上线/下线
+const batchOnlineLoading = ref(false)
+const batchOfflineLoading = ref(false)
+
+// 批量删除
+const batchDeleteLoading = ref(false)
+
+// 批量添加账号
+const batchAddLoading = ref(false)
+const batchAddForm = reactive({
+  accountsText: '',
+  group: '',
+  proxyGroup: ''
+})
+
+// 批量修改资料
+const batchProfileLoading = ref(false)
+const avatarFile = ref(null)
+const avatarUploadRef = ref(null)
+const batchProfileForm = reactive({
+  nickname: '',
+  avatarType: 'upload',
+  imageUrl: '',
+  avatarGroup: '',
+  status: ''
+})
+
+// 私聊消息
+const showPrivateDialog = ref(false)
+const currentAccount = ref('')
+const privateMessages = ref([])
+const privateLoading = ref(false)
+const privateTotal = ref(0)
+const privatePage = ref(1)
+const privatePageSize = ref(20)
+
+// 表单
+const importForm = reactive({
+  proxyGroup: '',
+  accountGroup: ''
+})
+const batchGroupForm = reactive({
+  group: ''
+})
+
+// 防抖搜索
+const debounceFetchAccounts = debounce(() => {
+  page.value = 1
+  fetchAccounts()
+}, 500)
+
+// 状态映射
+const statusMap = {
+  'online': '在线',
+  'normal': '在线',
+  'logging': '登录中',
+  'offline': '离线',
+  'banned': '封禁',
+  'expired': '过期',
+  'requesting_pair_code': '请求配对码中',
+  'waiting_pair_code': '等待配对码'
+}
+const statusTypeMap = {
+  'online': 'success',
+  'normal': 'success',
+  'logging': 'warning',
+  'offline': 'info',
+  'banned': 'danger',
+  'expired': 'danger',
+  'requesting_pair_code': 'warning',
+  'waiting_pair_code': 'warning'
+}
+const getStatusText = (s) => statusMap[s] || s || '未知'
+const getStatusType = (s) => statusTypeMap[s] || 'info'
+const formatTime = (t) => t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-'
+
+// ============ 数据获取 ============
+const fetchAccountGroups = async () => {
+  try {
+    const res = await api.get('/whatsapp/accounts/groups')
+    if (res.code === 0) accountGroups.value = res.data || []
+  } catch (e) { }
 }
 
-// 发送请求
-
-const handleSendMsg = async () => {
-  if (!sendMsgForm.content.trim()) {
-    ElMessage.warning('请输入消息内容')
-    return
-  }
-
-  sendingMsg.value = true
+const fetchProxyGroups = async () => {
   try {
-    // ✅ 动态判断谁是发送方，谁是接收方
-    const isSend = sendMsgForm.actionType === 'send'
-    const senderAccount = isSend ? pairInfo.account : sendMsgForm.to
-    const receiverAccount = isSend ? sendMsgForm.to : pairInfo.account
+    const res = await api.get('/proxies/groups')
+    if (res.code === 0) proxyGroups.value = res.data || []
+  } catch (e) { }
+}
 
-    const res = await api.post('/whatsapp/messages/send', {
-      account: senderAccount,   // 发送方
-      to: receiverAccount,      // 接收方
-      type: 'text',
-      content: sendMsgForm.content.trim()
-    })
+const fetchAvatarGroups = async () => {
+  try {
+    const res = await api.get('/avatar-materials/groups')
+    if (res.code === 0) avatarGroups.value = res.data || []
+  } catch (e) { }
+}
 
+// ✅ 修改：获取账号列表，支持排序参数
+const fetchAccounts = async () => {
+  loading.value = true
+  try {
+    const params = { page: page.value, page_size: pageSize.value }
+    if (filterGroup.value) params.group = filterGroup.value
+    if (filterStatus.value) params.status = filterStatus.value
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (filterPhoneTag.value) params.phone_tag = filterPhoneTag.value
+    if (filterIsLogin.value !== '') params.is_login = filterIsLogin.value
+
+    if (sortField.value && sortOrder.value) {
+      params.sort_field = sortField.value
+      params.sort_order = sortOrder.value
+    }
+
+    const res = await api.get('/whatsapp/accounts/list', { params })
     if (res.code === 0) {
-      ElMessage.success(isSend ? '发送成功' : '模拟回复成功')
-      showSendMsgDialog.value = false
-    } else {
-      ElMessage.error(res.message || '发送失败')
+      const result = res.data
+      if (Array.isArray(result)) {
+        accounts.value = result
+        total.value = result.length
+      } else {
+        accounts.value = result.data || []
+        total.value = result.total || 0
+      }
     }
   } catch (e) {
-    ElMessage.error('发送失败: ' + (e.message || ''))
+    ElMessage.error('获取账号列表失败')
   } finally {
-    sendingMsg.value = false
+    loading.value = false
   }
 }
-// ✅ 配对详情弹窗状态
 
+// ✅ 新增：处理表头排序
+const handleSortChange = ({ prop, order }) => {
+  if (order) {
+    sortField.value = prop
+    sortOrder.value = order === 'ascending' ? 'asc' : 'desc'
+  } else {
+    sortField.value = ''
+    sortOrder.value = ''
+  }
+  fetchAccounts()
+}
+
+// ============ 配对详情相关 ============
 const pairFilterLogin = ref('')
 const showPairsDialog = ref(false)
 const pairsLoading = ref(false)
@@ -981,13 +1103,14 @@ const pairInfo = reactive({
   totalPairs: 0,
   pairedList: []
 })
+
 const filteredPairs = computed(() => {
   if (!pairInfo.pairedList) return []
   if (pairFilterLogin.value === '') return pairInfo.pairedList
-
   const targetVal = pairFilterLogin.value === 'true'
   return pairInfo.pairedList.filter(item => item.isLogin === targetVal)
 })
+
 const openPairsDialog = async (row) => {
   pairInfo.account = row.account
   pairInfo.phoneTag = row.phoneTag || ''
@@ -1011,6 +1134,81 @@ const openPairsDialog = async (row) => {
     pairsLoading.value = false
   }
 }
+
+// 解除配对
+const handleRemovePair = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要解除与 ${row.account} 的配对关系吗？`,
+      '提示',
+      { type: 'warning' }
+    )
+
+    const res = await api.post('/whatsapp/accounts/remove-pair', {
+      account: pairInfo.account,
+      peer: row.account
+    })
+
+    if (res.code === 0) {
+      ElMessage.success('已解除配对')
+      openPairsDialog({ account: pairInfo.account })
+    } else {
+      ElMessage.error(res.message || '解除失败')
+    }
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('解除失败')
+  }
+}
+
+// 快捷发消息
+const showSendMsgDialog = ref(false)
+const sendingMsg = ref(false)
+const sendMsgForm = reactive({
+  to: '',
+  content: '',
+  actionType: 'send'
+})
+
+const openSendMsg = (row, type) => {
+  sendMsgForm.to = row.account
+  sendMsgForm.content = ''
+  sendMsgForm.actionType = type
+  showSendMsgDialog.value = true
+}
+
+const handleSendMsg = async () => {
+  if (!sendMsgForm.content.trim()) {
+    ElMessage.warning('请输入消息内容')
+    return
+  }
+
+  sendingMsg.value = true
+  try {
+    const isSend = sendMsgForm.actionType === 'send'
+    const senderAccount = isSend ? pairInfo.account : sendMsgForm.to
+    const receiverAccount = isSend ? sendMsgForm.to : pairInfo.account
+
+    const res = await api.post('/whatsapp/messages/send', {
+      account: senderAccount,
+      to: receiverAccount,
+      type: 'text',
+      content: sendMsgForm.content.trim()
+    })
+
+    if (res.code === 0) {
+      ElMessage.success(isSend ? '发送成功' : '模拟回复成功')
+      showSendMsgDialog.value = false
+    } else {
+      ElMessage.error(res.message || '发送失败')
+    }
+  } catch (e) {
+    ElMessage.error('发送失败: ' + (e.message || ''))
+  } finally {
+    sendingMsg.value = false
+  }
+}
+
+// ============ 标记与备注 ============
 const showTagDialog = ref(false)
 const tagSaving = ref(false)
 const tagForm = reactive({
@@ -1048,7 +1246,6 @@ const handleSaveTag = async () => {
   }
 }
 
-// 备注弹窗
 const showRemarkDialog = ref(false)
 const remarkSaving = ref(false)
 const remarkForm = reactive({
@@ -1090,15 +1287,16 @@ const contacts = ref([])
 const contactsLoading = ref(false)
 const contactTotal = ref(0)
 const contactSearchKeyword = ref('')
+
 const getErrCodeType = (code) => {
   const map = {
-    401: 'warning',   // 凭证失效（橙）
-    403: 'danger',    // 账号被禁（红）
-    404: 'info',      // 账号不存在（灰）
+    401: 'warning',
+    403: 'danger',
+    404: 'info',
   }
   return map[code] || 'danger'
 }
-// 过滤后的联系人
+
 const filteredContacts = computed(() => {
   if (!contactSearchKeyword.value) return contacts.value
   const kw = contactSearchKeyword.value.toLowerCase()
@@ -1136,7 +1334,7 @@ const fetchContacts = async () => {
           }
           return {
             phone: phone,
-            name: String(c.peerName || '')   // ✅ 强制字符串
+            name: String(c.peerName || '')
           }
         })
         .filter(c => c.phone && c.phone !== '0')
@@ -1155,209 +1353,6 @@ const fetchContacts = async () => {
 }
 
 const copyPhone = (phone) => copyToClipboard(phone, '已复制: ' + phone)
-
-const fallbackCopyPhone = (text) => {
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.style.position = 'fixed'
-  textarea.style.left = '-9999px'
-  document.body.appendChild(textarea)
-  textarea.focus()
-  textarea.select()
-  try {
-    document.execCommand('copy')
-    ElMessage.success('已复制: ' + text)
-  } catch (err) {
-    ElMessage.error('复制失败')
-  }
-  document.body.removeChild(textarea)
-}
-// ============ 状态 ============
-const filterIsLogin = ref('')
-const accounts = ref([])
-const accountGroups = ref([])
-const proxyGroups = ref([])
-const avatarGroups = ref([])
-const loading = ref(false)
-const qrLoading = ref(false)
-const selectedAccounts = ref([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = ref(20)
-const searchKeyword = ref('')
-const filterPhoneTag = ref('')
-const filterStatus = ref('')
-const clearQueueLoading = ref(false)
-const filterGroup = ref('')
-const qrCode = ref('')
-
-const showBatchAddDialog = ref(false)
-const showImportDialog = ref(false)
-const showBatchGroupDialog = ref(false)
-const showBatchProxyDialog = ref(false)
-const showGroupProxyDialog = ref(false)
-const showBatchProfileDialog = ref(false)
-const showGroupProfileDialog = ref(false)
-const showQRDialog = ref(false)
-const importing = ref(false)
-const uploadRef = ref(null)
-const importFiles = ref([])
-
-// ============ 分组上线/下线 ============
-const showGroupOnlineDialog = ref(false)
-const onlineGroup = ref('')
-const groupOnlineLoading = ref(false)
-const showGroupOfflineDialog = ref(false)
-const offlineGroup = ref('')
-const groupOfflineLoading = ref(false)
-
-// ============ 批量改代理 ============
-const batchProxyGroup = ref('')
-const batchProxyLoading = ref(false)
-
-// ============ 分组改代理 ============
-const groupProxyLoading = ref(false)
-const groupProxyForm = reactive({
-  accountGroup: '',
-  proxyGroup: ''
-})
-
-// ============ 分组改资料 ============
-const groupProfileLoading = ref(false)
-const groupProfileForm = reactive({
-  accountGroup: '',
-  nickname: '',
-  avatarType: 'group',
-  avatarGroup: '',
-  imageUrl: '',
-  status: ''
-})
-
-// ============ 批量上线/下线 ============
-const batchOnlineLoading = ref(false)
-const batchOfflineLoading = ref(false)
-
-// ============ 批量删除 ============
-const batchDeleteLoading = ref(false)
-
-// ============ 批量添加账号 ============
-const batchAddLoading = ref(false)
-const batchAddForm = reactive({
-  accountsText: '',
-  group: '',
-  proxyGroup: ''
-})
-
-// ============ 批量修改资料 ============
-const batchProfileLoading = ref(false)
-const avatarFile = ref(null)
-const avatarUploadRef = ref(null)
-const batchProfileForm = reactive({
-  nickname: '',
-  avatarType: 'upload',
-  imageUrl: '',
-  avatarGroup: '',
-  status: ''
-})
-
-// ============ 私聊消息 ============
-const showPrivateDialog = ref(false)
-const currentAccount = ref('')
-const privateMessages = ref([])
-const privateLoading = ref(false)
-const privateTotal = ref(0)
-const privatePage = ref(1)
-const privatePageSize = ref(20)
-
-// ============ 表单 ============
-const importForm = reactive({
-  proxyGroup: '',
-  accountGroup: ''
-})
-const batchGroupForm = reactive({
-  group: ''
-})
-
-// ============ 防抖搜索 ============
-const debounceFetchAccounts = debounce(() => {
-  page.value = 1
-  fetchAccounts()
-}, 500)
-
-// ============ 状态映射 ============
-const statusMap = {
-  'online': '在线',
-  'normal': '在线',
-  'logging': '登录中',
-  'offline': '离线',
-  'banned': '封禁',
-  'expired': '过期',
-  'requesting_pair_code': '请求配对码中',
-  'waiting_pair_code': '等待配对码'
-}
-const statusTypeMap = {
-  'online': 'success',
-  'normal': 'success',
-  'logging': 'warning',
-  'offline': 'info',
-  'banned': 'danger',
-  'expired': 'danger',
-  'requesting_pair_code': 'warning',
-  'waiting_pair_code': 'warning'
-}
-const getStatusText = (s) => statusMap[s] || s || '未知'
-const getStatusType = (s) => statusTypeMap[s] || 'info'
-const formatTime = (t) => t ? dayjs(t).format('YYYY-MM-DD HH:mm:ss') : '-'
-
-// ============ 数据获取 ============
-const fetchAccountGroups = async () => {
-  try {
-    const res = await api.get('/whatsapp/accounts/groups')
-    if (res.code === 0) accountGroups.value = res.data || []
-  } catch (e) { }
-}
-
-const fetchProxyGroups = async () => {
-  try {
-    const res = await api.get('/proxies/groups')
-    if (res.code === 0) proxyGroups.value = res.data || []
-  } catch (e) { }
-}
-
-
-const fetchAvatarGroups = async () => {
-  try {
-    const res = await api.get('/avatar-materials/groups')
-    if (res.code === 0) avatarGroups.value = res.data || []
-  } catch (e) { }
-}
-
-const fetchAccounts = async () => {
-  loading.value = true
-  try {
-    const params = { page: page.value, page_size: pageSize.value }
-    if (filterGroup.value) params.group = filterGroup.value
-    if (filterStatus.value) params.status = filterStatus.value
-    if (searchKeyword.value) params.keyword = searchKeyword.value
-    if (filterPhoneTag.value) params.phone_tag = filterPhoneTag.value // ✅ 新增
-    if (filterIsLogin.value !== '') params.is_login = filterIsLogin.value
-    const res = await api.get('/whatsapp/accounts/list', { params })
-    if (res.code === 0) {
-      const result = res.data
-      if (Array.isArray(result)) {
-        accounts.value = result
-        total.value = result.length
-      } else {
-        accounts.value = result.data || []
-        total.value = result.total || 0
-      }
-    }
-  } catch (e) {
-    ElMessage.error('获取账号列表失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 // ============ 私聊消息 ============
 const showPrivateMessages = async (account) => {
@@ -1654,7 +1649,6 @@ const handleGroupProfile = async () => {
     const accounts = res.data.map(a => a.account)
     let hasError = false
 
-    // 修改昵称
     if (hasNickname) {
       const nickRes = await api.post('/whatsapp/accounts/batch/nickname', {
         accounts: accounts,
@@ -1668,7 +1662,6 @@ const handleGroupProfile = async () => {
       }
     }
 
-    // 修改头像 - 从分组选取
     if (hasAvatarGroup) {
       const avatarRes = await api.post('/whatsapp/accounts/batch/avatar-group', {
         accounts: accounts,
@@ -1682,7 +1675,6 @@ const handleGroupProfile = async () => {
       }
     }
 
-    // 修改头像 - URL
     if (hasImageUrl) {
       const avatarRes = await api.post('/whatsapp/accounts/batch/avatar', {
         accounts: accounts,
@@ -1696,7 +1688,6 @@ const handleGroupProfile = async () => {
       }
     }
 
-    // 修改状态
     if (hasStatus) {
       const statusRes = await api.post('/whatsapp/accounts/batch/status', {
         accounts: accounts,
@@ -1953,20 +1944,6 @@ const copyQRCode = () => {
     return
   }
   copyToClipboard(qrCode.value, '已复制链接')
-}
-
-const fallbackCopy = (text) => {
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.style.position = 'fixed'
-  textarea.style.left = '-9999px'
-  textarea.style.top = '-9999px'
-  document.body.appendChild(textarea)
-  textarea.focus()
-  textarea.select()
-  try { document.execCommand('copy'); ElMessage.success('已复制链接') }
-  catch (e) { ElMessage.error('复制失败，请手动复制') }
-  document.body.removeChild(textarea)
 }
 
 // ============ 导出凭证 ============
