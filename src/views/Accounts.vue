@@ -7,7 +7,7 @@
         <el-input v-model="searchKeyword" placeholder="搜索账号" clearable prefix-icon="Search" style="width:200px"
           @input="debounceFetchAccounts" />
         <!-- ✅ 新增：按手机编号筛选 -->
-        <el-input v-model="filterPhoneTag" placeholder="手机编号" clearable style="width:120px" @change="fetchAccounts" />
+        <el-input v-model="filterPhoneTag" placeholder="手机编号" clearable style="width:120px" @input="debounceFetchAccounts" />
         <!-- 状态筛选 -->
         <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchAccounts" style="width:120px">
           <el-option label="全部状态" value="" />
