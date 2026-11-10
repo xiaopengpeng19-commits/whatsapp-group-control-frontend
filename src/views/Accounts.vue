@@ -6,8 +6,9 @@
         <!-- 搜索框 -->
         <el-input v-model="searchKeyword" placeholder="搜索账号" clearable prefix-icon="Search" style="width:200px"
           @input="debounceFetchAccounts" />
-        <!-- ✅ 新增：按手机编号筛选 -->
-        <el-input v-model="filterPhoneTag" placeholder="手机编号" clearable style="width:120px" @input="debounceFetchAccounts" />
+        <!-- ✅ 新增：按手机编号筛选，改成 @input 实时搜索 -->
+        <el-input v-model="filterPhoneTag" placeholder="手机编号" clearable style="width:120px"
+          @input="debounceFetchAccounts" />
         <!-- 状态筛选 -->
         <el-select v-model="filterStatus" placeholder="全部状态" clearable @change="fetchAccounts" style="width:120px">
           <el-option label="全部状态" value="" />
@@ -342,7 +343,18 @@
           <el-divider direction="vertical" />
           <span>配对不同账号数: <strong style="color:#409eff;">{{ pairInfo.pairedList.length }}</strong></span>
 
-          <div style="margin-left: auto;">
+          <!-- ✅ 手动操作区域 -->
+          <div style="margin-left: auto; display: flex; gap: 10px;">
+            <el-button size="small" type="success" @click="showAddPairDialog = true">
+              <el-icon>
+                <Plus />
+              </el-icon> 手动添加
+            </el-button>
+            <el-button size="small" type="danger" @click="showDeletePairDialog = true">
+              <el-icon>
+                <Delete />
+              </el-icon> 手动删除
+            </el-button>
             <el-select v-model="pairFilterLogin" placeholder="筛选登录状态" clearable size="small" style="width: 130px;">
               <el-option label="全部" value="" />
               <el-option label="已登录" value="true" />
@@ -402,6 +414,38 @@
 
       <template #footer>
         <el-button @click="showPairsDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ✅ 手动添加配对弹窗 -->
+    <el-dialog v-model="showAddPairDialog" title="手动添加配对" width="400px">
+      <el-form label-width="80px">
+        <el-form-item label="当前账号">
+          <span style="font-family: monospace;">{{ pairInfo.account }}</span>
+        </el-form-item>
+        <el-form-item label="配对号码" required>
+          <el-input v-model="addPairForm.peer" placeholder="请输入要强制配对的手机号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddPairDialog = false">取消</el-button>
+        <el-button type="primary" :loading="addingPair" @click="handleAddPair">确定添加</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ✅ 手动删除配对弹窗 -->
+    <el-dialog v-model="showDeletePairDialog" title="手动删除配对" width="400px">
+      <el-form label-width="80px">
+        <el-form-item label="当前账号">
+          <span style="font-family: monospace;">{{ pairInfo.account }}</span>
+        </el-form-item>
+        <el-form-item label="删除号码" required>
+          <el-input v-model="deletePairForm.peer" placeholder="请输入要强行解除配对的手机号" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showDeletePairDialog = false">取消</el-button>
+        <el-button type="danger" :loading="deletingPair" @click="handleDeletePair">确定删除</el-button>
       </template>
     </el-dialog>
 
@@ -876,7 +920,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
 import {
   Plus, Refresh, Folder, Picture, Upload, FolderOpened,
-  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument
+  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument, User
 } from '@element-plus/icons-vue'
 import { whatsapp } from '@/api'
 import api from '@/api'
@@ -1157,6 +1201,68 @@ const handleRemovePair = async (row) => {
     }
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('解除失败')
+  }
+}
+
+// ✅ 新增：手动添加配对
+const showAddPairDialog = ref(false)
+const addingPair = ref(false)
+const addPairForm = reactive({ peer: '' })
+
+const handleAddPair = async () => {
+  if (!addPairForm.peer.trim()) {
+    ElMessage.warning('请输入要配对的号码')
+    return
+  }
+  addingPair.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/add-pair', {
+      account: pairInfo.account,
+      peer: addPairForm.peer.trim()
+    })
+    if (res.code === 0) {
+      ElMessage.success('配对添加成功')
+      showAddPairDialog.value = false
+      addPairForm.peer = ''
+      openPairsDialog({ account: pairInfo.account })
+    } else {
+      ElMessage.error(res.message || '添加失败')
+    }
+  } catch (e) {
+    ElMessage.error('添加失败: ' + (e.message || ''))
+  } finally {
+    addingPair.value = false
+  }
+}
+
+// ✅ 新增：手动删除配对
+const showDeletePairDialog = ref(false)
+const deletingPair = ref(false)
+const deletePairForm = reactive({ peer: '' })
+
+const handleDeletePair = async () => {
+  if (!deletePairForm.peer.trim()) {
+    ElMessage.warning('请输入要删除的号码')
+    return
+  }
+  deletingPair.value = true
+  try {
+    const res = await api.post('/whatsapp/accounts/delete-pair', {
+      account: pairInfo.account,
+      peer: deletePairForm.peer.trim()
+    })
+    if (res.code === 0) {
+      ElMessage.success('配对已删除')
+      showDeletePairDialog.value = false
+      deletePairForm.peer = ''
+      openPairsDialog({ account: pairInfo.account })
+    } else {
+      ElMessage.error(res.message || '删除失败')
+    }
+  } catch (e) {
+    ElMessage.error('删除失败: ' + (e.message || ''))
+  } finally {
+    deletingPair.value = false
   }
 }
 
