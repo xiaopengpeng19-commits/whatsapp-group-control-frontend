@@ -61,6 +61,13 @@
             <el-table-column label="复活消息" width="85" align="center">
                 <template #default="{ row }">{{ row.repeatMessages || 0 }}</template>
             </el-table-column>
+            <!-- ✅ 新增：重置次数 -->
+            <el-table-column label="重置次数" width="80" align="center">
+                <template #default="{ row }">
+                    <el-tag v-if="row.resetCount > 0" type="info" size="small">{{ row.resetCount }}次</el-tag>
+                    <span v-else style="color:#999;">-</span>
+                </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" width="80">
                 <template #default="{ row }">
                     <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusLabel(row.status) }}</el-tag>
@@ -69,7 +76,7 @@
             <el-table-column prop="createdAt" label="创建时间" width="140">
                 <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="220" fixed="right">
+            <el-table-column label="操作" width="260" fixed="right">
                 <template #default="{ row }">
                     <el-button size="small" type="primary" @click="showTaskDetail(row)">详情</el-button>
                     <el-button v-if="row.status === 'pending'" size="small" type="success"
@@ -78,6 +85,9 @@
                         @click="handlePause(row)">暂停</el-button>
                     <el-button v-if="row.status === 'paused'" size="small" type="success"
                         @click="handleResume(row)">恢复</el-button>
+                    <!-- ✅ 新增：重置按钮 -->
+                    <el-button v-if="row.status === 'completed' || row.status === 'stopped' || row.status === 'paused'"
+                        size="small" type="warning" plain @click="handleReset(row)">重置</el-button>
                     <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
                 </template>
             </el-table-column>
@@ -247,14 +257,14 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">
@@ -282,11 +292,14 @@
                     <el-descriptions-item label="封禁">
                         <el-tag type="danger" size="small">{{ bannedCount || 0 }}</el-tag>
                     </el-descriptions-item>
+                    <el-descriptions-item label="重置次数">
+                        <el-tag type="info" size="small">{{ detailTask.resetCount || 0 }} 次</el-tag>
+                    </el-descriptions-item>
                     <el-descriptions-item label="创建时间">{{ formatTime(detailTask.createdAt) }}</el-descriptions-item>
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -374,12 +387,12 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -512,7 +525,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -521,7 +534,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -570,7 +583,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
@@ -966,6 +979,35 @@ const handleDelete = async (row) => {
         if (error !== 'cancel') ElMessage.error('删除失败')
     }
 }
+
+// ✅ 新增：重置任务
+const handleReset = async (row) => {
+    try {
+        await ElMessageBox.confirm(
+            `确定要重置任务 "${row.name}" 吗？\n\n` +
+            `• 配对关系保持不变（不会重新生成配对）\n` +
+            `• 所有配对状态（含失败/封禁）将恢复为"待执行"\n` +
+            `• 统计数据、冷却时间将全部清零\n` +
+            `• 历史会话记录和历史消息将被清空\n\n` +
+            `重置后可以重新点击"启动"再次运行。`,
+            '确认重置',
+            { type: 'warning', dangerouslyUseHTMLString: false }
+        )
+
+        const res = await nurtureApi.resetTask(row.id)
+        if (res.code === 0) {
+            ElMessage.success('任务已重置，可以重新启动')
+            fetchTasks()
+        } else {
+            ElMessage.error(res.message || '重置失败')
+        }
+    } catch (error) {
+        if (error !== 'cancel') {
+            ElMessage.error('重置失败: ' + (error.message || ''))
+        }
+    }
+}
+
 const accountPairStats = ref({})
 const fetchTaskDetail = async () => {
     if (!detailTask.value) return

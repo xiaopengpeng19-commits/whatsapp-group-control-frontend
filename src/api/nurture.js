@@ -11,5 +11,6 @@ export default {
   pauseTask: (id) => api.post(`/nurture/tasks/pause/${id}`),
   resumeTask: (id) => api.post(`/nurture/tasks/resume/${id}`),
   deleteTask: (id) => api.delete(`/nurture/tasks/delete/${id}`),
+  resetTask: (id) => api.post(`/nurture/tasks/reset/${id}`),  // ✅ 新增
   getSessionList: (id, params) => api.get(`/nurture/tasks/sessions/${id}`, { params }),
 }
