@@ -50,6 +50,25 @@
         </el-card>
       </el-col>
     </el-row>
+    <!-- 新增 AI 余额状态栏 -->
+    <el-row :gutter="20" style="margin-top: 20px">
+      <el-col :span="24">
+        <el-card style="margin-bottom:20px; background: #f0f9eb;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:16px;">🤖 AI 余额：</span>
+            <template v-if="aiBalance">
+              <el-tag :type="Number(aiBalance.total_balance) > 5 ? 'success' : 'danger'" size="large" effect="dark">
+                {{ aiBalance.currency === 'CNY' ? '¥' : '$' }} {{ aiBalance.total_balance }}
+              </el-tag>
+              <span style="color:#999;font-size:13px;">
+                (赠金: {{ aiBalance.granted }} | 充值: {{ aiBalance.topped_up }})
+              </span>
+            </template>
+            <span v-else style="color:#999;font-size:13px;">加载中...</span>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
@@ -59,6 +78,35 @@ import { ElMessage } from 'element-plus'
 import { Download, DataLine, Warning, SwitchButton } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import api from '@/api'
+
+const aiBalance = ref(null)
+let intervalAiBalance = null
+
+// 获取 AI 余额（前端也做一次 5 分钟轮询，虽然后端有缓存）
+const fetchAIBalance = async () => {
+  try {
+    const res = await api.get('/system/ai-balance')
+    if (res.code === 0) {
+      aiBalance.value = res.data
+    }
+  } catch (e) {
+    console.error('获取AI余额失败', e)
+  }
+}
+
+onMounted(() => {
+  // 初始化请求
+  fetchAIBalance()
+  // 每 5 分钟请求一次 (300,000 毫秒)
+  intervalAiBalance = setInterval(fetchAIBalance, 5 * 60 * 1000)
+})
+
+onBeforeUnmount(() => {
+  if (intervalAiBalance) {
+    clearInterval(intervalAiBalance)
+    intervalAiBalance = null
+  }
+})
 
 
 const protocolStatus = ref({ is_alive: false })
