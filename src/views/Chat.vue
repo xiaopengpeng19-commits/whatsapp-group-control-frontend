@@ -323,7 +323,20 @@
           <span style="color:#409eff;">🟡 登录中: <strong>{{ loggingCount }}</strong></span>
           <span style="color:#909399;">❓ 未知: <strong>{{ unknownCount }}</strong></span>
         </div>
-
+        <!-- ✅ 新增：分组冷却配置展示 -->
+        <div
+          style="margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; padding: 0 12px;">
+          <span style="font-weight: bold; color: #606266;">冷却配置:</span>
+          <template v-if="detailTask.groupCooldowns && Object.keys(detailTask.groupCooldowns).length > 0">
+            <el-tag v-for="(conf, groupName) in detailTask.groupCooldowns" :key="groupName" size="small" type="warning"
+              effect="plain" style="margin-right: 4px;">
+              [{{ groupName }}] {{ conf.min }}~{{ conf.max }}分钟
+            </el-tag>
+          </template>
+          <el-tag v-else size="small" type="info" effect="plain">
+            全局统一: {{ detailTask.pairIntervalMin || 30 }}~{{ detailTask.pairIntervalMax || 45 }}分钟
+          </el-tag>
+        </div>
         <div
           style="margin-top:12px; display:flex;flex-direction:column;gap:8px; padding:10px; background:#f5f7fa; border-radius:4px; max-height:200px; overflow-y:auto;">
           <div v-for="group in groupedAccounts" :key="group.groupName">
