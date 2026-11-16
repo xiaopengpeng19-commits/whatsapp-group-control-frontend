@@ -346,19 +346,29 @@
               📁 {{ group.groupName }} ({{ group.accounts.length }}个)
             </div>
 
-            <!-- 组内账号 -->
             <div style="display:flex;flex-wrap:wrap;gap:4px;">
               <el-tag v-for="acc in group.accounts" :key="acc" :type="getAccountStatusType(acc)" size="small"
                 style="margin:2px;">
                 {{ acc }}
                 <span style="margin-left:4px;font-size:10px;color:#999;">
                   {{ getAccountStatusShort(acc) }}
+
+                  <!-- 1. 账号全局总次数（灰色） -->
                   <span v-if="accountPairs[acc] !== undefined"> {{ accountPairs[acc] }}</span>
+
+                  <!-- 2. 任务内配了几个不同的人（蓝色） -->
                   <span v-if="accountUniquePairs[acc] !== undefined" style="color:#409eff;margin-left:2px;">
                     ({{ accountUniquePairs[acc] }})
                   </span>
+
+                  <!-- ✅ 3. 新增：任务内总互动次数（绿色） -->
+                  <span v-if="accountTaskTotalPairs[acc] !== undefined" style="color:#67c23a;margin-left:4px;">
+                    [{{ accountTaskTotalPairs[acc] }}次]
+                  </span>
+
+                  <!-- 先发统计保留 -->
                   <span v-if="detailTask.firstSenderStats && detailTask.firstSenderStats[acc]"
-                    style="color:#67c23a;margin-left:4px;">
+                    style="color:#e6a23c;margin-left:4px;">
                     [先{{ detailTask.firstSenderStats[acc].self }} 后{{ detailTask.firstSenderStats[acc].peer }}]
                   </span>
                 </span>
@@ -720,7 +730,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, Timer } from '@element-plus/icons-vue'
 import api from '@/api'
 import dayjs from 'dayjs'
-
+const accountTaskTotalPairs = ref({})
 const searchChatAccount = ref('')
 const refreshAccountTimer = ref(null)
 
@@ -1486,6 +1496,7 @@ const showTaskDetail = async (row) => {
       accountPairs.value = res.data.account_pairs || {}
       groupedAccounts.value = res.data.grouped_accounts || []
       accountUniquePairs.value = res.data.account_unique_pairs || {}
+      accountTaskTotalPairs.value = res.data.account_task_total_pairs || {} // ✅ 新增接收
       await nextTick()
     }
   } catch (error) {
