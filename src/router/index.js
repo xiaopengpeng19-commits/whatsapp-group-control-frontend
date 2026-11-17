@@ -41,7 +41,7 @@ const routes = [
         path: "accounts",
         name: "Accounts",
         component: () => import("../views/Accounts.vue"),
-        meta: { title: "账号管理", icon: Iphone, roles: [1, 2] }, // 管理员、经理
+        meta: { title: "账号管理", icon: Iphone, roles: [1, 2, 3] }, // 管理员、经理
       },
       {
         path: "messages",
