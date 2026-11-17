@@ -323,7 +323,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Plus } from '@element-plus/icons-vue'
-import { whatsapp } from '@/api'
+import whatsapp from '@/api/whatsapp'
 import api from '@/api'
 import dayjs from 'dayjs'
 import { copyToClipboard } from '@/utils/clipboard'

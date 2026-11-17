@@ -203,7 +203,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, RefreshRight, Refresh, Delete } from '@element-plus/icons-vue'
-import { whatsapp } from '@/api'
+import whatsapp from '@/api/whatsapp'
 import dayjs from 'dayjs'
 
 // ============ 状态 ============

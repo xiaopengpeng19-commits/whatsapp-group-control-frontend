@@ -102,7 +102,7 @@ import { copyToClipboard } from '@/utils/clipboard'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Delete, Document, Download, CopyDocument } from '@element-plus/icons-vue'
-import { whatsapp } from '@/api'
+import whatsapp from '@/api/whatsapp'
 import api from '@/api'
 
 const accounts = ref([])

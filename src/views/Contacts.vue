@@ -157,7 +157,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, DocumentAdd, Refresh } from '@element-plus/icons-vue'
-import { whatsapp } from '@/api'
+import whatsapp from '@/api/whatsapp'
 import api from '@/api'
 import dayjs from 'dayjs'
 
