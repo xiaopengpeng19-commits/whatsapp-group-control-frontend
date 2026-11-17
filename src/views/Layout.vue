@@ -5,116 +5,17 @@
         <span>📱 群控系统</span>
       </div>
       <div class="menu-wrapper">
-        <el-menu router default-active="$route.path" class="menu" background-color="#1f2d3d" text-color="#bfcbd9"
+        <el-menu router :default-active="$route.path" class="menu" background-color="#1f2d3d" text-color="#bfcbd9"
           active-text-color="#409eff">
-          <el-menu-item index="/dashboard">
-            <el-icon>
-              <DataLine />
+
+          <!-- ✅ 动态渲染菜单 -->
+          <el-menu-item v-for="item in menuList" :key="item.path" :index="'/' + item.path">
+            <el-icon v-if="item.meta.icon">
+              <component :is="item.meta.icon" />
             </el-icon>
-            <span>仪表盘</span>
+            <span>{{ item.meta.title }}</span>
           </el-menu-item>
-          <el-menu-item index="/accounts">
-            <el-icon>
-              <Iphone />
-            </el-icon>
-            <span>账号管理</span>
-          </el-menu-item>
-          <el-menu-item index="/messages">
-            <el-icon>
-              <ChatDotRound />
-            </el-icon>
-            <span>消息管理</span>
-          </el-menu-item>
-          <el-menu-item index="/message-history">
-            <el-icon>
-              <Document />
-            </el-icon>
-            <span>消息记录</span>
-          </el-menu-item>
-          <el-menu-item index="/proxies">
-            <el-icon>
-              <Connection />
-            </el-icon>
-            <span>代理管理</span>
-          </el-menu-item>
-          <el-menu-item index="/targets">
-            <el-icon>
-              <UserFilled />
-            </el-icon>
-            <span>目标账号</span>
-          </el-menu-item>
-          <el-menu-item index="/broadcast">
-            <el-icon>
-              <Promotion />
-            </el-icon>
-            <span>群发任务</span>
-          </el-menu-item>
-          <el-menu-item index="/chat">
-            <el-icon>
-              <ChatLineSquare />
-            </el-icon>
-            <span>互聊任务</span>
-          </el-menu-item>
-          <el-menu-item index="/nurture">
-            <el-icon>
-              <Sunny />
-            </el-icon>
-            <span>养号任务</span>
-          </el-menu-item>
-          <el-menu-item index="/check-whatsapp">
-            <el-icon>
-              <Search />
-            </el-icon>
-            <span>检查注册</span>
-          </el-menu-item>
-          <el-menu-item index="/contacts">
-            <el-icon>
-              <User />
-            </el-icon>
-            <span>联系人</span>
-          </el-menu-item>
-          <el-menu-item index="/groups">
-            <el-icon>
-              <Connection />
-            </el-icon>
-            <span>群组管理</span>
-          </el-menu-item>
-          <el-menu-item index="/group-chat">
-            <el-icon>
-              <ChatDotRound />
-            </el-icon>
-            <span>群聊任务</span>
-          </el-menu-item>
-          <el-menu-item index="/ws-groups">
-            <el-icon>
-              <Connection />
-            </el-icon>
-            <span>WS群管理</span>
-          </el-menu-item>
-          <el-menu-item index="/auto-reply">
-            <el-icon>
-              <ChatDotRound />
-            </el-icon>
-            <span>自动回复</span>
-          </el-menu-item>
-          <el-menu-item index="/avatar-materials">
-            <el-icon>
-              <Picture />
-            </el-icon>
-            <span>头像素材</span>
-          </el-menu-item>
-          <el-menu-item index="/pairing-code">
-            <el-icon>
-              <Key />
-            </el-icon>
-            <span>生成配对码</span>
-          </el-menu-item>
-          <el-menu-item index="/users">
-            <el-icon>
-              <Setting />
-            </el-icon>
-            <span>用户管理</span>
-          </el-menu-item>
+
         </el-menu>
       </div>
     </el-aside>
@@ -162,7 +63,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { UserFilled, ArrowDown, DataLine, Iphone, ChatDotRound, Document, Connection, User, Setting, Search, Promotion, ChatLineSquare, Folder, SwitchButton } from '@element-plus/icons-vue'
+import { UserFilled, ArrowDown, User, SwitchButton } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -171,6 +72,23 @@ const authStore = useAuthStore()
 
 const currentTitle = computed(() => route.meta?.title || '管理后台')
 const username = computed(() => authStore.userInfo?.username || 'Admin')
+
+// ✅ 获取当前用户的角色 (默认给 3 操作员)
+const userRole = computed(() => authStore.userInfo?.role || 3)
+
+// ✅ 核心：动态过滤菜单
+const menuList = computed(() => {
+  // 1. 从路由配置里拿到 Layout 下的所有子路由
+  const rootRoute = router.options.routes.find(r => r.path === '/')
+  if (!rootRoute || !rootRoute.children) return []
+
+  // 2. 过滤出当前角色有权访问的菜单
+  return rootRoute.children.filter(child => {
+    if (child.meta?.hidden) return false // 如果设置了隐藏
+    if (!child.meta || !child.meta.roles) return true // 没设角色的默认显示
+    return child.meta.roles.includes(userRole.value) // 校验角色
+  })
+})
 
 const handleCommand = async (command) => {
   if (command === 'logout') {
@@ -184,6 +102,7 @@ const handleCommand = async (command) => {
 </script>
 
 <style scoped>
+/* 您的样式保持不变 */
 .layout-container {
   height: 100vh;
 }
