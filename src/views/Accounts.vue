@@ -771,6 +771,8 @@
     <!-- 二维码对话框 -->
     <el-dialog v-model="showQRDialog" title="扫码登录" width="450px" :close-on-click-modal="false">
       <div class="qr-container" v-loading="qrLoading">
+
+        <!-- ✅ 状态1：获取成功，显示二维码 -->
         <div v-if="qrCode" class="qr-image-wrapper">
           <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qrCode)"
             alt="二维码" />
@@ -778,18 +780,39 @@
           <div style="margin-top:12px;width:100%;">
             <div style="display:flex;gap:8px;align-items:center;background:#f5f7fa;padding:8px 12px;border-radius:4px;">
               <el-input v-model="qrCode" readonly size="small" style="flex:1;font-size:12px;" @click="copyQRCode" />
-              <el-button size="small" type="primary" @click="copyQRCode"><el-icon>
+              <el-button size="small" type="primary" @click="copyQRCode">
+                <el-icon>
                   <CopyDocument />
-                </el-icon> 复制</el-button>
+                </el-icon> 复制
+              </el-button>
             </div>
           </div>
         </div>
-        <div v-else-if="!qrLoading" class="qr-empty">
+
+        <!-- ✅ 状态2：获取失败，显示提示和重试按钮 -->
+        <div v-else-if="!qrLoading && qrErrorMsg" class="qr-empty">
+          <el-icon :size="48" color="#f56c6c">
+            <CircleCloseFilled />
+          </el-icon>
+          <p style="color: #f56c6c; font-weight: bold; margin: 10px 0;">获取二维码失败</p>
+          <p style="font-size: 13px; color: #666; text-align: center; word-break: break-all; padding: 0 20px;">
+            {{ qrErrorMsg }}
+          </p>
+          <el-button type="primary" @click="retryQRCode" style="margin-top: 10px;">
+            <el-icon>
+              <Refresh />
+            </el-icon> 重新获取
+          </el-button>
+        </div>
+
+        <!-- ✅ 状态3：还在加载中，占个位防止弹窗突然塌陷 -->
+        <div v-else-if="!qrLoading && !qrCode && !qrErrorMsg" class="qr-empty">
           <el-icon :size="48">
             <Picture />
           </el-icon>
-          <p>暂无二维码</p>
+          <p>等待获取二维码...</p>
         </div>
+
       </div>
     </el-dialog>
 
@@ -920,7 +943,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { debounce } from 'lodash'
 import {
   Plus, Refresh, Folder, Picture, Upload, FolderOpened,
-  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument, User
+  Promotion, SwitchButton, Connection, Download, Delete, Edit, ChatDotRound, CopyDocument, User,
+  CircleCloseFilled // ✅ 新增
 } from '@element-plus/icons-vue'
 import whatsapp from '@/api/whatsapp'
 import api from '@/api'
@@ -944,6 +968,8 @@ const filterStatus = ref('')
 const clearQueueLoading = ref(false)
 const filterGroup = ref('')
 const qrCode = ref('')
+const qrErrorMsg = ref('')  // ✅ 新增：存储错误提示
+let currentQRAccount = null // ✅ 新增：记录当前正在操作的账号对象
 
 // ✅ 新增：排序状态
 const sortField = ref('')
@@ -2029,19 +2055,45 @@ const handleOffline = async (account) => {
 }
 
 // ============ 二维码 ============
-const showQRCode = async (row) => {
-  showQRDialog.value = true
+// ✅ 封装真正执行请求的方法
+const fetchQRCodeData = async () => {
+  if (!currentQRAccount) return
+
   qrCode.value = ''
+  qrErrorMsg.value = ''
   qrLoading.value = true
+
   try {
-    const res = await whatsapp.getQRCodeLogin(row.account, { proxy: row.proxy || '', callbackurl: '' })
-    if (res.code === 0 && res.data?.qrCode) qrCode.value = res.data.qrCode
-    else ElMessage.warning('二维码生成中，请稍后重试')
+    const res = await whatsapp.getQRCodeLogin(currentQRAccount.account, {
+      proxy: currentQRAccount.proxy || '',
+      callbackurl: ''
+    })
+
+    // 判断是否真正拿到数据
+    if (res.code === 0 && res.data?.qrCode) {
+      qrCode.value = res.data.qrCode
+    } else {
+      // 记录后端返回的错误提示
+      qrErrorMsg.value = res.message || '后端未返回二维码，请检查协议服状态'
+    }
   } catch (e) {
-    ElMessage.error('获取二维码失败: ' + (e.message || ''))
+    // 拦截器抛出的异常
+    qrErrorMsg.value = e.message || '网络请求失败'
   } finally {
     qrLoading.value = false
   }
+}
+
+// ✅ 点击列表中的二维码按钮
+const showQRCode = (row) => {
+  currentQRAccount = row
+  showQRDialog.value = true
+  fetchQRCodeData()
+}
+
+// ✅ 点击弹窗内的“重试”按钮
+const retryQRCode = () => {
+  fetchQRCodeData()
 }
 
 const copyQRCode = () => {
