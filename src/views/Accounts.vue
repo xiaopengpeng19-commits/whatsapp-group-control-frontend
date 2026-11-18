@@ -937,6 +937,7 @@
 </template>
 
 <script setup>
+import { useAuthStore } from '@/stores/auth'
 import { copyToClipboard } from '@/utils/clipboard'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -970,7 +971,8 @@ const filterGroup = ref('')
 const qrCode = ref('')
 const qrErrorMsg = ref('')  // ✅ 新增：存储错误提示
 let currentQRAccount = null // ✅ 新增：记录当前正在操作的账号对象
-
+const authStore = useAuthStore()
+const userRole = computed(() => authStore.userInfo?.role || 3) // 默认给最低权限(3)
 // ✅ 新增：排序状态
 const sortField = ref('')
 const sortOrder = ref('')
