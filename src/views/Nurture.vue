@@ -33,11 +33,13 @@
                     <el-tag size="small" type="warning" style="margin-left:4px;">{{ row.newGroup }}</el-tag>
                 </template>
             </el-table-column>
-            <el-table-column label="配对" width="260">
+            <el-table-column label="配对" width="320">
                 <template #default="{ row }">
                     总 <el-tag size="small" type="info">{{ row.pairStats?.total || 0 }}</el-tag>
                     剩 <el-tag size="small" type="warning">{{ row.pairStats?.remaining || 0 }}</el-tag>
                     完 <el-tag size="small" type="success">{{ row.pairStats?.completed || 0 }}</el-tag>
+                    失 <el-tag size="small" type="danger" effect="plain">{{ row.pairStats?.failed || 0 }}</el-tag>
+                    <!-- ✅ 新增：失败 -->
                     封 <el-tag size="small" type="danger">{{ row.pairStats?.banned || 0 }}</el-tag>
                     跑 <el-tag size="small" type="primary">{{ row.pairStats?.running || 0 }}</el-tag>
                 </template>
@@ -257,14 +259,14 @@
                     <el-descriptions-item label="状态">
                         <el-tag :type="getStatusType(detailTask.status)" size="small">{{
                             getStatusLabel(detailTask.status)
-                            }}</el-tag>
+                        }}</el-tag>
                     </el-descriptions-item>
                     <el-descriptions-item label="发起概率">{{ detailTask.initiateRate || 60 }}%</el-descriptions-item>
                     <el-descriptions-item label="回复概率">{{ detailTask.replyRate || 80 }}%</el-descriptions-item>
                     <el-descriptions-item label="消息间隔">{{ detailTask.minDelay || 3 }}~{{ detailTask.maxDelay || 30
-                        }}s</el-descriptions-item>
+                    }}s</el-descriptions-item>
                     <el-descriptions-item label="轮数">{{ detailTask.minRounds || 2 }}~{{ detailTask.maxRounds || 6
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="养号冷却">{{ detailTask.nurtureCooldownMin || 30 }}~{{
                         detailTask.nurtureCooldownMax || 45 }}分钟</el-descriptions-item>
                     <el-descriptions-item label="新号冷却">
@@ -299,7 +301,7 @@
                     <el-descriptions-item label="启动时间">{{ formatTime(detailTask.startedAt) }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-if="detailTask.completedAt">{{
                         formatTime(detailTask.completedAt)
-                        }}</el-descriptions-item>
+                    }}</el-descriptions-item>
                     <el-descriptions-item label="完成时间" v-else>-</el-descriptions-item>
                 </el-descriptions>
 
@@ -387,12 +389,12 @@
                         <div style="display:flex;gap:6px;">
                             <el-tag v-if="sessionStats.completed > 0" type="success" size="small">已完成 {{
                                 sessionStats.completed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.failed > 0" type="danger" size="small">失败 {{ sessionStats.failed
-                                }}</el-tag>
+                            }}</el-tag>
                             <el-tag v-if="sessionStats.active > 0" type="warning" size="small">进行中 {{
                                 sessionStats.active
-                                }}</el-tag>
+                            }}</el-tag>
                         </div>
                     </div>
 
@@ -525,7 +527,7 @@
                                                     msg.fromAccount }})</span>
                                                 <span v-else>{{ msg.fromAccount }}</span>
                                                 <span style="margin-left: 8px;">{{ formatTime(msg.sentAt).slice(11, 16)
-                                                    }}</span>
+                                                }}</span>
                                                 <el-tag size="small"
                                                     style="margin-left: 4px; padding: 0 4px; height: 18px; line-height: 16px;"
                                                     :type="msg.status === 'read' ? 'success' : 'info'">
@@ -534,7 +536,7 @@
                                                     }}
                                                 </el-tag>
                                                 <span style="margin-left: 8px; font-weight:bold;">[{{ msg.round
-                                                    }}轮]</span>
+                                                }}轮]</span>
                                             </div>
                                             <div :style="{
                                                 maxWidth: '70%', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', lineHeight: '1.5', wordBreak: 'break-word',
@@ -583,7 +585,7 @@
                                             }}</el-tag>
                                         <span style="font-size:11px;color:#bbb;margin-left:auto;">{{
                                             formatTime(msg.sentAt)
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                     <div style="font-size:13px;color:#333;word-wrap:break-word;padding:2px 0;">{{
                                         msg.content }}
