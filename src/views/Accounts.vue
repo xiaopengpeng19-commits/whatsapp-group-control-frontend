@@ -99,7 +99,7 @@
             </el-icon> 分组改资料
           </el-button>
           <el-button type="warning" plain @click="handleBatchExport" :disabled="selectedAccounts.length === 0"
-            size="default">
+            size="default" v-if="userRole === 1">
             <el-icon>
               <Download />
             </el-icon> 导出
@@ -116,7 +116,7 @@
             </el-icon> 清空重连队列
           </el-button>
           <el-button type="danger" @click="handleBatchDelete" :disabled="selectedAccounts.length === 0"
-            :loading="batchDeleteLoading" size="default">
+            :loading="batchDeleteLoading" size="default" v-if="userRole === 1 || userRole === 2">
             <el-icon>
               <Delete />
             </el-icon> 批量删除
