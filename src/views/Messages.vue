@@ -96,7 +96,7 @@ import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Promotion, Document } from '@element-plus/icons-vue'
 import whatsapp from '@/api/whatsapp'
-
+import api from '@/api' // ✅ 补上 api 的引入
 
 // 在 script setup 里加：
 const templates = ref([])
@@ -239,6 +239,7 @@ const handleSend = async () => {
 }
 
 const resetForm = () => {
+  selectedTemplate.value = '' // ✅ 新增：清空模板选中状态
   sendForm.content = ''
   sendForm.media = ''
   sendForm.caption = ''
