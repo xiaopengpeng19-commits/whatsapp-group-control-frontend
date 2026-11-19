@@ -41,9 +41,19 @@
         </template>
       </el-table-column>
       <el-table-column prop="totalTargets" label="总数" width="60" />
-
+      <!-- ✅ 新增：发送进度（已发送 / 总数） -->
+      <el-table-column label="发送进度" width="150">
+        <template #default="{ row }">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <el-progress :percentage="getOverallProgress(row)" color="#e6a23c" :stroke-width="6" style="flex:1" />
+            <span style="font-size:11px;color:#999;white-space:nowrap;">
+              {{ getOverallSentCount(row) }}/{{ row.totalTargets }}
+            </span>
+          </div>
+        </template>
+      </el-table-column>
       <!-- 发送进度：sent + delivered + read / total -->
-      <el-table-column label="发送成功率" width="160">
+      <el-table-column label="发送成功率" width="140">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
             <el-progress :percentage="getSendProgress(row)" color="#409eff" :stroke-width="6" style="flex:1" />
@@ -55,7 +65,7 @@
       </el-table-column>
 
       <!-- 完成进度：(delivered + read) / total -->
-      <el-table-column label="送达率" width="160">
+      <el-table-column label="送达率" width="140">
         <template #default="{ row }">
           <div style="display:flex;align-items:center;gap:6px;">
             <el-progress :percentage="getCompleteProgress(row)" :color="getCompleteColor(row)" :stroke-width="6"
@@ -258,6 +268,21 @@ import { Plus, Refresh } from '@element-plus/icons-vue'
 import broadcast from '@/api/broadcast'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+// ✅ 新增：计算总发送进度（包含已发送、已送达、已读）
+const getOverallSentCount = (row) => {
+  if (!row) return 0
+  // 注意：后端通常 delivered 和 read 是在 sent 之后的状态，所以取这几个的最大值/总和
+  // 根据您的原有代码逻辑，sentCount 记录了尝试发送成功的总数
+  return (row.sentCount || 0) + (row.deliveredCount || 0) + (row.readCount || 0)
+}
+
+const getOverallProgress = (row) => {
+  if (!row || row.totalTargets === 0) return 0
+  const processed = getOverallSentCount(row)
+  const percentage = Math.round((processed / row.totalTargets) * 100)
+  return Math.min(percentage, 100) // 防止超过 100%
+}
 
 // ✅ 新增：模板相关变量
 const templates = ref([])
