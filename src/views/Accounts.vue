@@ -180,7 +180,7 @@
         </template>
       </el-table-column>
 
-            <!-- ✅ 封禁次数 + 查看历史 -->
+      <!-- ✅ 封禁次数 + 查看历史 -->
       <el-table-column prop="banCount" label="封禁次数" width="130" align="center" sortable="custom">
         <template #default="{ row }">
           <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
@@ -189,29 +189,25 @@
             <span v-else style="color:#999;">0</span>
 
             <!-- ✅ 查看按钮（有历史记录时才显示） -->
-            <el-popover
-              v-if="row.logoutHistory && row.logoutHistory.length > 0"
-              placement="right"
-              :width="320"
-              trigger="click"
-            >
+            <el-popover v-if="row.logoutHistory && row.logoutHistory.length > 0" placement="right" :width="320"
+              trigger="click">
               <template #reference>
                 <el-button link type="primary" size="small" style="padding: 0;">
                   查看
                 </el-button>
               </template>
-              
+
               <!-- 弹窗内容 -->
               <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
                 <div style="font-weight: bold; margin-bottom: 8px; font-size: 13px; color: #333;">
                   状态变更历史 (最近{{ row.logoutHistory.length }}条)
                 </div>
-                <div v-for="(rec, idx) in [...row.logoutHistory].reverse()" :key="idx" 
-                     style="margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 6px;">
+                <div v-for="(rec, idx) in [...row.logoutHistory].reverse()" :key="idx"
+                  style="margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 6px;">
                   <!-- 判断是不是封禁原因，如果是，文字标红 -->
-                  <div :style="{ 
-                    color: rec.reason.includes('封禁') ? '#f56c6c' : '#409eff', 
-                    fontWeight: rec.reason.includes('封禁') ? 'bold' : 'normal' 
+                  <div :style="{
+                    color: rec.reason.includes('封禁') ? '#f56c6c' : '#409eff',
+                    fontWeight: rec.reason.includes('封禁') ? 'bold' : 'normal'
                   }">
                     {{ rec.reason }}
                   </div>
@@ -1700,19 +1696,32 @@ const handleFileImport = async () => {
 
 // ============ 批量改分组 ============
 const handleBatchGroup = async () => {
-  if (selectedAccounts.value.length === 0) { ElMessage.warning('请先选择账号'); return }
-  if (!batchGroupForm.group) { ElMessage.warning('请输入分组名称'); return }
+  if (selectedAccounts.value.length === 0) {
+    ElMessage.warning('请先选择账号')
+    return
+  }
+  if (!batchGroupForm.group) {
+    ElMessage.warning('请输入分组名称')
+    return
+  }
+
   try {
-    let success = 0
-    for (const account of selectedAccounts.value) {
-      const res = await api.put(`/whatsapp/accounts/${account}/group`, { group: batchGroupForm.group })
-      if (res.code === 0) success++
+    // ✅ 改为直接发一个请求
+    const res = await api.post('/whatsapp/accounts/batch/group', {
+      accounts: selectedAccounts.value,
+      group: batchGroupForm.group
+    })
+
+    if (res.code === 0) {
+      ElMessage.success(`成功更新 ${res.data.success_count} 个账号的分组`)
+      showBatchGroupDialog.value = false
+      batchGroupForm.group = ''
+      selectedAccounts.value = []
+      fetchAccounts()
+      fetchAccountGroups()
+    } else {
+      ElMessage.error(res.message || '批量改分组失败')
     }
-    ElMessage.success(`成功更新 ${success}/${selectedAccounts.value.length} 个账号的分组`)
-    showBatchGroupDialog.value = false
-    batchGroupForm.group = ''
-    selectedAccounts.value = []
-    fetchAccounts(); fetchAccountGroups()
   } catch (e) {
     ElMessage.error('批量改分组失败: ' + (e.message || ''))
   }
