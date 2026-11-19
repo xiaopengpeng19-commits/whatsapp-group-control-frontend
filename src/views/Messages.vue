@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Promotion, Document } from '@element-plus/icons-vue'
 import whatsapp from '@/api/whatsapp'
