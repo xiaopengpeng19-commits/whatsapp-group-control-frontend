@@ -98,6 +98,12 @@ const routes = [
         meta: { title: "联系人", icon: User, roles: [1, 2, 3] },
       },
       {
+        path: "message-templates",
+        name: "MessageTemplates",
+        component: () => import("@/views/MessageTemplates.vue"),
+        meta: { title: "链接模板", icon: Document, roles: [1, 2, 3] },
+      },
+      {
         path: "groups",
         name: "Groups",
         component: () => import("@/views/Groups.vue"),

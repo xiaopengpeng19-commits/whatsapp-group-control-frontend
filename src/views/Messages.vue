@@ -40,6 +40,12 @@
 
         <!-- 链接消息 -->
         <template v-if="sendForm.type === 'link'">
+          <el-form-item label="快捷模板">
+            <el-select v-model="selectedTemplate" placeholder="选择模板自动填充" clearable @change="applyTemplate"
+              style="width:100%">
+              <el-option v-for="tpl in templates" :key="tpl.id" :label="tpl.name" :value="tpl.id" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="链接标题">
             <el-input v-model="sendForm.linkTitle" placeholder="请输入链接标题（可选）" />
           </el-form-item>
@@ -90,6 +96,36 @@ import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Promotion, Document } from '@element-plus/icons-vue'
 import whatsapp from '@/api/whatsapp'
+
+
+// 在 script setup 里加：
+const templates = ref([])
+const selectedTemplate = ref('')
+
+const fetchTemplates = async () => {
+  try {
+    const res = await api.get('/message-templates')
+    if (res.code === 0) templates.value = res.data
+  } catch (e) { }
+}
+
+const applyTemplate = (id) => {
+  if (!id) return
+  const tpl = templates.value.find(t => t.id === id)
+  if (tpl) {
+    sendForm.linkTitle = tpl.title
+    sendForm.linkBody = tpl.body
+    sendForm.linkUrl = tpl.url
+    sendForm.linkImage = tpl.image
+    sendForm.linkFooter = tpl.footer
+    sendForm.linkButton = tpl.button
+    ElMessage.success('模板已应用')
+  }
+}
+
+onMounted(() => {
+  fetchTemplates()
+})
 
 const sending = ref(false)
 
