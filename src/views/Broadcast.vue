@@ -24,7 +24,14 @@
 
     <el-table :data="tasks" v-loading="loading" border>
       <el-table-column prop="name" label="任务名称" width="140" />
-      <el-table-column prop="accountGroup" label="账号分组" width="110" />
+      <el-table-column prop="accountGroup" label="账号分组" width="150">
+        <template #default="{ row }">
+          <el-tag v-for="g in (row.accountGroup || '').split(',')" :key="g" size="small" type="primary"
+            style="margin: 2px;">
+            {{ g }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="targetGroup" label="目标分组" width="110" />
       <el-table-column prop="messageType" label="类型" width="70">
         <template #default="{ row }">
@@ -103,7 +110,7 @@
           <el-input v-model="createForm.name" placeholder="请输入任务名称" />
         </el-form-item>
         <el-form-item label="账号分组" required>
-          <el-select v-model="createForm.accountGroup" placeholder="选择账号分组" style="width:100%">
+          <el-select v-model="createForm.accountGroups" multiple placeholder="选择账号分组（可多选）" style="width:100%">
             <el-option v-for="item in accountGroups" :key="item.name" :label="item.name + ' (' + item.count + '个)'"
               :value="item.name" />
           </el-select>
@@ -295,7 +302,7 @@ const creating = ref(false)
 
 const createForm = reactive({
   name: '',
-  accountGroup: '',
+  accountGroup: [],
   targetGroup: '',
   perAccountLimit: 10,
   roundInterval: 1,
@@ -437,11 +444,12 @@ const fetchTasks = async () => {
 }
 
 const handleCreate = async () => {
+  // 1. 必填项校验
   if (!createForm.name) {
     ElMessage.warning('请输入任务名称')
     return
   }
-  if (!createForm.accountGroup) {
+  if (!createForm.accountGroups || createForm.accountGroups.length === 0) {
     ElMessage.warning('请选择账号分组')
     return
   }
@@ -460,13 +468,31 @@ const handleCreate = async () => {
 
   creating.value = true
   try {
-    const res = await broadcast.createTask(createForm)
+    // 2. 组装参数，将数组 join 成字符串传给后端
+    const payload = {
+      ...createForm,
+      accountGroup: createForm.accountGroups.join(',')
+    }
+
+    // 3. 调用接口创建任务
+    const res = await broadcast.createTask(payload)
     if (res.code === 0) {
       ElMessage.success(`任务创建成功，已分配 ${res.data.sub_task_count} 个子任务`)
       showCreateDialog.value = false
+
+      // 4. 重置表单
       createForm.name = ''
+      createForm.accountGroups = [] // ✅ 重置为数组
+      createForm.targetGroup = ''
       createForm.messageContent = ''
-      selectedTemplate.value = '' // ✅ 清空模板选择
+      createForm.linkTitle = ''
+      createForm.linkBody = ''
+      createForm.linkUrl = ''
+      createForm.linkImage = ''
+      createForm.linkButton = '查看详情'
+      selectedTemplate.value = '' // 清空快捷模板选择
+
+      // 5. 刷新任务列表
       fetchTasks()
     }
   } catch (error) {
