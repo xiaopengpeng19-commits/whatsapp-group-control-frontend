@@ -134,8 +134,16 @@
           <el-input v-model="createForm.messageContent" type="textarea" :rows="3" placeholder="请输入消息内容" />
         </el-form-item>
         <template v-if="createForm.messageType === 'link'">
+          <!-- ✅ 新增：快捷模板选择 -->
+          <el-form-item label="快捷模板">
+            <el-select v-model="selectedTemplate" placeholder="选择常用链接模板" clearable @change="applyTemplate"
+              style="width: 100%;">
+              <el-option v-for="tpl in templates" :key="tpl.id" :label="tpl.name" :value="tpl.id" />
+            </el-select>
+          </el-form-item>
+
           <el-form-item label="链接标题">
-            <el-input v-model="createForm.linkTitle" placeholder="请输入链接标题" />
+            <el-input v-model="createForm.linkTitle" placeholder="请输入链接标题（可选）" />
           </el-form-item>
           <el-form-item label="链接描述" required>
             <el-input v-model="createForm.linkBody" type="textarea" :rows="2" placeholder="请输入链接描述" />
@@ -147,7 +155,7 @@
             <el-input v-model="createForm.linkImage" placeholder="请输入图片URL（可选）" />
           </el-form-item>
           <el-form-item label="按钮文字">
-            <el-input v-model="createForm.linkButton" placeholder="请输入按钮文字（可选）" />
+            <el-input v-model="createForm.linkButton" placeholder="请输入按钮文字（可选，默认：查看详情）" />
           </el-form-item>
         </template>
       </el-form>
@@ -243,6 +251,34 @@ import { Plus, Refresh } from '@element-plus/icons-vue'
 import broadcast from '@/api/broadcast'
 import api from '@/api'
 import dayjs from 'dayjs'
+
+// ✅ 新增：模板相关变量
+const templates = ref([])
+const selectedTemplate = ref('')
+
+// ✅ 新增：获取模板列表
+const fetchTemplates = async () => {
+  try {
+    const res = await api.get('/message-templates')
+    if (res.code === 0) templates.value = res.data
+  } catch (e) { }
+}
+
+// ✅ 新增：应用模板
+const applyTemplate = (id) => {
+  if (!id) return
+  const tpl = templates.value.find(t => t.id === id)
+  if (tpl) {
+    createForm.linkTitle = tpl.title
+    createForm.linkBody = tpl.body
+    createForm.linkUrl = tpl.url
+    createForm.linkImage = tpl.image
+    createForm.linkButton = tpl.button
+    // 如果您的后端支持 linkFooter，也可以加上
+    // createForm.linkFooter = tpl.footer 
+    ElMessage.success('已应用链接模板')
+  }
+}
 
 const tasks = ref([])
 const loading = ref(false)
@@ -430,6 +466,7 @@ const handleCreate = async () => {
       showCreateDialog.value = false
       createForm.name = ''
       createForm.messageContent = ''
+      selectedTemplate.value = '' // ✅ 清空模板选择
       fetchTasks()
     }
   } catch (error) {
@@ -524,6 +561,7 @@ const handleDelete = async (row) => {
 onMounted(() => {
   fetchAccountGroups()
   fetchTargetGroups()
+  fetchTemplates() // ✅ 新增：加载模板
   fetchTasks()
 })
 </script>
