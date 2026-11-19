@@ -180,11 +180,48 @@
         </template>
       </el-table-column>
 
-      <!-- ✅ 封禁次数 -->
-      <el-table-column prop="banCount" label="封禁次数" width="90" align="center" sortable="custom">
+            <!-- ✅ 封禁次数 + 查看历史 -->
+      <el-table-column prop="banCount" label="封禁次数" width="130" align="center" sortable="custom">
         <template #default="{ row }">
-          <el-tag v-if="row.banCount > 0" type="danger" size="small">{{ row.banCount }}</el-tag>
-          <span v-else style="color:#999;">0</span>
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            <!-- 封禁次数显示 -->
+            <el-tag v-if="row.banCount > 0" type="danger" size="small">{{ row.banCount }}</el-tag>
+            <span v-else style="color:#999;">0</span>
+
+            <!-- ✅ 查看按钮（有历史记录时才显示） -->
+            <el-popover
+              v-if="row.logoutHistory && row.logoutHistory.length > 0"
+              placement="right"
+              :width="320"
+              trigger="click"
+            >
+              <template #reference>
+                <el-button link type="primary" size="small" style="padding: 0;">
+                  查看
+                </el-button>
+              </template>
+              
+              <!-- 弹窗内容 -->
+              <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <div style="font-weight: bold; margin-bottom: 8px; font-size: 13px; color: #333;">
+                  状态变更历史 (最近{{ row.logoutHistory.length }}条)
+                </div>
+                <div v-for="(rec, idx) in [...row.logoutHistory].reverse()" :key="idx" 
+                     style="margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #eee; padding-bottom: 6px;">
+                  <!-- 判断是不是封禁原因，如果是，文字标红 -->
+                  <div :style="{ 
+                    color: rec.reason.includes('封禁') ? '#f56c6c' : '#409eff', 
+                    fontWeight: rec.reason.includes('封禁') ? 'bold' : 'normal' 
+                  }">
+                    {{ rec.reason }}
+                  </div>
+                  <div style="color:#999; font-size:12px; margin-top:2px;">
+                    {{ formatTime(rec.time) }}
+                  </div>
+                </div>
+              </div>
+            </el-popover>
+          </div>
         </template>
       </el-table-column>
 
