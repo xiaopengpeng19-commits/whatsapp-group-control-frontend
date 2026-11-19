@@ -133,7 +133,7 @@ const sendForm = reactive({
   account: '',
   to: '',
   type: 'text',
-  content: '',
+  content: 'Hi',
   media: '',
   caption: '',
   linkTitle: '',
@@ -240,7 +240,7 @@ const handleSend = async () => {
 
 const resetForm = () => {
   selectedTemplate.value = '' // ✅ 新增：清空模板选中状态
-  sendForm.content = ''
+  sendForm.content = 'Hi'
   sendForm.media = ''
   sendForm.caption = ''
   sendForm.linkTitle = ''
